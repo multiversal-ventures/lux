@@ -1,0 +1,15 @@
+{
+  "name": "@fenero/portal",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'portal build placeholder'",
+    "dev": "echo 'portal dev placeholder'",
+    "typecheck": "echo 'portal typecheck placeholder'"
+  },
+  "dependencies": {
+    "@fenero/lux-react": "workspace:*",
+    "@fenero/lux-themes": "workspace:*"
+  }
+}

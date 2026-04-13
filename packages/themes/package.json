@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     "./default.css": "./default.css",
+    "./globals.css": "./globals.css",
     "./dark.css": "./dark.css"
   },
   "scripts": {

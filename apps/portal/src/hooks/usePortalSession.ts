@@ -52,6 +52,7 @@ export function usePortalSession(): UsePortalSessionReturn {
 			return;
 		}
 
+		setError(null);
 		const result = await client.submitIntents(session.session_id, token, intents);
 		if (result.error) {
 			setError(result.error);

@@ -1,6 +1,6 @@
 # Lux
 
-Composable frontend SDK and component library for Veritas. Truth, rendered.
+Composable frontend SDK and component library for [Veritas](https://github.com/multiversal-ventures/veritas). Truth, rendered.
 
 ## What It Does
 

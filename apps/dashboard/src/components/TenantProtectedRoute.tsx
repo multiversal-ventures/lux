@@ -36,8 +36,8 @@ function TenantJoinScreen({ user, onJoined }: TenantJoinScreenProps) {
 			if (res.ok) {
 				onJoined();
 			} else {
-				const data = await res.json().catch(() => ({}));
-				setJoinError(data.detail || "Could not redeem code.");
+				const data: { detail?: string } = await res.json().catch(() => ({}));
+				setJoinError(data.detail ?? "Could not redeem code.");
 			}
 		} catch {
 			setJoinError("Network error. Try again.");
@@ -106,7 +106,7 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 			if (res.ok) {
-				const data = await res.json();
+				const data: { has_tenant: boolean } = await res.json();
 				setHasTenant(data.has_tenant === true);
 			} else {
 				setTenantCheckError("Could not verify organization status. Refresh to retry.");

@@ -28,6 +28,9 @@ async function processMagicLink(
 		await signInWithEmailLink(auth, savedEmail, window.location.href);
 		localStorage.removeItem("emailForSignIn");
 		window.history.replaceState({}, document.title, "/login");
+		// onDone() is intentionally NOT called here. After sign-in, onAuthStateChanged fires,
+		// PublicRoute detects the authenticated user and redirects. Keeping processingMagicLink=true
+		// shows the spinner until redirect, preventing a flash of the login form.
 		onSuccess();
 	} catch {
 		onError("Invalid or expired magic link. Please try again.");

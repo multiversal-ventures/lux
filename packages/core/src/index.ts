@@ -12,3 +12,17 @@
  * `pnpm codegen` runs `openapi-typescript openapi.json -o packages/core/src/generated.ts`.
  */
 export type { paths, components, operations } from "./generated";
+
+import type { components } from "./generated";
+
+/** Portal session response as returned by GET /portal/session */
+export type PortalSession = components["schemas"]["PortalSessionResponse"];
+
+/** A single checklist item in a portal session */
+export type ChecklistItem = components["schemas"]["ChecklistItem"];
+
+/** Borrower consent state */
+export type ConsentState = components["schemas"]["ConsentState"];
+
+/** A typed intent to submit to Veritas */
+export type Intent = components["schemas"]["Intent"];

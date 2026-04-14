@@ -9,7 +9,6 @@
     "typecheck": "echo 'storybook typecheck placeholder'"
   },
   "dependencies": {
-    "@fenero/lux-react": "workspace:*",
     "@fenero/lux-themes": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

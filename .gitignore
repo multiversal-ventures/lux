@@ -3,3 +3,7 @@ dist
 .turbo
 storybook-static
 openapi.json
+.env
+.env.local
+.env.development
+.env.production

@@ -1,0 +1,80 @@
+/* =============================================================================
+   Global Scrollbar Styling
+   ============================================================================= */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+  margin: 4px 0;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: rgba(249, 115, 22, 0.6);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark container scrollbars */
+.dark *,
+[class*="bg-slate-8"] *,
+[class*="bg-slate-9"] *,
+[class*="bg-gray-8"] *,
+[class*="bg-gray-9"] * {
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb,
+[class*="bg-slate-8"] *::-webkit-scrollbar-thumb,
+[class*="bg-slate-9"] *::-webkit-scrollbar-thumb,
+[class*="bg-gray-8"] *::-webkit-scrollbar-thumb,
+[class*="bg-gray-9"] *::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover,
+[class*="bg-slate-8"] *::-webkit-scrollbar-thumb:hover,
+[class*="bg-slate-9"] *::-webkit-scrollbar-thumb:hover,
+[class*="bg-gray-8"] *::-webkit-scrollbar-thumb:hover,
+[class*="bg-gray-9"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.dark *::-webkit-scrollbar-thumb:active,
+[class*="bg-slate-8"] *::-webkit-scrollbar-thumb:active,
+[class*="bg-slate-9"] *::-webkit-scrollbar-thumb:active,
+[class*="bg-gray-8"] *::-webkit-scrollbar-thumb:active,
+[class*="bg-gray-9"] *::-webkit-scrollbar-thumb:active {
+  background: rgba(249, 115, 22, 0.5);
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+

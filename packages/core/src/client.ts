@@ -1,4 +1,7 @@
-import type { PortalSession, Intent } from "./index";
+import type { components } from "./generated";
+
+type PortalSession = components["schemas"]["PortalSessionResponse"];
+type Intent = components["schemas"]["Intent"];
 
 export interface PortalClientConfig {
 	/** Base URL of the Veritas API (e.g. "" for same-origin, "https://api.example.com" for external). */
@@ -11,15 +14,15 @@ export interface PortalClientError {
 	status?: number;
 }
 
-export interface FetchSessionResult {
-	session: PortalSession | null;
-	error: PortalClientError | null;
-}
+/** Discriminated union: exactly one of session or error is set. */
+export type FetchSessionResult =
+	| { session: PortalSession; error: null }
+	| { session: null; error: PortalClientError };
 
-export interface SubmitIntentsResult {
-	session: PortalSession | null;
-	error: PortalClientError | null;
-}
+/** Discriminated union: exactly one of session or error is set. */
+export type SubmitIntentsResult =
+	| { session: PortalSession; error: null }
+	| { session: null; error: PortalClientError };
 
 /**
  * Minimal portal session client.

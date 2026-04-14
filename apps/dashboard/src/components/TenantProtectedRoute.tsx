@@ -3,11 +3,18 @@ import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
-interface ProtectedRouteProps {
+interface TenantProtectedRouteProps {
 	children: ReactNode;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+/**
+ * Route guard that requires both authentication and tenant (organization) association.
+ *
+ * Checks the authenticated user's tenant status via `/api/v1/auth/me`.
+ * Redirects to `/login` if unauthenticated, or shows a blocking message
+ * if the user has no associated organization.
+ */
+export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 	const { user, loading } = useAuth();
 	const [hasTenant, setHasTenant] = useState<boolean | null>(null);
 	const [checkingTenant, setCheckingTenant] = useState(true);

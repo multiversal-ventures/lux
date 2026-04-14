@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { TenantProtectedRoute } from "./components/TenantProtectedRoute";
 import { PublicRoute } from "./components/PublicRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { HomePage } from "./pages/HomePage";
@@ -10,7 +10,7 @@ export function App() {
 			<Routes>
 				<Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
 				<Route path="/login" element={<LoginPage />} />
-				<Route path="/app" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+				<Route path="/app" element={<TenantProtectedRoute><HomePage /></TenantProtectedRoute>} />
 			</Routes>
 		</BrowserRouter>
 	);

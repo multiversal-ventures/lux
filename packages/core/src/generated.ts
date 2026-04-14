@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Me
+         * @description Return the authenticated caller's identity and tenant status.
+         *
+         *     Used by frontends to determine: who am I, do I have a tenant,
+         *     what's my role? The response shape is intentionally flat and
+         *     stable — frontends depend on it.
+         */
+        get: operations["auth_me_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cases/{case_id}/audit": {
         parameters: {
             query?: never;
@@ -1309,6 +1333,28 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    auth_me_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     get_case_audit_cases__case_id__audit_get: {
         parameters: {
             query?: never;

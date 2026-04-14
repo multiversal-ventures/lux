@@ -145,6 +145,25 @@ pnpm build        # Build all packages
 pnpm test         # Run tests across workspace
 ```
 
+## OpenAPI Codegen
+
+Lux types are generated from the Veritas OpenAPI spec. The spec file
+(`openapi.json`) is the contract between repos.
+
+```bash
+# Step 1: Export from Veritas (run in veritas repo)
+veritas api export --openapi -o ../lux/openapi.json
+
+# Step 2: Generate TypeScript types (run in lux repo)
+pnpm codegen
+# → writes packages/core/src/generated.ts from openapi.json
+```
+
+Generated types include all request/response shapes, intent types,
+session fields, and checklist items. When Veritas adds a new endpoint
+or intent type, re-run both steps to pick it up. No manual type
+maintenance — the spec is the single source of truth.
+
 ## Related Repos
 
 ```

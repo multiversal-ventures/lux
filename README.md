@@ -27,10 +27,11 @@ No frontend deployment needed.
 ```
 Veritas (backend)              Lux (frontend)
 ─────────────────              ──────────────
-Composable APIs        →       @fenero/lux-core     (API client, session, types)
-SDUI display_hints     →       @fenero/lux-react    (component registry, pre-built UI)
+Composable APIs        →       @fenero/lux-core     (generated types; client planned)
+SDUI display_hints     →       @fenero/lux-react    (component registry; planned)
 Design tokens          →       @fenero/lux-themes   (CSS custom properties)
-                               apps/portal          (reference borrower portal)
+                               apps/portal          (reference borrower portal, Vite)
+                               apps/dashboard       (LO dashboard, Vite + Firebase)
 ```
 
 ## Structure
@@ -38,33 +39,27 @@ Design tokens          →       @fenero/lux-themes   (CSS custom properties)
 ```
 lux/
 ├── packages/
-│   ├── core/                  API client, session management, TypeScript types
+│   ├── core/                  TypeScript types generated from Veritas OpenAPI spec
 │   │   └── src/
-│   │       ├── client.ts        Veritas HTTP client (envelope-aware)
-│   │       ├── session.ts       VeritasSession (token → composed state)
-│   │       ├── types.ts         Generated from Veritas OpenAPI spec
-│   │       ├── events.ts        SSE / polling for live updates
-│   │       └── index.ts
+│   │       ├── generated.ts     Auto-generated types (pnpm codegen)
+│   │       └── index.ts         Re-exports paths, components, operations
+│   │                            [planned: client.ts, session.ts, events.ts]
 │   │
-│   ├── react/                 React component library
+│   ├── react/                 React component library (in progress)
 │   │   └── src/
-│   │       ├── SessionProvider.tsx   React context for VeritasSession
-│   │       ├── Checklist.tsx         Renders findings as actionable items
-│   │       ├── FileUpload.tsx        Secure document upload (portal-token auth)
-│   │       ├── ConsentForm.tsx       TCPA/GLBA consent toggles
-│   │       ├── StatusCard.tsx        Case state + progress
-│   │       ├── DocumentViewer.tsx    PDF with extraction highlights
-│   │       ├── registry.ts          display_hints.component → React component
-│   │       └── index.ts
+│   │       └── index.ts         Empty — components being built
+│   │                            [planned: SessionProvider, Checklist, FileUpload,
+│   │                             ConsentForm, StatusCard, registry]
 │   │
-│   └── themes/                Design tokens and CSS
-│       ├── default.css
-│       ├── dark.css
-│       └── tokens.ts
+│   └── themes/                Design tokens and CSS custom properties
+│       ├── globals.css          Base reset and variables
+│       ├── default.css          Light theme tokens
+│       └── dark.css             Dark theme tokens
 │
 ├── apps/
-│   └── portal/                Reference borrower portal (Next.js)
-│       └── src/
+│   ├── portal/                Reference borrower portal (Vite + React)
+│   ├── dashboard/             Loan officer dashboard (Vite + React + Firebase auth)
+│   └── storybook/             Component showcase (Storybook 8)
 │
 ├── turbo.json
 ├── package.json               Workspace root (Turborepo)
@@ -80,9 +75,14 @@ lux/
 | `@fenero/lux-react` | Components, SessionProvider, registry | React frontends |
 | `@fenero/lux-themes` | CSS custom properties, design tokens | Anyone who wants Fenero styling |
 
-## How It Works
+## How It Works (Target Architecture)
 
-### 1. Session-first API
+The SDK is under active development. The patterns below describe the
+intended API once `@fenero/lux-core` and `@fenero/lux-react` are built out.
+Current state: types are generated and exported from `@fenero/lux-core`;
+React components are not yet implemented.
+
+### 1. Session-first API (planned)
 
 One call returns everything the UI needs:
 
@@ -96,7 +96,7 @@ const session = await VeritasSession.create({ token: 'portal_token_uuid' })
 // session.uploadConfig → { endpoint, maxSize, acceptedTypes }
 ```
 
-### 2. Server-driven component registry
+### 2. Server-driven component registry (planned)
 
 Veritas returns `display_hints.component` on each checklist item.
 Lux maps it to a React component:
@@ -114,15 +114,12 @@ function Portal({ token }) {
 }
 ```
 
-### 3. Intents
+### 3. Intents (planned)
 
 User operations flow through `session.intent()` — a single method for
 all interactions. One intent or many in a batch, same method:
 
 ```typescript
-// Single intent
-await session.intent({ type: 'consent', params: { consent_type: 'doc_sharing', granted: true } })
-
 // Batch — multiple intents in one round-trip
 await session.intent([
   { type: 'consent', params: { consent_type: 'sms_opt_in', granted: true } },

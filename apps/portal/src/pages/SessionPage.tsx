@@ -15,7 +15,7 @@ export function SessionPage() {
 		);
 	}
 
-	if (error === "expired" || error === "No portal token provided") {
+	if (error?.code === "expired" || error?.code === "no_token") {
 		return <Navigate to="/expired" replace />;
 	}
 
@@ -24,7 +24,7 @@ export function SessionPage() {
 			<div className="min-h-screen flex items-center justify-center bg-slate-50">
 				<div className="bg-white p-8 rounded-xl border border-slate-200 max-w-md text-center">
 					<h2 className="text-xl font-semibold text-red-600 mb-2">Something went wrong</h2>
-					<p className="text-slate-600">{error}</p>
+					<p className="text-slate-600">{error.message}</p>
 				</div>
 			</div>
 		);

@@ -1,64 +1,25 @@
 import { useState, useEffect } from "react";
+import type { PortalSession, Intent } from "@fenero/lux-core";
 
-interface ChecklistItem {
-	id: string;
-	status: string;
-	title: string;
-	detail: string;
-	action: string;
-	priority: string;
-	finding_code: string;
-	display_hints: {
-		component: string;
-		accept: string | null;
-		label: string | null;
-	};
-}
+/** Discriminated error type so callers can route on code without matching magic strings. */
+export type PortalErrorCode = "expired" | "no_token" | "network" | "server" | "not_ready";
 
-interface ConsentState {
-	sms_opt_in: boolean;
-	email_opt_in: boolean;
-	doc_sharing: boolean;
-	electronic_records: boolean;
-	credit_pull: boolean;
-}
-
-interface PortalSession {
-	session_id: string;
-	entity: {
-		identity_id: string;
-		name: string;
-		role: string;
-	};
-	case_id: string;
-	case_state: string;
-	checklist: ChecklistItem[];
-	consent: ConsentState;
-	verification: { level: number; verified: boolean };
-	upload_config: {
-		max_file_size_mb: number;
-		accepted_types: string[];
-		endpoint: string;
-	};
-}
-
-interface Intent {
-	type: string;
-	params: Record<string, unknown>;
+export interface PortalError {
+	code: PortalErrorCode;
+	message: string;
 }
 
 interface UsePortalSessionReturn {
 	session: PortalSession | null;
 	loading: boolean;
-	error: string | null;
-	token: string | null;
-	submitIntent: (intent: Intent | Intent[]) => Promise<void>;
+	error: PortalError | null;
+	submitIntent: (intents: Intent[]) => Promise<void>;
 }
 
 export function usePortalSession(): UsePortalSessionReturn {
 	const [session, setSession] = useState<PortalSession | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<PortalError | null>(null);
 	const [token, setToken] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -67,7 +28,7 @@ export function usePortalSession(): UsePortalSessionReturn {
 		setToken(t);
 
 		if (!t) {
-			setError("No portal token provided");
+			setError({ code: "no_token", message: "No portal token provided" });
 			setLoading(false);
 			return;
 		}
@@ -79,28 +40,31 @@ export function usePortalSession(): UsePortalSessionReturn {
 		setLoading(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/portal/session?token=${t}`);
+			const res = await fetch("/api/portal/session", {
+				headers: { "X-Portal-Token": t },
+			});
 			if (!res.ok) {
 				if (res.status === 401) {
-					setError("expired");
+					setError({ code: "expired", message: "Session has expired. Please request a new link." });
 				} else {
-					setError(`Failed to load session (${res.status})`);
+					setError({ code: "server", message: `Failed to load session (${res.status})` });
 				}
 				return;
 			}
 			const data: PortalSession = await res.json();
 			setSession(data);
 		} catch {
-			setError("Failed to connect to server");
+			setError({ code: "network", message: "Failed to connect to server" });
 		} finally {
 			setLoading(false);
 		}
 	}
 
-	async function submitIntent(intent: Intent | Intent[]) {
-		if (!session || !token) return;
-
-		const intents = Array.isArray(intent) ? intent : [intent];
+	async function submitIntent(intents: Intent[]) {
+		if (!session || !token) {
+			setError({ code: "not_ready", message: "Session not ready" });
+			return;
+		}
 
 		try {
 			const res = await fetch(`/api/portal/session/${session.session_id}/intents`, {
@@ -112,13 +76,15 @@ export function usePortalSession(): UsePortalSessionReturn {
 				body: JSON.stringify({ intents }),
 			});
 			if (res.ok) {
-				const data = await res.json();
+				const data: { session: PortalSession } = await res.json();
 				setSession(data.session);
+			} else {
+				setError({ code: "server", message: `Failed to submit (${res.status})` });
 			}
 		} catch {
-			setError("Failed to submit");
+			setError({ code: "network", message: "Failed to submit" });
 		}
 	}
 
-	return { session, loading, error, token, submitIntent };
+	return { session, loading, error, submitIntent };
 }

@@ -26,3 +26,6 @@ export type ConsentState = components["schemas"]["ConsentState"];
 
 /** A typed intent to submit to Veritas */
 export type Intent = components["schemas"]["Intent"];
+
+export { createPortalClient } from "./client";
+export type { PortalClientConfig, PortalClientError, FetchSessionResult, SubmitIntentsResult } from "./client";

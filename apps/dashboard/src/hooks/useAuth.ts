@@ -26,8 +26,13 @@ export function useAuth(): UseAuthReturn {
 	}, []);
 
 	const signOut = async () => {
-		const auth = getAuth();
-		await firebaseSignOut(auth);
+		try {
+			const auth = getAuth();
+			await firebaseSignOut(auth);
+		} catch {
+			// Firebase sign-out failures are non-recoverable from the UI perspective;
+			// the auth state listener will reflect truth regardless.
+		}
 	};
 
 	return { user, loading, signOut };

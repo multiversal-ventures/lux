@@ -9,7 +9,7 @@ export function App() {
 		<BrowserRouter>
 			<Routes>
 				<Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
-				<Route path="/login" element={<LoginPage />} />
+				<Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 				<Route path="/app" element={<TenantProtectedRoute><HomePage /></TenantProtectedRoute>} />
 			</Routes>
 		</BrowserRouter>

@@ -1,14 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import type { PortalSession, Intent } from "@fenero/lux-core";
+import type { PortalSession, Intent, PortalClientError } from "@fenero/lux-core";
 import { createPortalClient } from "@fenero/lux-core";
 
-/** Discriminated error type so callers can route on code without matching magic strings. */
-export type PortalErrorCode = "expired" | "no_token" | "network" | "server" | "not_ready";
-
-export interface PortalError {
-	code: PortalErrorCode;
-	message: string;
-}
+/** Portal error type — re-exported from @fenero/lux-core for convenience. */
+export type PortalError = PortalClientError;
 
 interface UsePortalSessionReturn {
 	session: PortalSession | null;

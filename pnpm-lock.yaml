@@ -59,7 +59,7 @@ importers:
         version: 4.7.0(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0))
       '@vitest/coverage-v8':
         specifier: ^4.1.4
-        version: 4.1.4(vitest@3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0))
+        version: 4.1.4(vitest@4.1.4)
       jsdom:
         specifier: ^29.0.2
         version: 29.0.2
@@ -73,8 +73,8 @@ importers:
         specifier: ^7.2.0
         version: 7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)
       vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0)
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0))
 
   apps/portal:
     dependencies:
@@ -181,11 +181,10 @@ importers:
         version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0)
 
   packages/react:
-    dependencies:
+    devDependencies:
       '@fenero/lux-core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.14
@@ -4108,20 +4107,6 @@ snapshots:
       vite: 7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)
     transitivePeerDependencies:
       - supports-color
-
-  '@vitest/coverage-v8@4.1.4(vitest@3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0))':
-    dependencies:
-      '@bcoe/v8-coverage': 1.0.2
-      '@vitest/utils': 4.1.4
-      ast-v8-to-istanbul: 1.0.0
-      istanbul-lib-coverage: 3.2.2
-      istanbul-lib-report: 3.0.1
-      istanbul-reports: 3.2.0
-      magicast: 0.5.2
-      obug: 2.1.1
-      std-env: 4.0.0
-      tinyrainbow: 3.1.0
-      vitest: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0)
 
   '@vitest/coverage-v8@4.1.4(vitest@4.1.4)':
     dependencies:

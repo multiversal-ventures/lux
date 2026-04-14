@@ -8,7 +8,6 @@ import {
 import { useAuth } from "../hooks/useAuth";
 
 async function processMagicLink(
-	onSuccess: () => void,
 	onError: (msg: string) => void,
 	onDone: () => void,
 ) {
@@ -28,10 +27,8 @@ async function processMagicLink(
 		await signInWithEmailLink(auth, savedEmail, window.location.href);
 		localStorage.removeItem("emailForSignIn");
 		window.history.replaceState({}, document.title, "/login");
-		// onDone() is intentionally NOT called here. After sign-in, onAuthStateChanged fires,
-		// PublicRoute detects the authenticated user and redirects. Keeping processingMagicLink=true
-		// shows the spinner until redirect, preventing a flash of the login form.
-		onSuccess();
+		// onDone() intentionally omitted: after sign-in, onAuthStateChanged fires and PublicRoute
+		// redirects. Keeping processingMagicLink=true until redirect prevents a form flash.
 	} catch {
 		onError("Invalid or expired magic link. Please try again.");
 		onDone();
@@ -85,7 +82,6 @@ export function LoginPage() {
 		if (!loading) {
 			setProcessingMagicLink(true);
 			processMagicLink(
-				() => {},
 				(msg) => setError(msg),
 				() => setProcessingMagicLink(false),
 			);

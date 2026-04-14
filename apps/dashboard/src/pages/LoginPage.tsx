@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import {
 	getAuth,
 	sendSignInLinkToEmail,
@@ -8,55 +7,86 @@ import {
 } from "firebase/auth";
 import { useAuth } from "../hooks/useAuth";
 
+async function processMagicLink(
+	onError: (msg: string) => void,
+	onDone: () => void,
+) {
+	const auth = getAuth();
+	if (!isSignInWithEmailLink(auth, window.location.href)) {
+		onDone();
+		return;
+	}
+
+	const savedEmail = localStorage.getItem("emailForSignIn");
+	if (!savedEmail) {
+		onDone();
+		return;
+	}
+
+	try {
+		await signInWithEmailLink(auth, savedEmail, window.location.href);
+		localStorage.removeItem("emailForSignIn");
+		window.history.replaceState({}, document.title, "/login");
+		// onDone() intentionally omitted: after sign-in, onAuthStateChanged fires and PublicRoute
+		// redirects. Keeping processingMagicLink=true until redirect prevents a form flash.
+	} catch {
+		onError("Invalid or expired magic link. Please try again.");
+		onDone();
+	}
+}
+
+async function sendMagicLink(email: string): Promise<void> {
+	const auth = getAuth();
+	await sendSignInLinkToEmail(auth, email, {
+		url: window.location.origin + "/login",
+		handleCodeInApp: true,
+	});
+	localStorage.setItem("emailForSignIn", email);
+}
+
+interface EmailSentViewProps {
+	email: string;
+	onRetry: () => void;
+}
+
+function EmailSentView({ email, onRetry }: EmailSentViewProps) {
+	return (
+		<div className="min-h-screen flex items-center justify-center bg-slate-50">
+			<div className="max-w-md w-full p-8">
+				<div className="bg-white p-8 border border-slate-200 rounded-xl shadow-sm text-center">
+					<h2 className="text-2xl font-bold text-slate-900 mb-4">Check your email!</h2>
+					<p className="text-slate-600 mb-8">
+						We sent a magic link to <strong>{email}</strong>. Click the link to sign in.
+					</p>
+					<button
+						onClick={onRetry}
+						className="text-cta hover:text-cta-hover font-medium cursor-pointer"
+					>
+						Try again
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export function LoginPage() {
-	const { user, loading } = useAuth();
-	const navigate = useNavigate();
-	const location = useLocation();
+	const { loading } = useAuth();
 	const [email, setEmail] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [emailSent, setEmailSent] = useState(false);
 	const [error, setError] = useState("");
-	const [processingMagicLink, setProcessingMagicLink] = useState(() => {
-		try {
-			return isSignInWithEmailLink(getAuth(), window.location.href);
-		} catch {
-			return false;
-		}
-	});
+	const [processingMagicLink, setProcessingMagicLink] = useState(false);
 
 	useEffect(() => {
-		if (user && !loading) {
-			const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app";
-			navigate(from, { replace: true });
-		}
-	}, [user, loading, navigate, location]);
-
-	useEffect(() => {
-		const checkMagicLink = async () => {
-			const auth = getAuth();
-			if (!isSignInWithEmailLink(auth, window.location.href)) return;
-
+		if (!loading) {
 			setProcessingMagicLink(true);
-			const savedEmail = localStorage.getItem("emailForSignIn");
-			if (!savedEmail) {
-				setProcessingMagicLink(false);
-				return;
-			}
-
-			try {
-				await signInWithEmailLink(auth, savedEmail, window.location.href);
-				localStorage.removeItem("emailForSignIn");
-				window.history.replaceState({}, document.title, "/login");
-			} catch {
-				setError("Invalid or expired magic link. Please try again.");
-				setProcessingMagicLink(false);
-			}
-		};
-
-		if (!loading && !user) {
-			checkMagicLink();
+			processMagicLink(
+				(msg) => setError(msg),
+				() => setProcessingMagicLink(false),
+			);
 		}
-	}, [loading, user]);
+	}, [loading]);
 
 	if (loading || processingMagicLink) {
 		return (
@@ -71,9 +101,8 @@ export function LoginPage() {
 		);
 	}
 
-	if (user) {
-		const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app";
-		return <Navigate to={from} replace />;
+	if (emailSent) {
+		return <EmailSentView email={email} onRetry={() => setEmailSent(false)} />;
 	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -87,12 +116,7 @@ export function LoginPage() {
 
 		setIsLoading(true);
 		try {
-			const auth = getAuth();
-			await sendSignInLinkToEmail(auth, email, {
-				url: window.location.origin + "/login",
-				handleCodeInApp: true,
-			});
-			localStorage.setItem("emailForSignIn", email);
+			await sendMagicLink(email);
 			setEmailSent(true);
 		} catch {
 			setError("Failed to send magic link. Please try again.");
@@ -100,27 +124,6 @@ export function LoginPage() {
 			setIsLoading(false);
 		}
 	};
-
-	if (emailSent) {
-		return (
-			<div className="min-h-screen flex items-center justify-center bg-slate-50">
-				<div className="max-w-md w-full p-8">
-					<div className="bg-white p-8 border border-slate-200 rounded-xl shadow-sm text-center">
-						<h2 className="text-2xl font-bold text-slate-900 mb-4">Check your email!</h2>
-						<p className="text-slate-600 mb-8">
-							We sent a magic link to <strong>{email}</strong>. Click the link to sign in.
-						</p>
-						<button
-							onClick={() => setEmailSent(false)}
-							className="text-cta hover:text-cta-hover font-medium cursor-pointer"
-						>
-							Try again
-						</button>
-					</div>
-				</div>
-			</div>
-		);
-	}
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-slate-50">

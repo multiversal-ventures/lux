@@ -5,7 +5,11 @@
   "exports": {
     "./default.css": "./default.css",
     "./globals.css": "./globals.css",
-    "./dark.css": "./dark.css"
+    "./dark.css": "./dark.css",
+    "./scrollbars.css": "./scrollbars.css",
+    "./base.css": "./base.css",
+    "./animations.css": "./animations.css",
+    "./components.css": "./components.css"
   },
   "scripts": {
     "build": "echo 'no build step for themes'",

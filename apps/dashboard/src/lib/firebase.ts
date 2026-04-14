@@ -18,11 +18,3 @@ export function waitForAuth(): Promise<User | null> {
 		});
 	});
 }
-
-export function isAuthenticated(): boolean {
-	return authReady && currentUser !== null;
-}
-
-export function getCurrentUser(): User | null {
-	return currentUser;
-}

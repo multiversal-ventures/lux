@@ -139,11 +139,47 @@ updates the TypeScript union. The SDK never gates what the server accepts.
 ## Quick Start
 
 ```bash
+git clone git@github.com:fenero/lux.git
+cd lux && git checkout release/0.0.1
+
 pnpm install
 pnpm dev          # Start portal dev server
 pnpm build        # Build all packages
 pnpm test         # Run tests across workspace
 ```
+
+## Dashboard (apps/dashboard)
+
+The LO dashboard is the multi-tenant operator UI. It talks to a local
+Veritas backend via a Vite proxy on `/api/v1/*`. Bring Veritas up first
+(see [`../veritas/README.md`](../veritas/README.md)), then:
+
+```bash
+cp apps/dashboard/.env.example apps/dashboard/.env
+# edit apps/dashboard/.env — fill in your VITE_FIREBASE_* values
+pnpm --filter dashboard dev
+```
+
+Dashboard runs on `http://localhost:3332`. The Vite proxy forwards
+`/api/v1/*` → `http://localhost:8000` and auto-injects Firebase JWKS,
+audience, and issuer headers, so the backend does not need JWT env
+vars for local development.
+
+### Joining an organization (first sign-in)
+
+New users don't self-register into a tenant — an admin issues them an
+invite code. After signing in with magic link for the first time:
+
+1. You'll see a **"Join an Organization"** screen.
+2. Paste the invite code your admin sent (e.g. `lux-A7K2-QPMR`).
+3. Click **Join**. The dashboard reloads into your tenant.
+
+If the screen persists after a valid code, check that the backend is
+running and that `VITE_FIREBASE_PROJECT_ID` is set — without it the
+proxy can't verify your token and `/auth/me` returns 500.
+
+Admins issue, list, and revoke codes via the Veritas CLI — see
+[`../veritas/README.md`](../veritas/README.md).
 
 ## OpenAPI Codegen
 

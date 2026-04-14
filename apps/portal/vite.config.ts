@@ -5,6 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), ["VITE_", "VERITAS_"]);
 	const veritasBearer = env.VERITAS_BEARER_TOKEN || "";
+	const apiTarget = env.VITE_VERITAS_API_URL || env.VITE_API_TARGET || "http://localhost:8000";
 
 	return {
 		plugins: [react(), tailwindcss()],
@@ -12,7 +13,7 @@ export default defineConfig(({ mode }) => {
 			port: 3331,
 			proxy: {
 				"/api": {
-					target: "http://localhost:8000",
+					target: apiTarget,
 					changeOrigin: true,
 					rewrite: (path) => path.replace(/^\/api/, ""),
 					configure: (proxy) => {

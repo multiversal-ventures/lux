@@ -107,7 +107,7 @@ export function usePortalSession(): UsePortalSessionReturn {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`,
+					"X-Portal-Token": token,
 				},
 				body: JSON.stringify({ intents }),
 			});

@@ -5,8 +5,7 @@ export {
 	WorkflowStatusBadge,
 	useWorkflowContext,
 } from "./WorkflowAwareButton";
-export { ProtectedRoute } from "./ProtectedRoute";
-export { PublicRoute } from "./PublicRoute";
+export { PublicRoute } from "../PublicRoute";
 export {
 	SemanticTable,
 	formatValue,

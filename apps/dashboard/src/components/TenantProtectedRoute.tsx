@@ -4,20 +4,21 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { resolveApiUrl } from "../lib/api";
 import { isDevUiOnlyBypass } from "../lib/devUiOnly";
+import { useAppDispatch } from "../store";
+import { setTenantId, setTenantName } from "../store/appSlice";
 
 interface TenantProtectedRouteProps {
 	children: ReactNode;
 }
 
 /**
- * Route guard that requires both authentication and tenant (organization) association.
- *
- * Checks the authenticated user's tenant status via `/api/v1/auth/me`.
- * Redirects to `/login` if unauthenticated, or shows a blocking message
- * if the user has no associated organization.
+ * Route guard: Firebase session (`useAuth`) + organization via `GET /api/v1/auth/me`.
+ * Hydrates Redux `tenantId` / `tenantName` from the same response (single path vs legacy `ProtectedRoute`).
+ * Honors `localStorage.bypass_tenant_check` when the API false-negatives on `has_tenant` (see CompleteRegistrationPage).
  */
 export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 	const bypass = isDevUiOnlyBypass();
+	const dispatch = useAppDispatch();
 	const { user, loading } = useAuth();
 	const [hasTenant, setHasTenant] = useState<boolean | null>(() => (bypass ? true : null));
 	const [checkingTenant, setCheckingTenant] = useState(() => !bypass);
@@ -37,8 +38,43 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 				if (res.ok) {
-					const data = await res.json();
-					setHasTenant(data.has_tenant === true);
+					const data = (await res.json()) as {
+						has_tenant?: boolean;
+						tenant_id?: string;
+						tenant_name?: string;
+					};
+					if (data.has_tenant === true) {
+						localStorage.removeItem("bypass_tenant_check");
+						setHasTenant(true);
+						if (data.tenant_id && data.tenant_name) {
+							dispatch(setTenantId(data.tenant_id));
+							dispatch(setTenantName(data.tenant_name));
+						} else {
+							try {
+								const tenantResponse = await fetch(resolveApiUrl("/api/v1/tenants/me"), {
+									headers: { Authorization: `Bearer ${token}` },
+								});
+								if (tenantResponse.ok) {
+									const tenantData = (await tenantResponse.json()) as {
+										tenant_id?: string;
+										tenant_name?: string;
+									};
+									if (tenantData.tenant_id) {
+										dispatch(setTenantId(tenantData.tenant_id));
+									}
+									if (tenantData.tenant_name) {
+										dispatch(setTenantName(tenantData.tenant_name));
+									}
+								}
+							} catch {
+								/* ignore */
+							}
+						}
+					} else if (localStorage.getItem("bypass_tenant_check")) {
+						setHasTenant(true);
+					} else {
+						setHasTenant(false);
+					}
 				} else {
 					setHasTenant(false);
 				}
@@ -52,7 +88,7 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 		if (!loading) {
 			checkTenant();
 		}
-	}, [user, loading, bypass]);
+	}, [user, loading, bypass, dispatch]);
 
 	if (bypass) {
 		return <>{children}</>;
@@ -67,6 +103,7 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 	}
 
 	if (!user) {
+		localStorage.removeItem("bypass_tenant_check");
 		return <Navigate to="/login" replace />;
 	}
 

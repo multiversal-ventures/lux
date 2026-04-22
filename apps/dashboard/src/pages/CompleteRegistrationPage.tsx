@@ -132,7 +132,7 @@ export function CompleteRegistrationPage() {
 			console.error("Registration failed:", err);
 
 			// If user already belongs to an organization, redirect to app
-			// Set flag to bypass ProtectedRoute tenant check (workaround for backend bug)
+			// Let TenantProtectedRoute admit the session if /auth/me false-negatives on has_tenant
 			if (err.message?.includes("User already belongs")) {
 				localStorage.setItem("bypass_tenant_check", "true");
 				navigate("/app");

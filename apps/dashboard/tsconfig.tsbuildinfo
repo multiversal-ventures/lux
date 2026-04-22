@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/protectedroute.tsx","./src/components/publicroute.tsx","./src/hooks/useauth.ts","./src/lib/firebase.ts","./src/pages/homepage.tsx","./src/pages/loginpage.tsx"],"version":"5.9.3"}

@@ -76,10 +76,11 @@ markdown files beyond README.md in each package and this file.
 
 ## Layout
 
-- `packages/core/` → `@fenero/lux-core` — API client, session, types, events. No React dependency.
-- `packages/react/` → `@fenero/lux-react` — Components, hooks, SessionProvider, component registry. Depends on core.
+- `packages/core/` → `@fenero/lux-core` — `VeritasClient`, `initLux`, `gunnr-api`, `VeritasSession`, `dispatchLuxIntent`, `CaseSseTransport`, OpenAPI `generated.ts`, `gunnr-types` (+ `./gunnr-types` export). No React dependency.
+- `packages/react/` → `@fenero/lux-react` — `SessionProvider`, `useSession`, `useAuth`, `useIntent`, `useCase`, `useEvents`. Depends on core. Feature widgets / `display_hints` registry are not here yet.
 - `packages/themes/` → `@fenero/lux-themes` — CSS custom properties, design tokens. No JS runtime dependency.
-- `apps/portal/` → Reference borrower portal. Built entirely on @fenero/lux-react. Proves the SDK.
+- `apps/dashboard/` → LO dashboard (`@gunnr/ui`). Calls `initLux` in `main.tsx`, wraps `SessionProvider` in `App.tsx`, re-exports Gunnr API from `@fenero/lux-core` via `hooks/useApi.ts`.
+- `apps/portal/` → Reference borrower portal. Not yet wired to the new `SessionProvider` / `initLux` path.
 
 ## Principles
 

@@ -1,5 +1,13 @@
 /**
- * @fenero/lux-core — Typed API client and generated types for Veritas.
+ * @fenero/lux-core — Veritas SDK primitives.
+ *
+ * Includes: generated OpenAPI types, auth provider abstraction,
+ * VeritasClient (HTTP, Bearer-based — dashboard apps),
+ * createPortalClient (X-Portal-Token — borrower portal apps),
+ * runtime singleton (initLux/getDefaultClient),
+ * VeritasSession (tenant + SSE), and CaseSseTransport.
+ *
+ * Product-specific layers (Gunnr, etc.) live in consumer apps, not here.
  *
  * Types are generated from the Veritas OpenAPI spec. To regenerate:
  *
@@ -8,12 +16,10 @@
  *
  *   # In Lux:
  *   pnpm codegen
- *
- * `pnpm codegen` runs `openapi-typescript openapi.json -o packages/core/src/generated.ts`.
  */
-export type { paths, components, operations } from "./generated";
+export type { paths, components, operations } from "./generated.js";
 
-import type { components } from "./generated";
+import type { components } from "./generated.js";
 
 /** Portal session response as returned by GET /portal/session */
 export type PortalSession = components["schemas"]["PortalSessionResponse"];
@@ -27,5 +33,38 @@ export type ConsentState = components["schemas"]["ConsentState"];
 /** A typed intent to submit to Veritas */
 export type Intent = components["schemas"]["Intent"];
 
-export { createPortalClient } from "./client";
-export type { PortalClientConfig, PortalClientError, FetchSessionResult, SubmitIntentsResult } from "./client";
+export * from "./auth.js";
+
+export {
+	createVeritasClient,
+	VeritasClient,
+	APIError,
+	resolveApiPath,
+	createPortalClient,
+} from "./client.js";
+export type {
+	VeritasClientConfig,
+	ClientHooks,
+	PortalClientConfig,
+	PortalClientError,
+	FetchSessionResult,
+	SubmitIntentsResult,
+} from "./client.js";
+
+export {
+	initLux,
+	getDefaultClient,
+	getAuthProvider,
+	isLuxInitialized,
+	getLuxToken,
+	type LuxInitConfig,
+} from "./runtime.js";
+
+export { CaseSseTransport } from "./events.js";
+export type {
+	CaseSseTransportOptions,
+	CaseSseMessageHandler,
+	StreamStatus,
+} from "./events.js";
+
+export { VeritasSession } from "./session.js";

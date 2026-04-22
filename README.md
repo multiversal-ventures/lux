@@ -1,16 +1,17 @@
 # Lux
 
-Composable frontend SDK and component library for [Veritas](https://github.com/multiversal-ventures/veritas). Truth, rendered.
+Composable frontend SDK for Veritas. Truth, rendered.
 
 ## What It Does
 
-Lux is the rendering layer for the Veritas mortgage processing platform.
-Loan officers, borrowers, partners, and agents all interact with Veritas
-through Lux — a typed API client, pre-built React components, and a
-server-driven component registry that renders what the spec engine decides.
+Lux is the rendering SDK for the Veritas mortgage processing platform.
+Loan officers, borrowers, partners, and agents interact with Veritas
+through Lux — a typed API client, an auth-provider abstraction, a session
+primitive, and (today) a thin React glue layer.
 
-When Veritas adds a new qualification finding, Lux renders it automatically.
-No frontend deployment needed.
+Lux is product-agnostic. Customer apps (e.g. Gunnr's LO dashboard, the
+borrower portal) live in their own repos and consume `@fenero/lux-*` as
+versioned packages.
 
 ## Principles
 
@@ -25,13 +26,18 @@ No frontend deployment needed.
 ## Architecture
 
 ```
-Veritas (backend)              Lux (frontend)
-─────────────────              ──────────────
-Composable APIs        →       @fenero/lux-core     (generated types; client planned)
-SDUI display_hints     →       @fenero/lux-react    (component registry; planned)
+Veritas (backend)              Lux (frontend SDK)
+─────────────────              ──────────────────
+Composable APIs        →       @fenero/lux-core     (HTTP client, auth, session, SSE, OpenAPI types)
+SDUI display_hints     →       @fenero/lux-react    (SessionProvider + hooks; component registry planned)
 Design tokens          →       @fenero/lux-themes   (CSS custom properties)
-                               apps/portal          (reference borrower portal, Vite)
-                               apps/dashboard       (LO dashboard, Vite + Firebase)
+
+                               apps/dashboard       (minimal SDK sample — not a product)
+                               apps/portal          (reference borrower portal)
+
+Customer apps (live elsewhere)
+──────────────────────────────
+gunnr/ui                       LO dashboard — consumes @fenero/lux-* via npm/file:
 ```
 
 ## Structure
@@ -39,170 +45,131 @@ Design tokens          →       @fenero/lux-themes   (CSS custom properties)
 ```
 lux/
 ├── packages/
-│   ├── core/                  TypeScript types generated from Veritas OpenAPI spec
+│   ├── core/                  @fenero/lux-core — Veritas SDK primitives
 │   │   └── src/
-│   │       ├── generated.ts     Auto-generated types (pnpm codegen)
-│   │       └── index.ts         Re-exports paths, components, operations
-│   │                            [planned: client.ts, session.ts, events.ts]
+│   │       ├── client.ts        VeritasClient (Bearer + Veritas-Version)
+│   │       ├── auth.ts          AuthProvider abstraction (+ Firebase / portal-token helpers)
+│   │       ├── runtime.ts       initLux / getDefaultClient / getLuxToken
+│   │       ├── session.ts       VeritasSession (tenant, active case, SSE attach/detach)
+│   │       ├── events.ts        CaseSseTransport for `/api/v1/stream/:caseId`
+│   │       ├── generated.ts     Veritas OpenAPI types (`pnpm codegen`)
+│   │       └── index.ts
 │   │
-│   ├── react/                 React component library (in progress)
+│   ├── react/                 @fenero/lux-react — React glue (no feature widgets yet)
 │   │   └── src/
-│   │       └── index.ts         Empty — components being built
-│   │                            [planned: SessionProvider, Checklist, FileUpload,
-│   │                             ConsentForm, StatusCard, registry]
+│   │       ├── SessionProvider.tsx
+│   │       ├── useSession.ts / useAuth.ts / useCase.ts / useEvents.ts
+│   │       └── index.ts
 │   │
-│   └── themes/                Design tokens and CSS custom properties
-│       ├── globals.css          Base reset and variables
-│       ├── default.css          Light theme tokens
-│       └── dark.css             Dark theme tokens
+│   └── themes/                Design tokens and CSS
+│       ├── default.css
+│       ├── dark.css
+│       └── tokens.ts
 │
 ├── apps/
-│   ├── portal/                Reference borrower portal (Vite + React)
-│   ├── dashboard/             Loan officer dashboard (Vite + React + Firebase auth)
-│   └── storybook/             Component showcase (Storybook 8)
+│   ├── dashboard/             Minimal SDK sample (`@fenero/lux-sample-dashboard`)
+│   └── portal/                Reference borrower portal (Vite)
 │
+├── dist-pack/                 Local tarballs for file: linking into customer repos
 ├── turbo.json
-├── package.json               Workspace root (Turborepo)
+├── package.json               Workspace root (Turborepo + pnpm)
 ├── tsconfig.base.json
 └── biome.json
 ```
 
+Product-specific code (Gunnr REST methods, intent maps, phase configs) is
+**not** in this repo. It lives in the consumer (`gunnr/ui`) and consumes
+the SDK primitives below.
+
 ## Packages
 
-| Package | npm | Who uses it |
-|---------|-----|-------------|
-| `@fenero/lux-core` | API client, session, types | Everyone — React, Vue, vanilla JS, agents |
-| `@fenero/lux-react` | Components, SessionProvider, registry | React frontends |
+| Package | What's in it | Who uses it |
+|---------|--------------|-------------|
+| `@fenero/lux-core` | `VeritasClient`, `initLux`, `VeritasSession`, `CaseSseTransport`, OpenAPI types | Everyone — React, Vue, vanilla JS, agents |
+| `@fenero/lux-react` | `SessionProvider`, `useSession` / `useAuth` / `useCase` / `useEvents` | React frontends |
 | `@fenero/lux-themes` | CSS custom properties, design tokens | Anyone who wants Fenero styling |
 
-## How It Works (Target Architecture)
+## How It Works
 
-The SDK is under active development. The patterns below describe the
-intended API once `@fenero/lux-core` and `@fenero/lux-react` are built out.
-Current state: types are generated and exported from `@fenero/lux-core`;
-React components are not yet implemented.
+### 1. Bootstrap
 
-### 1. Session-first API (planned)
+```ts
+import { initLux, createFirebaseAuthProvider } from '@fenero/lux-core'
 
-One call returns everything the UI needs:
-
-```typescript
-import { VeritasSession } from '@fenero/lux-core'
-
-const session = await VeritasSession.create({ token: 'portal_token_uuid' })
-// session.entity       → { name, role, identity_id }
-// session.checklist    → [{ title, detail, action, display_hints }]
-// session.consent      → { sms_opt_in, doc_sharing }
-// session.uploadConfig → { endpoint, maxSize, acceptedTypes }
+initLux({
+  baseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
+  auth: createFirebaseAuthProvider(() => getFirebaseAuth()),
+  hooks: {
+    onApiError: (info) => myErrorTracker(info),
+  },
+})
 ```
 
-### 2. Server-driven component registry (planned)
+Static portal tokens use `PortalTokenAuthProvider` with the same
+`VeritasClient` / `VeritasSession` pattern. Customers may implement any
+`AuthProvider` they like.
 
-Veritas returns `display_hints.component` on each checklist item.
-Lux maps it to a React component:
+### 2. React shell
 
 ```tsx
-import { SessionProvider, Checklist, FileUpload } from '@fenero/lux-react'
+import { SessionProvider, useSession } from '@fenero/lux-react'
 
-function Portal({ token }) {
+function App() {
   return (
-    <SessionProvider token={token}>
-      <Checklist />   {/* Renders from session.checklist + display_hints */}
-      <FileUpload />  {/* Configured from session.uploadConfig */}
+    <SessionProvider firebaseAuth={() => getFirebaseAuth()}>
+      <Header />
     </SessionProvider>
   )
 }
 ```
 
-### 3. Intents (planned)
+`firebaseAuth` is optional — only required if your app calls `useAuth`.
 
-User operations flow through `session.intent()` — a single method for
-all interactions. One intent or many in a batch, same method:
+### 3. HTTP calls
 
-```typescript
-// Batch — multiple intents in one round-trip
-await session.intent([
-  { type: 'consent', params: { consent_type: 'sms_opt_in', granted: true } },
-  { type: 'upload', params: { files: [file] } },
-])
-// Returns refreshed session state
+```ts
+import { getDefaultClient } from '@fenero/lux-core'
+
+const data = await getDefaultClient().requestJson<Foo>('/api/v1/some-endpoint')
 ```
 
-Intent types are **generated from the Veritas OpenAPI spec**, versioned
-by `Veritas-Version` header. Lux doesn't define what intents exist —
-Veritas does. When the backend adds a new intent type, `pnpm codegen`
-updates the TypeScript union. The SDK never gates what the server accepts.
+Customer apps wrap this in their own typed API layer (e.g. `gunnr/ui` has
+`src/lib/lux-gunnr/`). Lux itself ships **no** product-specific endpoint
+methods.
 
 ## Quick Start
 
 ```bash
-git clone git@github.com:fenero/lux.git
-cd lux && git checkout release/0.0.1
-
 pnpm install
-pnpm dev          # Start portal dev server
-pnpm build        # Build all packages
-pnpm test         # Run tests across workspace
+pnpm --filter @fenero/lux-core build
+pnpm --filter @fenero/lux-react build
+pnpm --filter @fenero/lux-sample-dashboard dev   # http://localhost:3332
 ```
 
-## Dashboard (apps/dashboard)
-
-The LO dashboard is the multi-tenant operator UI. It talks to a local
-Veritas backend via a Vite proxy on `/api/v1/*`. Bring Veritas up first
-(see [`../veritas/README.md`](../veritas/README.md)), then:
+## Linking into a customer repo (local dev)
 
 ```bash
-cp apps/dashboard/.env.example apps/dashboard/.env
-# edit apps/dashboard/.env — fill in your VITE_FIREBASE_* values
-pnpm --filter dashboard dev
+# In lux/
+pnpm --filter @fenero/lux-core pack --pack-destination ./dist-pack
+pnpm --filter @fenero/lux-react pack --pack-destination ./dist-pack
+
+# In customer/ui/package.json
+"dependencies": {
+  "@fenero/lux-core":  "file:../../lux/dist-pack/fenero-lux-core-0.0.1.tgz",
+  "@fenero/lux-react": "file:../../lux/dist-pack/fenero-lux-react-0.0.1.tgz"
+}
 ```
 
-Dashboard runs on `http://localhost:3332`. The Vite proxy forwards
-`/api/v1/*` → `http://localhost:8000` and auto-injects Firebase JWKS,
-audience, and issuer headers, so the backend does not need JWT env
-vars for local development.
-
-### Joining an organization (first sign-in)
-
-New users don't self-register into a tenant — an admin issues them an
-invite code. After signing in with magic link for the first time:
-
-1. You'll see a **"Join an Organization"** screen.
-2. Paste the invite code your admin sent (e.g. `lux-A7K2-QPMR`).
-3. Click **Join**. The dashboard reloads into your tenant.
-
-If the screen persists after a valid code, check that the backend is
-running and that `VITE_FIREBASE_PROJECT_ID` is set — without it the
-proxy can't verify your token and `/auth/me` returns 500.
-
-Admins issue, list, and revoke codes via the Veritas CLI — see
-[`../veritas/README.md`](../veritas/README.md).
-
-## OpenAPI Codegen
-
-Lux types are generated from the Veritas OpenAPI spec. The spec file
-(`openapi.json`) is the contract between repos.
-
-```bash
-# Step 1: Export from Veritas (run in veritas repo)
-veritas api export --openapi -o ../lux/openapi.json
-
-# Step 2: Generate TypeScript types (run in lux repo)
-pnpm codegen
-# → writes packages/core/src/generated.ts from openapi.json
-```
-
-Generated types include all request/response shapes, intent types,
-session fields, and checklist items. When Veritas adds a new endpoint
-or intent type, re-run both steps to pick it up. No manual type
-maintenance — the spec is the single source of truth.
+`pnpm pack` rewrites `workspace:*` deps to concrete versions, so plain
+`npm install` in the consumer works.
 
 ## Related Repos
 
 ```
 fenero/
 ├── veritas/        Backend: APIs, spec engine, extraction, Temporal orchestration
-└── lux/            ← you are here (frontend SDK + components)
+├── lux/            ← you are here (SDK)
+└── gunnr/          Customer product (LO dashboard) — consumes lux/
 ```
 
 Lux is a **pure client** of the Veritas API. It has zero server-side
@@ -218,8 +185,6 @@ The dependency is one-directional: Lux depends on Veritas, never the reverse.
 
 - **API contract**: `veritas/docs/superpowers/specs/2026-04-13-composable-api-surface-design.md`
 - **Type generation**: Lux runs `pnpm codegen` against the Veritas OpenAPI spec to generate
-  `@fenero/lux-core` types (session, intents, envelope). When Veritas adds a new intent type
-  or finding code, Lux picks it up on next codegen — no manual type maintenance.
+  `@fenero/lux-core` types. When Veritas changes, Lux picks it up on next codegen.
 - **API versioning**: Lux pins to a `Veritas-Version` header. Upgrading means bumping the
-  version string and regenerating types. Veritas guarantees backward compatibility within
-  a version.
+  version string and regenerating types.

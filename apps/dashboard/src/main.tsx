@@ -1,20 +1,39 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { initializeApp, type FirebaseOptions } from "firebase/app";
 import "./index.css";
 import { App } from "./App";
-import { initializeApp } from "firebase/app";
 import { waitForAuth } from "./lib/firebase";
+import { identifyMixpanel, initMixpanel, resetMixpanel } from "./lib/mixpanel";
+import { initAnalytics, setAnalyticsUserId } from "./lib/analytics";
 
-initializeApp({
+const firebaseConfig: FirebaseOptions = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
 	authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
 	projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
 	storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
 	messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
 	appId: import.meta.env.VITE_FIREBASE_APP_ID,
-});
+};
+if (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) {
+	firebaseConfig.measurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID;
+}
 
-waitForAuth().then(() => {
+initializeApp(firebaseConfig);
+initAnalytics();
+initMixpanel();
+
+waitForAuth().then((user) => {
+	if (user) {
+		setAnalyticsUserId(user.uid);
+		identifyMixpanel(user.uid, {
+			$email: user.email ?? "",
+			$name: user.displayName ?? "",
+		});
+	} else {
+		resetMixpanel();
+	}
+
 	createRoot(document.getElementById("root")!).render(
 		<StrictMode>
 			<App />

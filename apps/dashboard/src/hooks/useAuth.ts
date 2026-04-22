@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-	getAuth,
-	onAuthStateChanged,
-	signOut as firebaseSignOut,
-} from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 import type { User } from "firebase/auth";
 
 interface UseAuthReturn {

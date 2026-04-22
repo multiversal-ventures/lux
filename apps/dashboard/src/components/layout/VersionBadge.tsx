@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAppSelector } from "../../store";
+import { resolveApiUrl } from "../../lib/api";
 
 interface BackendVersion {
 	component: string;
@@ -22,7 +23,7 @@ export function VersionBadge() {
 
 	// Fetch backend version on mount
 	useEffect(() => {
-		fetch("/api/v1/version")
+		fetch(resolveApiUrl("/api/v1/version"))
 			.then((res) => (res.ok ? res.json() : null))
 			.then((data: BackendVersion | null) => {
 				if (data) {

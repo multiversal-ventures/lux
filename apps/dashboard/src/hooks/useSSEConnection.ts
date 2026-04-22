@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { getAuth } from "firebase/auth";
 import { useCaseEventStore, getStoredEventHead } from "../stores/caseEventStore";
+import { resolveApiUrl } from "../lib/api";
 import { getCaseEvents } from "./useApi";
 import type { StreamEvent } from "../types";
 
@@ -225,8 +226,13 @@ export function useSSEConnection({
 		const lastId = store.getState().lastEventId;
 		if (lastId) params.set("Last-Event-ID", lastId);
 
-		const url = `/api/v1/stream/${caseId}${params.toString() ? `?${params}` : ""}`;
-		const es = new EventSource(url);
+		const path = `/api/v1/stream/${caseId}${params.toString() ? `?${params}` : ""}`;
+		const resolved = resolveApiUrl(path);
+		const absolute =
+			resolved.startsWith("http://") || resolved.startsWith("https://")
+				? resolved
+				: new URL(resolved, window.location.origin).toString();
+		const es = new EventSource(absolute);
 		eventSourceRef.current = es;
 
 		es.onopen = () => {

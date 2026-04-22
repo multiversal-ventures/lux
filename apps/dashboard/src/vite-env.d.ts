@@ -8,4 +8,7 @@ declare const __BUILD_TIME__: string;
 interface ImportMetaEnv {
 	readonly VITE_FIREBASE_MEASUREMENT_ID?: string;
 	readonly VITE_MIXPANEL_TOKEN?: string;
+	/** Absolute Gunnr API origin (no trailing slash). See apps/dashboard/README.md */
+	readonly VITE_GUNNR_API_URL?: string;
+	readonly VITE_DEV_UI_ONLY?: string;
 }

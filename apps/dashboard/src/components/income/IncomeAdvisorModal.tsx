@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { X, Loader2, Wand2, MessageCircle, Send, Trash2, AlertTriangle } from "lucide-react";
 import { getAuth } from "firebase/auth";
+import { resolveApiUrl } from "../../lib/api";
 
 // Sub-components
 import {
@@ -71,10 +72,9 @@ export function IncomeAdvisorModal({
 			try {
 				const user = getAuth().currentUser;
 				const token = user ? await user.getIdToken() : "";
-				const baseUrl = import.meta.env.VITE_API_URL || "";
 
 				// Check Redis status for running/waiting/complete workflows
-				const response = await fetch(`${baseUrl}/api/case/${caseId}/income/advisor/status`, {
+				const response = await fetch(resolveApiUrl(`/api/case/${caseId}/income/advisor/status`), {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 
@@ -155,8 +155,7 @@ export function IncomeAdvisorModal({
 
 			const authToken =
 				token || (getAuth().currentUser ? await getAuth().currentUser!.getIdToken() : "");
-			const baseUrl = import.meta.env.VITE_API_URL || "";
-			const url = `${baseUrl}/api/case/${caseId}/income/advisor/stream/poll?token=${encodeURIComponent(authToken)}`;
+			const url = `${resolveApiUrl(`/api/case/${caseId}/income/advisor/stream/poll`)}?token=${encodeURIComponent(authToken)}`;
 
 			console.log("[ADVISOR] Connecting to poll stream");
 			const eventSource = new EventSource(url);
@@ -282,13 +281,12 @@ export function IncomeAdvisorModal({
 			try {
 				const user = getAuth().currentUser;
 				const token = user ? await user.getIdToken() : "";
-				const baseUrl = import.meta.env.VITE_API_URL || "";
 
 				// If we have a pending question, send response via signal
 				if (state.status === "waiting" && state.workflowId && userQuestion) {
 					console.log("[ADVISOR] Sending response to workflow:", state.workflowId);
 					const respondResponse = await fetch(
-						`${baseUrl}/api/case/${caseId}/income/advisor/respond`,
+						resolveApiUrl(`/api/case/${caseId}/income/advisor/respond`),
 						{
 							method: "POST",
 							headers: {
@@ -327,7 +325,7 @@ export function IncomeAdvisorModal({
 					}
 				}
 
-				const startResponse = await fetch(`${baseUrl}/api/case/${caseId}/income/advisor/start`, {
+				const startResponse = await fetch(resolveApiUrl(`/api/case/${caseId}/income/advisor/start`), {
 					method: "POST",
 					headers: {
 						Authorization: `Bearer ${token}`,
@@ -401,10 +399,9 @@ export function IncomeAdvisorModal({
 		try {
 			const user = getAuth().currentUser;
 			const token = user ? await user.getIdToken() : "";
-			const baseUrl = import.meta.env.VITE_API_URL || "";
 
 			// Delete thread (required for clear)
-			const deleteRes = await fetch(`${baseUrl}/api/case/${caseId}/income/advisor/thread`, {
+			const deleteRes = await fetch(resolveApiUrl(`/api/case/${caseId}/income/advisor/thread`), {
 				method: "DELETE",
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -417,7 +414,9 @@ export function IncomeAdvisorModal({
 			if (state.workflowId && (state.status === "running" || state.status === "waiting")) {
 				try {
 					const cancelRes = await fetch(
-						`${baseUrl}/api/case/${caseId}/income/advisor/cancel?workflow_id=${state.workflowId}`,
+						resolveApiUrl(
+							`/api/case/${caseId}/income/advisor/cancel?workflow_id=${encodeURIComponent(state.workflowId)}`,
+						),
 						{ method: "POST", headers: { Authorization: `Bearer ${token}` } },
 					);
 					if (!cancelRes.ok) {

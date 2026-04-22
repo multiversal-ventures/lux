@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { resolveApiUrl } from "../lib/api";
 import type { StreamEvent, StreamStatus } from "../types";
 
 interface UseGunnrOptions {
@@ -76,11 +77,16 @@ export function useGunnr({
 		completedRef.current = false;
 		updateStatus("connecting");
 
-		const url = lastEventIdRef.current
+		const path = lastEventIdRef.current
 			? `/api/v1/stream/${caseId}?Last-Event-ID=${encodeURIComponent(lastEventIdRef.current)}`
 			: `/api/v1/stream/${caseId}`;
+		const resolved = resolveApiUrl(path);
+		const absolute =
+			resolved.startsWith("http://") || resolved.startsWith("https://")
+				? resolved
+				: new URL(resolved, window.location.origin).toString();
 
-		const es = new EventSource(url);
+		const es = new EventSource(absolute);
 		eventSourceRef.current = es;
 
 		es.onopen = () => {

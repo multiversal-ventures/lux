@@ -12,6 +12,10 @@ import { CasePage, CompleteRegistrationPage, HomePage, LoginPage, SpecWorkshopPa
 import { store } from "./store";
 import { queryClient } from "./queryClient";
 
+/**
+ * Routes: `/`, `/login`, `/complete-registration`; under layout: `/app`, `/case/:caseId/*`, `/spec-workshop`.
+ * Case sub-routes (compare, compliance, scenarios, etc.) live in `pages/CasePage.tsx`. See README.md.
+ */
 export function App() {
 	return (
 		<HealthProvider>

@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { resolveApiUrl } from "../lib/api";
+import { isDevUiOnlyBypass } from "../lib/devUiOnly";
 
 interface TenantProtectedRouteProps {
 	children: ReactNode;
@@ -15,11 +17,15 @@ interface TenantProtectedRouteProps {
  * if the user has no associated organization.
  */
 export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
+	const bypass = isDevUiOnlyBypass();
 	const { user, loading } = useAuth();
-	const [hasTenant, setHasTenant] = useState<boolean | null>(null);
-	const [checkingTenant, setCheckingTenant] = useState(true);
+	const [hasTenant, setHasTenant] = useState<boolean | null>(() => (bypass ? true : null));
+	const [checkingTenant, setCheckingTenant] = useState(() => !bypass);
 
 	useEffect(() => {
+		if (bypass) {
+			return;
+		}
 		async function checkTenant() {
 			if (!user) {
 				setCheckingTenant(false);
@@ -27,7 +33,7 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 			}
 			try {
 				const token = await user.getIdToken();
-				const res = await fetch("/api/v1/auth/me", {
+				const res = await fetch(resolveApiUrl("/api/v1/auth/me"), {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 				if (res.ok) {
@@ -46,7 +52,11 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 		if (!loading) {
 			checkTenant();
 		}
-	}, [user, loading]);
+	}, [user, loading, bypass]);
+
+	if (bypass) {
+		return <>{children}</>;
+	}
 
 	if (loading || checkingTenant) {
 		return (

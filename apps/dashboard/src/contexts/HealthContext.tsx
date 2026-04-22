@@ -1,6 +1,16 @@
 // ui/src/contexts/HealthContext.tsx
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+	createContext,
+	useContext,
+	useState,
+	useEffect,
+	useCallback,
+	useRef,
+	type ReactNode,
+} from "react";
 import MaintenancePage from "../components/shared/MaintenancePage";
+import { resolveApiUrl } from "../lib/api";
+import { isDevUiOnlyBypass } from "../lib/devUiOnly";
 
 interface HealthState {
 	isMaintenanceMode: boolean;
@@ -19,22 +29,25 @@ const POLL_INTERVAL = 30000; // 30 seconds
 const FAILURE_THRESHOLD = 2; // consecutive failures before showing maintenance
 
 export function HealthProvider({ children }: { children: ReactNode }) {
-	const [state, setState] = useState<HealthState>({
+	const bypass = isDevUiOnlyBypass();
+	const failureCountRef = useRef(0);
+	const [state, setState] = useState<HealthState>(() => ({
 		isMaintenanceMode: false,
 		services: {},
-		lastChecked: null,
-		isLoading: true,
-	});
-	const [failureCount, setFailureCount] = useState(0);
+		lastChecked: bypass ? new Date().toISOString() : null,
+		isLoading: !bypass,
+	}));
 
 	const checkHealth = useCallback(async () => {
+		if (bypass) {
+			return;
+		}
 		try {
-			const response = await fetch("/api/v1/health");
+			const response = await fetch(resolveApiUrl("/api/v1/health"));
 			const data = await response.json();
 
 			if (response.ok) {
-				// Healthy - reset failure count and clear maintenance mode
-				setFailureCount(0);
+				failureCountRef.current = 0;
 				setState({
 					isMaintenanceMode: false,
 					services: data.services || {},
@@ -42,9 +55,8 @@ export function HealthProvider({ children }: { children: ReactNode }) {
 					isLoading: false,
 				});
 			} else {
-				// Unhealthy response (503)
-				const newCount = failureCount + 1;
-				setFailureCount(newCount);
+				failureCountRef.current += 1;
+				const newCount = failureCountRef.current;
 				setState({
 					isMaintenanceMode: newCount >= FAILURE_THRESHOLD,
 					services: data.services || {},
@@ -53,27 +65,30 @@ export function HealthProvider({ children }: { children: ReactNode }) {
 				});
 			}
 		} catch {
-			// Network error
-			const newCount = failureCount + 1;
-			setFailureCount(newCount);
+			failureCountRef.current += 1;
+			const newCount = failureCountRef.current;
 			setState((s) => ({
 				...s,
 				isMaintenanceMode: newCount >= FAILURE_THRESHOLD,
 				isLoading: false,
 			}));
 		}
-	}, [failureCount]);
+	}, [bypass]);
 
-	// Initial check
 	useEffect(() => {
+		if (bypass) {
+			return;
+		}
 		checkHealth();
-	}, [checkHealth]);
+	}, [checkHealth, bypass]);
 
-	// Polling interval
 	useEffect(() => {
+		if (bypass) {
+			return;
+		}
 		const interval = setInterval(checkHealth, POLL_INTERVAL);
 		return () => clearInterval(interval);
-	}, [checkHealth]);
+	}, [checkHealth, bypass]);
 
 	return (
 		<HealthContext.Provider value={{ ...state, checkHealth }}>{children}</HealthContext.Provider>
@@ -89,9 +104,23 @@ export function useHealth() {
 }
 
 export function HealthGate({ children }: { children: ReactNode }) {
+	const bypass = isDevUiOnlyBypass();
 	const { isMaintenanceMode, isLoading } = useHealth();
 
-	// Don't show maintenance page during initial load
+	if (bypass) {
+		return (
+			<>
+				<div
+					role="status"
+					className="fixed top-0 left-0 right-0 z-[9999] bg-amber-300 px-2 py-1 text-center text-xs font-medium text-amber-950 shadow-sm"
+				>
+					VITE_DEV_UI_ONLY: no health API — remove from .env before ship
+				</div>
+				<div className="pt-7">{children}</div>
+			</>
+		);
+	}
+
 	if (isLoading) {
 		return <>{children}</>;
 	}

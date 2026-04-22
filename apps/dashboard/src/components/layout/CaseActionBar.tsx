@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import type { FileArtifact } from "../../types";
+import { resolveApiUrl } from "../../lib/api";
 
 interface CaseActionBarProps {
 	caseName?: string | null;
@@ -21,7 +22,7 @@ export function CaseActionBar({ caseName, files, onExportExcel }: CaseActionBarP
 		try {
 			const user = getAuth().currentUser;
 			const token = user ? await user.getIdToken() : "";
-			const res = await fetch(`/api/v1/case/${caseId}/files/download-zip`, {
+			const res = await fetch(resolveApiUrl(`/api/v1/case/${caseId}/files/download-zip`), {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 			if (!res.ok) throw new Error(`Download failed: ${res.status}`);

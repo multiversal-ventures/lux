@@ -11,6 +11,7 @@ import { getAuth } from "firebase/auth";
 import { useAuth } from "../hooks";
 import { completeRegistration } from "../hooks/useApi";
 import { trackSignUp } from "../lib/mixpanel";
+import { resolveApiUrl } from "../lib/api";
 import feneroLogo from "../assets/logo-orange.svg";
 
 // Import background images
@@ -69,7 +70,7 @@ export function CompleteRegistrationPage() {
 
 			try {
 				const token = await user.getIdToken();
-				const response = await fetch("/api/v1/auth/me", {
+				const response = await fetch(resolveApiUrl("/api/v1/auth/me"), {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 

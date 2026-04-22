@@ -15,6 +15,7 @@ import { ExcelViewer } from "./shared/ExcelViewer";
 import { useAppDispatch } from "../store";
 import { setSelectedLoanProduct } from "../store/appSlice";
 import { startIncomeVerification } from "../hooks/useApi";
+import { resolveApiUrl } from "../lib/api";
 
 function NavItem({
 	label,
@@ -192,7 +193,7 @@ export function CaseRow({
 				if (productId && (stage === "income" || stage === "credit")) {
 					url += `?product=${encodeURIComponent(productId)}`;
 				}
-				const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+				const response = await fetch(resolveApiUrl(url), { headers: { Authorization: `Bearer ${token}` } });
 				if (!response.ok) {
 					const err = await response.json().catch(() => ({}));
 					throw new Error((err as { detail?: string }).detail || "Failed to get Excel URL");

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import type { UploadResponse, CaseStatus, CaseResult, StreamEvent, SourceRef } from "../types";
-import { apiRequest, uploadFile, APIError } from "../lib/api";
+import { apiRequest, uploadFile, APIError, resolveApiUrl } from "../lib/api";
 import { getAuth } from "firebase/auth";
 import { useCaseEventStore } from "../stores/caseEventStore";
 
@@ -70,7 +70,7 @@ export async function uploadFiles(
 			reject(new Error("Upload cancelled"));
 		});
 
-		xhr.open("POST", `${BASE_URL}/case/upload`);
+		xhr.open("POST", resolveApiUrl(`${BASE_URL}/case/upload`));
 		xhr.send(formData);
 	});
 }

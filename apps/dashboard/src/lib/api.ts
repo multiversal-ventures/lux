@@ -7,6 +7,28 @@
 import { getAuth } from "firebase/auth";
 import { trackError } from "./mixpanel";
 
+/**
+ * Optional absolute origin for the Gunnr HTTP API (no trailing slash).
+ * When unset, requests stay same-origin and Vite dev proxy handles `/api`.
+ */
+export function getGunnrApiBaseUrl(): string {
+	const v = import.meta.env.VITE_GUNNR_API_URL as string | undefined;
+	if (v == null || String(v).trim() === "") {
+		return "";
+	}
+	return String(v).trim().replace(/\/$/, "");
+}
+
+/** Prefix a path (e.g. `/api/v1/...`) with {@link getGunnrApiBaseUrl} when configured. */
+export function resolveApiUrl(path: string): string {
+	const base = getGunnrApiBaseUrl();
+	const p = path.startsWith("/") ? path : `/${path}`;
+	if (!base) {
+		return p;
+	}
+	return `${base}${p}`;
+}
+
 export class APIError extends Error {
 	status: number;
 	data?: any;
@@ -74,16 +96,17 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
 	// Make request
 	const method = (options.method || "GET").toUpperCase();
 	const t0 = performance.now();
-	const response = await fetch(endpoint, {
+	const url = resolveApiUrl(endpoint);
+	const response = await fetch(url, {
 		...options,
 		headers,
 	});
 	const elapsed = Math.round(performance.now() - t0);
 
 	if (!response.ok) {
-		console.warn(`[API] ${method} ${endpoint} → ${response.status} (${elapsed}ms)`);
+		console.warn(`[API] ${method} ${url} → ${response.status} (${elapsed}ms)`);
 	} else {
-		console.debug(`[API] ${method} ${endpoint} → ${response.status} (${elapsed}ms)`);
+		console.debug(`[API] ${method} ${url} → ${response.status} (${elapsed}ms)`);
 	}
 
 	// Handle errors (read body once - Fetch body stream can only be read once)
@@ -193,9 +216,13 @@ export async function createEventSource(endpoint: string): Promise<EventSource> 
 		throw new Error("Authentication required for event streams");
 	}
 
-	// EventSource doesn't support custom headers, so we append token as query param
-	// Backend should support both Authorization header and ?token= query param for SSE
-	const url = new URL(endpoint, window.location.origin);
+	const resolved = resolveApiUrl(endpoint);
+	const url = new URL(
+		resolved,
+		resolved.startsWith("http://") || resolved.startsWith("https://")
+			? undefined
+			: window.location.origin,
+	);
 	url.searchParams.set("token", token);
 
 	return new EventSource(url.toString());
@@ -230,7 +257,8 @@ export async function uploadFile<T = any>(
 
 	// Don't set Content-Type - browser will set it with boundary for multipart/form-data
 
-	const response = await fetch(endpoint, {
+	const url = resolveApiUrl(endpoint);
+	const response = await fetch(url, {
 		...options,
 		method: "POST",
 		headers,

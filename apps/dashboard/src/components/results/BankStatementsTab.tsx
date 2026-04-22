@@ -44,6 +44,7 @@ import {
 	type PageExtractionStat,
 	type ReviewDecision,
 } from "../../hooks/useApi";
+import { resolveApiUrl } from "../../lib/api";
 import { BSReviewAgentModal } from "./BSReviewAgentModal";
 
 interface BankStatementsTabProps {
@@ -1277,7 +1278,9 @@ function ExtractionIssuesPanel({
 															<td colSpan={5} className="p-4">
 																<div className="flex gap-4 items-start">
 																	<img
-																		src={`/api/v1/case/${caseId}/page/${page.file_id}/${page.page_number}/image`}
+																		src={resolveApiUrl(
+																			`/api/v1/case/${caseId}/page/${page.file_id}/${page.page_number}/image`,
+																		)}
 																		alt={`Page ${page.page_number}`}
 																		className="w-48 rounded border border-slate-200 shadow-sm bg-white"
 																		loading="lazy"

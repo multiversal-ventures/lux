@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../../hooks";
 import { useAppDispatch } from "../../store";
 import { setTenantId, setTenantName } from "../../store/appSlice";
+import { resolveApiUrl } from "../../lib/api";
 
 interface ProtectedRouteProps {
 	children: ReactNode;
@@ -30,7 +31,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 			try {
 				// Call /auth/me to check tenant membership from TenantStore
 				const token = await user.getIdToken();
-				const response = await fetch("/api/v1/auth/me", {
+				const response = await fetch(resolveApiUrl("/api/v1/auth/me"), {
 					headers: {
 						Authorization: `Bearer ${token}`,
 					},
@@ -47,7 +48,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 						} else {
 							// Fetch tenant details from /tenants/me
 							try {
-								const tenantResponse = await fetch("/api/v1/tenants/me", {
+								const tenantResponse = await fetch(resolveApiUrl("/api/v1/tenants/me"), {
 									headers: {
 										Authorization: `Bearer ${token}`,
 									},
@@ -67,7 +68,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 						if (bypassCheck) {
 							//FALSE NEGATIVE
 							// Fetch tenant details via complete-registration (returns error with tenant info if user has tenant)
-							const tenantResponse = await fetch("/api/v1/auth/complete-registration", {
+							const tenantResponse = await fetch(resolveApiUrl("/api/v1/auth/complete-registration"), {
 								method: "POST",
 								headers: {
 									Authorization: `Bearer ${token}`,

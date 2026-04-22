@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getAuth } from "firebase/auth";
+import { resolveApiUrl } from "../../lib/api";
 
 interface TaxYearResolution {
 	case_id: string;
@@ -64,7 +65,7 @@ export function TaxYearConfidence({ caseId }: TaxYearConfidenceProps) {
 		try {
 			setLoading(true);
 			const headers = await getAuthHeaders();
-			const response = await fetch(`/api/v1/case/${caseId}/tax-year`, { headers });
+			const response = await fetch(resolveApiUrl(`/api/v1/case/${caseId}/tax-year`), { headers });
 			if (!response.ok) {
 				throw new Error("Failed to fetch tax year resolution");
 			}

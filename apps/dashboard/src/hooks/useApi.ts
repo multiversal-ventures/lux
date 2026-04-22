@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import type { UploadResponse, CaseStatus, CaseResult, StreamEvent, SourceRef } from "../types";
 import { apiRequest, uploadFile, APIError, resolveApiUrl } from "../lib/api";
-import { getAuth } from "firebase/auth";
+import { getFirebaseAuth } from "../lib/firebase";
 import { useCaseEventStore } from "../stores/caseEventStore";
 
 const BASE_URL = "/api/v1";
@@ -31,7 +31,7 @@ export async function uploadFiles(
 		const xhr = new XMLHttpRequest();
 
 		// Add authentication header
-		const user = getAuth().currentUser;
+		const user = getFirebaseAuth().currentUser;
 		if (user) {
 			const token = await user.getIdToken();
 			xhr.setRequestHeader("Authorization", `Bearer ${token}`);
@@ -894,6 +894,51 @@ export async function checkIncomeReadiness(
 	return apiFetch<IncomeReadinessResponse>(
 		`/case/${caseId}/income/ready?loan_product=${encodeURIComponent(loanProduct)}`,
 	);
+}
+
+export interface TaxYearResolution {
+	case_id: string;
+	y1: string | null;
+	y2: string | null;
+	y3: string | null;
+	confidence: number;
+	needs_review: boolean;
+	confirmed: boolean;
+	confirmed_by: string | null;
+	confirmed_at: string | null;
+	source_documents: Record<string, unknown>[];
+	warnings: string[];
+}
+
+export interface ConfirmTaxYearRequest {
+	y1?: string;
+	y2?: string;
+	confirmed?: boolean;
+}
+
+export interface ConfirmTaxYearResponse {
+	case_id: string;
+	status: string;
+	y1: string | null;
+	y2: string | null;
+	confirmed: boolean;
+	confirmed_by: string | null;
+	message: string;
+}
+
+export async function getTaxYearResolution(caseId: string): Promise<TaxYearResolution> {
+	return apiFetch<TaxYearResolution>(`/case/${caseId}/tax-year`);
+}
+
+export async function confirmTaxYear(
+	caseId: string,
+	request: ConfirmTaxYearRequest,
+): Promise<ConfirmTaxYearResponse> {
+	return apiFetch<ConfirmTaxYearResponse>(`/case/${caseId}/tax-year/confirm`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(request),
+	});
 }
 
 /**
@@ -1994,6 +2039,8 @@ export interface ScenarioDetail extends ScenarioSummary {
 	document_ids?: string[]; // Selected document IDs for filtering
 	y1_override: string | null;
 	y2_override: string | null;
+	/** Bank-statement lookback window (months); present when API returns it. */
+	statement_period_months?: number | null;
 	note: string | null;
 	rules_version: string;
 	qualifying_income: number | null;
@@ -2038,6 +2085,7 @@ export interface CreateScenarioRequest {
 	document_ids?: string[];
 	y1_override?: string;
 	y2_override?: string;
+	statement_period_months?: number | null;
 	note?: string;
 }
 

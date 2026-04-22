@@ -24,7 +24,7 @@ pnpm build        # production build
 pnpm typecheck    # TypeScript
 ```
 
-From repo root: `pnpm --filter @fenero/dashboard dev`.
+From repo root: `pnpm --filter @gunnr/ui dev`.
 
 ## Routes (inventory)
 

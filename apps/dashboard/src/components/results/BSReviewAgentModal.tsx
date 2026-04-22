@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useCallback, useRef, useState } from "react";
-import { getAuth, onIdTokenChanged } from "firebase/auth";
+import { subscribeIdTokenChange } from "../../lib/firebase";
 import { Loader2, Check, Sparkles, CheckCircle2, ArrowLeft, Eye, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReviewAgentStore } from "../../stores/reviewAgentStore";
@@ -229,11 +229,12 @@ function ReviewItemRow({
 // Hooks
 // ---------------------------------------------------------------------------
 
-function useAuthToken() {
+function useFirebaseIdToken() {
 	const [token, setToken] = useState<string | undefined>();
 	useEffect(() => {
-		const unsub = onIdTokenChanged(getAuth(), async (user) => {
+		const unsub = subscribeIdTokenChange(async (user) => {
 			if (user) setToken(await user.getIdToken());
+			else setToken(undefined);
 		});
 		return () => unsub();
 	}, []);
@@ -252,7 +253,7 @@ interface BSReviewAgentModalProps {
 export function BSReviewAgentModal({ caseId, dismissedTargets }: BSReviewAgentModalProps) {
 	const queryClient = useQueryClient();
 	const store = useReviewAgentStore();
-	const authToken = useAuthToken();
+	const authToken = useFirebaseIdToken();
 	const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	const [reviewedPages, setReviewedPages] = useState<ReviewItem[]>([]);

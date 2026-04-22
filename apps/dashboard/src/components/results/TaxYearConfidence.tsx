@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { getAuth } from "firebase/auth";
 import { resolveApiUrl } from "../../lib/api";
+import { useAuth } from "../../hooks/useAuth";
 
 interface TaxYearResolution {
 	case_id: string;
@@ -43,14 +43,13 @@ const DOC_DISPLAY: Record<string, string> = {
 const getDocDisplay = (docClass: string) => DOC_DISPLAY[docClass] || docClass;
 
 export function TaxYearConfidence({ caseId }: TaxYearConfidenceProps) {
+	const { user } = useAuth();
 	const [resolution, setResolution] = useState<TaxYearResolution | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [showModal, setShowModal] = useState(false);
 
-	const getAuthHeaders = async (): Promise<HeadersInit> => {
-		const auth = getAuth();
-		const user = auth.currentUser;
+	const getAuthHeaders = useCallback(async (): Promise<HeadersInit> => {
 		if (user) {
 			const token = await user.getIdToken();
 			return {
@@ -59,7 +58,7 @@ export function TaxYearConfidence({ caseId }: TaxYearConfidenceProps) {
 			};
 		}
 		return { "Content-Type": "application/json" };
-	};
+	}, [user]);
 
 	const fetchResolution = useCallback(async () => {
 		try {
@@ -77,7 +76,7 @@ export function TaxYearConfidence({ caseId }: TaxYearConfidenceProps) {
 		} finally {
 			setLoading(false);
 		}
-	}, [caseId]);
+	}, [caseId, getAuthHeaders]);
 
 	useEffect(() => {
 		fetchResolution();

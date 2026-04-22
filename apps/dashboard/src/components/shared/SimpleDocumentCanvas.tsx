@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getAuth, onIdTokenChanged } from "firebase/auth";
+import { subscribeIdTokenChange } from "../../lib/firebase";
 import { getPageImageUrl } from "../../hooks/useApi";
 import type { DocumentPageRef, FactSource } from "../../types";
 
@@ -40,8 +40,7 @@ export function SimpleDocumentCanvas({
 	);
 
 	useEffect(() => {
-		const auth = getAuth();
-		const unsubscribe = onIdTokenChanged(auth, async (user) => {
+		const unsubscribe = subscribeIdTokenChange(async (user) => {
 			if (user) {
 				const token = await user.getIdToken();
 				setAuthToken(token);

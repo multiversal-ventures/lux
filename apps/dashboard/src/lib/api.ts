@@ -4,7 +4,7 @@
  * Automatically includes Firebase authentication token in all requests
  */
 
-import { getAuth } from "firebase/auth";
+import { getFirebaseAuth } from "./firebase";
 import { trackError } from "./mixpanel";
 
 /**
@@ -45,8 +45,7 @@ export class APIError extends Error {
  * Get current user's Firebase ID token
  */
 async function getAuthToken(): Promise<string | null> {
-	const auth = getAuth();
-	const user = auth.currentUser;
+	const user = getFirebaseAuth().currentUser;
 
 	if (!user) {
 		return null;
@@ -145,7 +144,7 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
 			error_message: error.message,
 			error_code: String(response.status),
 			page_url: typeof window !== "undefined" ? window.location.href : undefined,
-			user_id: getAuth().currentUser?.uid,
+			user_id: getFirebaseAuth().currentUser?.uid,
 		});
 		throw error;
 	}

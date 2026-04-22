@@ -1,35 +1,33 @@
-import { useMemo } from "react";
-import { AlertCircle, Info } from "lucide-react";
-
-type ProductCategory = "qm" | "bank_statement" | "1099";
-
-function getProductCategory(approach?: string, loanProductIds: string[] = []): ProductCategory {
-	if (approach === "non_qualified_mortgage") {
-		const ids = loanProductIds.map((id) => id.toLowerCase());
-		if (ids.some((id) => id.includes("1099"))) return "1099";
-		if (ids.some((id) => id.includes("bank_statement"))) return "bank_statement";
-		return "1099";
-	}
-	return "qm";
-}
+import { useMemo } from 'react';
+import { AlertCircle, Info } from 'lucide-react';
+import type { MortgageApproach } from '../../hooks/useApi';
+import { resolveScenarioPeriodVariant, type ScenarioPeriodVariant } from '../../utils/scenarioDraft';
 
 interface PeriodsTabProps {
-	y1Override: string | null;
-	y2Override: string | null;
-	onY1Change: (value: string | null) => void;
-	onY2Change: (value: string | null) => void;
-	/** Available years from document effective dates */
-	availableYears?: string[];
-	/** Explanation of why the auto-detected years were selected */
-	yearSelectionReason?: string | null;
-	/** Scenario approach -- primary signal for which variant to render */
-	approach?: "qualified_mortgage" | "non_qualified_mortgage";
-	/** Loan product IDs from the scenario -- used to distinguish Non-QM subtypes */
-	loanProductIds?: string[];
-	/** Bank statement period in months (Non-QM only) */
-	statementPeriodMonths?: number | null;
-	/** Callback for bank statement period change */
-	onStatementPeriodChange?: (months: number | null) => void;
+  y1Override: string | null;
+  y2Override: string | null;
+  onY1Change: (value: string | null) => void;
+  onY2Change: (value: string | null) => void;
+  /** Available years from document effective dates */
+  availableYears?: string[];
+  /** Explanation of why the auto-detected years were selected */
+  yearSelectionReason?: string | null;
+  /** Scenario approach -- primary signal for which variant to render */
+  approach?: MortgageApproach;
+  /** Loan product IDs from the scenario -- used to distinguish Non-QM subtypes */
+  loanProductIds?: string[];
+  /** Bank statement period in months (Non-QM only) */
+  statementPeriodMonths?: number | null;
+  /** Callback for bank statement period change */
+  onStatementPeriodChange?: (months: number | null) => void;
+  /** Render create-page messaging instead of refine-page messaging */
+  mode?: 'create' | 'refine';
+  /** Create-mode review confidence, expressed as a percentage */
+  confidencePercent?: number | null;
+  /** Create-mode signal that tax years need manual review */
+  needsReview?: boolean;
+  /** Create-mode warnings shown below the tax-year selectors */
+  warnings?: string[];
 }
 
 /**
@@ -41,54 +39,62 @@ interface PeriodsTabProps {
  * - 1099 (Non-QM):              Number of Years (1 or 2)
  */
 export function PeriodsTab({
-	y1Override,
-	y2Override,
-	onY1Change,
-	onY2Change,
-	availableYears = [],
-	yearSelectionReason,
-	approach,
-	loanProductIds = [],
-	statementPeriodMonths,
-	onStatementPeriodChange,
+  y1Override,
+  y2Override,
+  onY1Change,
+  onY2Change,
+  availableYears = [],
+  yearSelectionReason,
+  approach,
+  loanProductIds = [],
+  statementPeriodMonths,
+  onStatementPeriodChange,
+  mode = 'refine',
+  confidencePercent = null,
+  needsReview = false,
+  warnings = [],
 }: PeriodsTabProps) {
-	const category = useMemo(
-		() => getProductCategory(approach, loanProductIds),
-		[approach, loanProductIds],
-	);
+  const category: ScenarioPeriodVariant = useMemo(
+    () => resolveScenarioPeriodVariant(approach ?? 'qualified_mortgage', loanProductIds),
+    [approach, loanProductIds],
+  );
 
-	if (category === "bank_statement") {
-		return (
-			<BankStatementPeriod
-				statementPeriodMonths={statementPeriodMonths ?? null}
-				onStatementPeriodChange={onStatementPeriodChange ?? (() => {})}
-				availableYears={availableYears}
-			/>
-		);
-	}
+  if (category === 'bank_statement') {
+    return (
+      <BankStatementPeriod
+        statementPeriodMonths={statementPeriodMonths ?? null}
+        onStatementPeriodChange={onStatementPeriodChange ?? (() => {})}
+        availableYears={availableYears}
+      />
+    );
+  }
 
-	if (category === "1099") {
-		return (
-			<NumberOfYears
-				y1Override={y1Override}
-				y2Override={y2Override}
-				onY1Change={onY1Change}
-				onY2Change={onY2Change}
-				availableYears={availableYears}
-			/>
-		);
-	}
+  if (category === '1099') {
+    return (
+      <NumberOfYears
+        y1Override={y1Override}
+        y2Override={y2Override}
+        onY1Change={onY1Change}
+        onY2Change={onY2Change}
+        availableYears={availableYears}
+      />
+    );
+  }
 
-	return (
-		<TaxYearOverrides
-			y1Override={y1Override}
-			y2Override={y2Override}
-			onY1Change={onY1Change}
-			onY2Change={onY2Change}
-			availableYears={availableYears}
-			yearSelectionReason={yearSelectionReason}
-		/>
-	);
+  return (
+    <TaxYearOverrides
+      y1Override={y1Override}
+      y2Override={y2Override}
+      onY1Change={onY1Change}
+      onY2Change={onY2Change}
+      availableYears={availableYears}
+      yearSelectionReason={yearSelectionReason}
+      mode={mode}
+      confidencePercent={confidencePercent}
+      needsReview={needsReview}
+      warnings={warnings}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -96,117 +102,164 @@ export function PeriodsTab({
 // ---------------------------------------------------------------------------
 
 function TaxYearOverrides({
-	y1Override,
-	y2Override,
-	onY1Change,
-	onY2Change,
-	availableYears,
-	yearSelectionReason,
+  y1Override,
+  y2Override,
+  onY1Change,
+  onY2Change,
+  availableYears,
+  yearSelectionReason,
+  mode,
+  confidencePercent,
+  needsReview,
+  warnings,
 }: {
-	y1Override: string | null;
-	y2Override: string | null;
-	onY1Change: (v: string | null) => void;
-	onY2Change: (v: string | null) => void;
-	availableYears: string[];
-	yearSelectionReason?: string | null;
+  y1Override: string | null;
+  y2Override: string | null;
+  onY1Change: (v: string | null) => void;
+  onY2Change: (v: string | null) => void;
+  availableYears: string[];
+  yearSelectionReason?: string | null;
+  mode: 'create' | 'refine';
+  confidencePercent: number | null;
+  needsReview: boolean;
+  warnings: string[];
 }) {
-	const years = useMemo(() => {
-		if (availableYears.length > 0) {
-			return [...new Set(availableYears)].sort((a, b) => Number(b) - Number(a));
-		}
-		const currentYear = new Date().getFullYear();
-		return Array.from({ length: 5 }, (_, i) => String(currentYear - i));
-	}, [availableYears]);
+  const years = useMemo(() => {
+    if (availableYears.length > 0) {
+      return [...new Set(availableYears)].sort((a, b) => Number(b) - Number(a));
+    }
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+  }, [availableYears]);
 
-	const validationError = useMemo(() => {
-		if (!y1Override || !y2Override) return null;
-		const y1 = Number(y1Override);
-		const y2 = Number(y2Override);
-		if (y1 === y2) return "Year 1 and Year 2 cannot be the same";
-		if (y1 < y2) return "Year 1 must be more recent than Year 2";
-		return null;
-	}, [y1Override, y2Override]);
+  const validationError = useMemo(() => {
+    if (!y1Override || !y2Override) return null;
+    const y1 = Number(y1Override);
+    const y2 = Number(y2Override);
+    if (y1 === y2) return 'Year 1 and Year 2 cannot be the same';
+    if (y1 < y2) return 'Year 1 must be more recent than Year 2';
+    return null;
+  }, [y1Override, y2Override]);
+  const isCreateMode = mode === 'create';
 
-	const y2Years = useMemo(() => {
-		if (!y1Override) return years;
-		const y1Num = Number(y1Override);
-		return years.filter((y) => Number(y) < y1Num);
-	}, [years, y1Override]);
+  const y2Years = useMemo(() => {
+    if (!y1Override) return years;
+    const y1Num = Number(y1Override);
+    return years.filter((y) => Number(y) < y1Num);
+  }, [years, y1Override]);
 
-	const y1Years = useMemo(() => {
-		if (!y2Override) return years;
-		const y2Num = Number(y2Override);
-		return years.filter((y) => Number(y) > y2Num);
-	}, [years, y2Override]);
+  const y1Years = useMemo(() => {
+    if (!y2Override) return years;
+    const y2Num = Number(y2Override);
+    return years.filter((y) => Number(y) > y2Num);
+  }, [years, y2Override]);
 
-	return (
-		<div className="space-y-6">
-			<div>
-				<h3 className="text-sm font-medium text-slate-800 mb-1">Tax Year Overrides</h3>
-				<p className="text-sm text-slate-500">
-					Override the automatically detected tax years for the 2-year income average calculation.
-				</p>
-			</div>
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-start justify-between gap-4 mb-1">
+          <h3 className={`text-sm font-medium ${isCreateMode ? 'text-slate-800' : 'text-slate-800'}`}>
+            {isCreateMode ? 'Tax Years' : 'Tax Year Overrides'}
+          </h3>
+          {isCreateMode && confidencePercent != null && (
+            <div className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+              Confidence {confidencePercent}%
+            </div>
+          )}
+        </div>
+        <p className="text-sm text-slate-500">
+          {isCreateMode
+            ? 'Freeze the years for the first income run. The scenario will be created in a pending state, so review the proposed years here before you start the run.'
+            : 'Override the automatically detected tax years for the 2-year income average calculation.'}
+        </p>
+      </div>
 
-			<div className="grid grid-cols-2 gap-6 max-w-md">
-				<div>
-					<label className="block text-sm font-medium text-slate-700 mb-1">
-						Year 1 (Most Recent)
-					</label>
-					<select
-						value={y1Override ?? ""}
-						onChange={(e) => onY1Change(e.target.value || null)}
-						className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent ${
-							validationError ? "border-red-300" : "border-slate-300"
-						}`}
-					>
-						<option value="">Auto-detect</option>
-						{y1Years.map((year) => (
-							<option key={year} value={year}>
-								{year}
-							</option>
-						))}
-					</select>
-				</div>
+      <div className="grid grid-cols-2 gap-6 max-w-md">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Year 1 (Most Recent)
+          </label>
+          <select
+            value={y1Override ?? ''}
+            onChange={(e) => onY1Change(e.target.value || null)}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent ${
+              validationError ? 'border-red-300' : 'border-slate-300'
+            }`}
+          >
+            <option value="">Auto-detect</option>
+            {y1Years.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
 
-				<div>
-					<label className="block text-sm font-medium text-slate-700 mb-1">Year 2</label>
-					<select
-						value={y2Override ?? ""}
-						onChange={(e) => onY2Change(e.target.value || null)}
-						className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent ${
-							validationError ? "border-red-300" : "border-slate-300"
-						}`}
-					>
-						<option value="">Auto-detect</option>
-						{y2Years.map((year) => (
-							<option key={year} value={year}>
-								{year}
-							</option>
-						))}
-					</select>
-				</div>
-			</div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Year 2
+          </label>
+          <select
+            value={y2Override ?? ''}
+            onChange={(e) => onY2Change(e.target.value || null)}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent ${
+              validationError ? 'border-red-300' : 'border-slate-300'
+            }`}
+          >
+            <option value="">Auto-detect</option>
+            {y2Years.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-			{validationError && (
-				<div className="flex items-center gap-2 text-sm text-red-600">
-					<AlertCircle className="w-4 h-4 shrink-0" />
-					{validationError}
-				</div>
-			)}
+      {validationError && (
+        <div className="flex items-center gap-2 text-sm text-red-600">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {validationError}
+        </div>
+      )}
 
-			{availableYears.length > 0 && (
-				<div className="space-y-1">
-					{!y1Override && !y2Override && yearSelectionReason && (
-						<p className="text-xs text-emerald-600">{yearSelectionReason}</p>
-					)}
-					<p className="text-xs text-slate-400">
-						Years available from documents: {years.join(", ")}
-					</p>
-				</div>
-			)}
-		</div>
-	);
+      {isCreateMode ? (
+        <div className="space-y-3">
+          {yearSelectionReason && (
+            <p className="text-xs text-slate-500">
+              {yearSelectionReason}
+            </p>
+          )}
+          {needsReview && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Tax years need manual review before the first run.
+            </div>
+          )}
+          {warnings.length > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                Tax Year Notes
+              </p>
+              <ul className="space-y-1 text-sm text-slate-600">
+                {warnings.slice(0, 3).map((warning) => (
+                  <li key={warning}>• {warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        availableYears.length > 0 && (
+          <div className="space-y-1">
+            {!y1Override && !y2Override && yearSelectionReason && (
+              <p className="text-xs text-emerald-600">
+                {yearSelectionReason}
+              </p>
+            )}
+            <p className="text-xs text-slate-400">
+              Years available from documents: {years.join(', ')}
+            </p>
+          </div>
+        )
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -214,71 +267,71 @@ function TaxYearOverrides({
 // ---------------------------------------------------------------------------
 
 function BankStatementPeriod({
-	statementPeriodMonths,
-	onStatementPeriodChange,
-	availableYears,
+  statementPeriodMonths,
+  onStatementPeriodChange,
+  availableYears,
 }: {
-	statementPeriodMonths: number | null;
-	onStatementPeriodChange: (months: number | null) => void;
-	availableYears: string[];
+  statementPeriodMonths: number | null;
+  onStatementPeriodChange: (months: number | null) => void;
+  availableYears: string[];
 }) {
-	const detectedMonths = useMemo(() => {
-		if (availableYears.length < 1) return null;
-		const sorted = [...availableYears].sort((a, b) => Number(a) - Number(b));
-		const minYear = Number(sorted[0]);
-		const maxYear = Number(sorted[sorted.length - 1]);
-		return (maxYear - minYear + 1) * 12;
-	}, [availableYears]);
+  const detectedMonths = useMemo(() => {
+    if (availableYears.length < 1) return null;
+    const sorted = [...availableYears].sort((a, b) => Number(a) - Number(b));
+    const minYear = Number(sorted[0]);
+    const maxYear = Number(sorted[sorted.length - 1]);
+    return (maxYear - minYear + 1) * 12;
+  }, [availableYears]);
 
-	const detectedLabel = useMemo(() => {
-		if (availableYears.length < 1) return null;
-		const sorted = [...availableYears].sort((a, b) => Number(a) - Number(b));
-		const minYear = sorted[0];
-		const maxYear = sorted[sorted.length - 1];
-		const months = (Number(maxYear) - Number(minYear) + 1) * 12;
-		return `Bank Statements (${minYear}\u2013${maxYear}) : ${months} months detected`;
-	}, [availableYears]);
+  const detectedLabel = useMemo(() => {
+    if (availableYears.length < 1) return null;
+    const sorted = [...availableYears].sort((a, b) => Number(a) - Number(b));
+    const minYear = sorted[0];
+    const maxYear = sorted[sorted.length - 1];
+    const months = (Number(maxYear) - Number(minYear) + 1) * 12;
+    return `Bank Statements (${minYear}\u2013${maxYear}) : ${months} months detected`;
+  }, [availableYears]);
 
-	return (
-		<div className="space-y-6">
-			<div>
-				<h3 className="text-sm font-medium text-amber-700 mb-1">Statement Period</h3>
-				<p className="text-sm text-slate-500">
-					Set the number of months of bank statements used for income averaging. Default is based on
-					documents uploaded.
-				</p>
-			</div>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-amber-700 mb-1">Statement Period</h3>
+        <p className="text-sm text-slate-500">
+          Set the number of months of bank statements used for income averaging.
+          Default is based on documents uploaded.
+        </p>
+      </div>
 
-			<div className="max-w-md">
-				<select
-					value={statementPeriodMonths ?? detectedMonths ?? 24}
-					onChange={(e) => {
-						const val = Number(e.target.value);
-						onStatementPeriodChange(val || null);
-					}}
-					className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-				>
-					<option value={24}>24 months</option>
-					<option value={12}>12 months</option>
-					<option value={6}>6 months</option>
-					<option value={3}>3 months</option>
-				</select>
-			</div>
+      <div className="max-w-md">
+        <select
+          value={statementPeriodMonths ?? detectedMonths ?? 24}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            onStatementPeriodChange(val || null);
+          }}
+          className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
+        >
+          <option value={24}>24 months</option>
+          <option value={12}>12 months</option>
+          <option value={6}>6 months</option>
+          <option value={3}>3 months</option>
+        </select>
+      </div>
 
-			{detectedLabel && (
-				<div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
-					<Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
-					<div>
-						<span className="font-medium text-slate-600 uppercase text-[10px] tracking-wide">
-							Auto-detected from documents
-						</span>
-						<br />
-						{detectedLabel}
-					</div>
-				</div>
-			)}
-		</div>
-	);
+      {detectedLabel && (
+        <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
+          <div>
+            <span className="font-medium text-slate-600 uppercase text-[10px] tracking-wide">
+              Auto-detected from documents
+            </span>
+            <br />
+            {detectedLabel}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -286,82 +339,80 @@ function BankStatementPeriod({
 // ---------------------------------------------------------------------------
 
 function NumberOfYears({
-	y1Override,
-	y2Override,
-	onY1Change,
-	onY2Change,
-	availableYears,
+  y1Override,
+  y2Override,
+  onY1Change,
+  onY2Change,
+  availableYears,
 }: {
-	y1Override: string | null;
-	y2Override: string | null;
-	onY1Change: (v: string | null) => void;
-	onY2Change: (v: string | null) => void;
-	availableYears: string[];
+  y1Override: string | null;
+  y2Override: string | null;
+  onY1Change: (v: string | null) => void;
+  onY2Change: (v: string | null) => void;
+  availableYears: string[];
 }) {
-	const years = useMemo(() => {
-		if (availableYears.length > 0) {
-			return [...new Set(availableYears)].sort((a, b) => Number(b) - Number(a));
-		}
-		const currentYear = new Date().getFullYear();
-		return [String(currentYear), String(currentYear - 1)];
-	}, [availableYears]);
+  const years = useMemo(() => {
+    if (availableYears.length > 0) {
+      return [...new Set(availableYears)].sort((a, b) => Number(b) - Number(a));
+    }
+    const currentYear = new Date().getFullYear();
+    return [String(currentYear), String(currentYear - 1)];
+  }, [availableYears]);
 
-	const mostRecent = years[0] ?? String(new Date().getFullYear());
-	const priorYear = years[1] ?? String(Number(mostRecent) - 1);
+  const mostRecent = years[0] ?? String(new Date().getFullYear());
+  const priorYear = years[1] ?? String(Number(mostRecent) - 1);
 
-	// Derive current selection: "1" if y2Override is explicitly cleared, else "2"
-	const numYears = useMemo(() => {
-		if (y1Override && !y2Override) return "1";
-		return "2";
-	}, [y1Override, y2Override]);
+  // Derive current selection: "1" if y2Override is explicitly cleared, else "2"
+  const numYears = useMemo(() => {
+    if (y1Override && !y2Override) return '1';
+    return '2';
+  }, [y1Override, y2Override]);
 
-	const handleChange = (value: string) => {
-		if (value === "1") {
-			onY1Change(mostRecent);
-			onY2Change(null);
-		} else {
-			onY1Change(null);
-			onY2Change(null);
-		}
-	};
+  const handleChange = (value: string) => {
+    if (value === '1') {
+      onY1Change(mostRecent);
+      onY2Change(null);
+    } else {
+      onY1Change(null);
+      onY2Change(null);
+    }
+  };
 
-	return (
-		<div className="space-y-6">
-			<div>
-				<h3 className="text-sm font-medium text-amber-700 mb-1">Number of Years</h3>
-				<p className="text-sm text-slate-500">
-					Set the number of years of 1099 income used for the calculation. Default is based on
-					documents submitted.
-				</p>
-			</div>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-amber-700 mb-1">Number of Years</h3>
+        <p className="text-sm text-slate-500">
+          Set the number of years of 1099 income used for the calculation.
+          Default is based on documents submitted.
+        </p>
+      </div>
 
-			<div className="max-w-md">
-				<select
-					value={numYears}
-					onChange={(e) => handleChange(e.target.value)}
-					className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-				>
-					<option value="2">
-						2 years ({mostRecent} &amp; {priorYear})
-					</option>
-					<option value="1">1 year ({mostRecent} only)</option>
-				</select>
-			</div>
+      <div className="max-w-md">
+        <select
+          value={numYears}
+          onChange={(e) => handleChange(e.target.value)}
+          className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
+        >
+          <option value="2">2 years ({mostRecent} &amp; {priorYear})</option>
+          <option value="1">1 year ({mostRecent} only)</option>
+        </select>
+      </div>
 
-			{availableYears.length > 0 && (
-				<div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
-					<Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
-					<div>
-						<span className="font-medium text-slate-600 uppercase text-[10px] tracking-wide">
-							Auto-detected from documents
-						</span>
-						<br />
-						{years.length} year{years.length !== 1 ? "s" : ""} detected: {years.join(", ")}
-					</div>
-				</div>
-			)}
-		</div>
-	);
+      {availableYears.length > 0 && (
+        <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
+          <div>
+            <span className="font-medium text-slate-600 uppercase text-[10px] tracking-wide">
+              Auto-detected from documents
+            </span>
+            <br />
+            {years.length} year{years.length !== 1 ? 's' : ''} detected: {years.join(', ')}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default PeriodsTab;

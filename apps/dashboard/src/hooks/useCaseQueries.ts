@@ -56,6 +56,7 @@ export const caseKeys = {
 	graph: (caseId: string, filtersKey: string) => ["case", caseId, "graph", filtersKey] as const,
 	incomeReadiness: (caseId: string, loanProduct: string) =>
 		["case", caseId, "incomeReadiness", loanProduct] as const,
+	taxYear: (caseId: string) => ["case", caseId, "taxYear"] as const,
 	creditPullStatus: (caseId: string, workflowId: string) =>
 		["case", caseId, "creditPullStatus", workflowId] as const,
 	appConfig: () => ["app", "config"] as const,
@@ -353,6 +354,21 @@ export function useIncomeReadiness(
 		queryFn: () => api.checkIncomeReadiness(caseId!, loanProduct),
 		enabled: options?.enabled ?? !!caseId,
 		staleTime: 30_000,
+	});
+}
+
+export function useTaxYearResolution(
+	caseId: string | null,
+	options?: {
+		enabled?: boolean;
+	},
+) {
+	return useQuery({
+		queryKey: caseKeys.taxYear(caseId ?? ""),
+		queryFn: () => api.getTaxYearResolution(caseId!),
+		enabled: options?.enabled ?? !!caseId,
+		staleTime: 30_000,
+		refetchOnWindowFocus: true,
 	});
 }
 
@@ -862,6 +878,58 @@ export function useCreateScenarioMutation() {
 			queryClient.invalidateQueries({
 				queryKey: ["case", variables.caseId, "scenario"],
 			});
+		},
+	});
+}
+
+interface StartScenarioMutationInput {
+	caseId: string;
+	scenarioId: string;
+}
+
+/**
+ * Start an existing scenario that is still `pending` (saved but not run).
+ */
+export function useStartScenarioMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ caseId, scenarioId }: StartScenarioMutationInput) => {
+			const startResponse = await api.startScenario(caseId, scenarioId);
+			if (startResponse.status !== "started") {
+				throw new Error(startResponse.message || "Failed to start scenario");
+			}
+			return startResponse;
+		},
+		onSuccess: (_data, variables) => {
+			queryClient.invalidateQueries({ queryKey: caseKeys.scenarios(variables.caseId) });
+			queryClient.invalidateQueries({
+				queryKey: caseKeys.scenarioDetail(variables.caseId, variables.scenarioId),
+			});
+			queryClient.invalidateQueries({
+				queryKey: caseKeys.scenarioRefinements(variables.caseId, variables.scenarioId),
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["case", variables.caseId, "scenario"],
+			});
+		},
+	});
+}
+
+interface ConfirmTaxYearMutationInput {
+	caseId: string;
+	request: api.ConfirmTaxYearRequest;
+}
+
+export function useConfirmTaxYearMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ caseId, request }: ConfirmTaxYearMutationInput) =>
+			api.confirmTaxYear(caseId, request),
+		onSuccess: (_data, variables) => {
+			queryClient.invalidateQueries({ queryKey: caseKeys.taxYear(variables.caseId) });
+			queryClient.invalidateQueries({ queryKey: caseKeys.result(variables.caseId) });
 		},
 	});
 }

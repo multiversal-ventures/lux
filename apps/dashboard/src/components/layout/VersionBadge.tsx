@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAppSelector } from "../../store";
+import { useAuth } from "../../hooks/useAuth";
 import { resolveApiUrl } from "../../lib/api";
 
 interface BackendVersion {
@@ -13,7 +13,7 @@ export function VersionBadge() {
 	const [expanded, setExpanded] = useState(false);
 	const [backendVersion, setBackendVersion] = useState<BackendVersion | null>(null);
 	const [versionMismatch, setVersionMismatch] = useState(false);
-	const tenantId = useAppSelector((state) => state.app.tenantId);
+	const { tenantId } = useAuth();
 
 	// Frontend build-time values
 	const feVersion = __APP_VERSION__;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { getAuth, onIdTokenChanged } from "firebase/auth";
+import { subscribeIdTokenChange } from "../../lib/firebase";
 import {
 	getPageImageUrl,
 	getDocumentClasses,
@@ -77,8 +77,7 @@ export function DocumentViewer({
 	// Fetch auth token for secure image loading
 	// Wait for auth to be ready before rendering page images to avoid 401 errors
 	useEffect(() => {
-		const auth = getAuth();
-		const unsubscribe = onIdTokenChanged(auth, async (user) => {
+		const unsubscribe = subscribeIdTokenChange(async (user) => {
 			if (user) {
 				const token = await user.getIdToken();
 				setAuthToken(token);

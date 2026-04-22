@@ -6,3 +6,4 @@ export * from "./useGunnr";
 export * from "./useGunnrCase";
 export * from "./useSSEConnection";
 export * from "./useEventInvalidation";
+export * from "./useScenarioDraft";

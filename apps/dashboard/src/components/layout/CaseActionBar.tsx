@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
-import { getAuth } from "firebase/auth";
+import { useAuth } from "../../hooks/useAuth";
 import type { FileArtifact } from "../../types";
 import { resolveApiUrl } from "../../lib/api";
 
@@ -14,13 +14,13 @@ interface CaseActionBarProps {
 export function CaseActionBar({ caseName, files, onExportExcel }: CaseActionBarProps) {
 	const navigate = useNavigate();
 	const { caseId } = useParams<{ caseId: string }>();
+	const { user } = useAuth();
 	const [downloading, setDownloading] = useState(false);
 
 	const handleDownloadCaseFiles = useCallback(async () => {
 		if (!caseId || !files?.length || downloading) return;
 		setDownloading(true);
 		try {
-			const user = getAuth().currentUser;
 			const token = user ? await user.getIdToken() : "";
 			const res = await fetch(resolveApiUrl(`/api/v1/case/${caseId}/files/download-zip`), {
 				headers: { Authorization: `Bearer ${token}` },
@@ -41,7 +41,7 @@ export function CaseActionBar({ caseName, files, onExportExcel }: CaseActionBarP
 		} finally {
 			setDownloading(false);
 		}
-	}, [caseId, caseName, files, downloading]);
+	}, [caseId, caseName, files, downloading, user]);
 
 	const fileCount = files?.length ?? 0;
 

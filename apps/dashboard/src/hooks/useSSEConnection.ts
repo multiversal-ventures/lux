@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { getAuth } from "firebase/auth";
+import { getFirebaseAuth } from "../lib/firebase";
 import { useCaseEventStore, getStoredEventHead } from "../stores/caseEventStore";
 import { resolveApiUrl } from "../lib/api";
 import { getCaseEvents } from "./useApi";
@@ -56,11 +56,6 @@ export function useSSEConnection({
 			const state = store.getState();
 			const activeCaseId = state.caseId;
 
-			// Track last event ID for resume
-			if (event.lastEventId) {
-				state.setLastEventId(event.lastEventId);
-			}
-
 			let data: StreamEvent;
 			try {
 				data = JSON.parse(event.data);
@@ -72,56 +67,9 @@ export function useSSEConnection({
 				return;
 			}
 
-			// Write event to Zustand store (deduplication is inside addEvent)
-			state.addEvent(data);
+			// Buffered + deduped in the store (see caseEventStore.processSSEEvent)
+			state.processSSEEvent(data, event.lastEventId || undefined);
 			onEvent?.(data);
-
-			// Track loaded files from file-loading observations
-			if (data.phase === "loading" && data.data?.file_id && data.data?.filename) {
-				const fileData = data.data as {
-					file_id: string;
-					filename: string;
-					page_count: number;
-				};
-				state.addLoadedFile({
-					file_id: fileData.file_id,
-					filename: fileData.filename,
-					page_count: fileData.page_count || 0,
-					status: "loading",
-				});
-			}
-
-			// Update file status based on phase changes
-			if (data.phase === "classification" && data.source?.file_id) {
-				state.updateFileStatus(data.source.file_id, "classifying");
-			}
-			if (data.phase === "extraction" && data.source?.file_id) {
-				state.updateFileStatus(data.source.file_id, "extracting");
-			}
-
-			// Mark completion + extract scenario ID
-			if (data.type === "complete") {
-				state.setCompleted(true);
-				const scenarioId = (data.data as { scenario_id?: string })?.scenario_id;
-				if (scenarioId) {
-					state.setFirstScenarioId(scenarioId);
-				}
-			}
-
-			// Detect tenant restriction (page limit exceeded, etc.)
-			if (data.type === "issue" && data.data?.restriction_code) {
-				const restrictionData = data.data as {
-					restriction_code: string;
-					total_pages: number;
-					page_limit: number;
-				};
-				state.setTenantRestriction({
-					code: restrictionData.restriction_code,
-					message: data.message,
-					totalPages: restrictionData.total_pages,
-					pageLimit: restrictionData.page_limit,
-				});
-			}
 		},
 		[store, onEvent],
 	);
@@ -200,7 +148,7 @@ export function useSSEConnection({
 
 		// Firebase auth token (force-refresh on retries)
 		const forceRefresh = retryCountRef.current > 0;
-		const auth = getAuth();
+		const auth = getFirebaseAuth();
 		const user = auth.currentUser;
 		let token: string | null = null;
 

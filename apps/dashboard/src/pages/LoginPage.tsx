@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
-import {
-	getAuth,
-	sendSignInLinkToEmail,
-	isSignInWithEmailLink,
-	signInWithEmailLink,
-} from "firebase/auth";
+import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
+import { getFirebaseAuth } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 
 export function LoginPage() {
@@ -18,7 +14,7 @@ export function LoginPage() {
 	const [error, setError] = useState("");
 	const [processingMagicLink, setProcessingMagicLink] = useState(() => {
 		try {
-			return isSignInWithEmailLink(getAuth(), window.location.href);
+			return isSignInWithEmailLink(getFirebaseAuth(), window.location.href);
 		} catch {
 			return false;
 		}
@@ -33,7 +29,7 @@ export function LoginPage() {
 
 	useEffect(() => {
 		const checkMagicLink = async () => {
-			const auth = getAuth();
+			const auth = getFirebaseAuth();
 			if (!isSignInWithEmailLink(auth, window.location.href)) return;
 
 			setProcessingMagicLink(true);
@@ -87,7 +83,7 @@ export function LoginPage() {
 
 		setIsLoading(true);
 		try {
-			const auth = getAuth();
+			const auth = getFirebaseAuth();
 			await sendSignInLinkToEmail(auth, email, {
 				url: window.location.origin + "/login",
 				handleCodeInApp: true,

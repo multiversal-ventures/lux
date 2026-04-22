@@ -11,8 +11,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { X, Loader2, Wand2, MessageCircle, Send, Trash2, AlertTriangle } from "lucide-react";
-import { getAuth } from "firebase/auth";
 import { resolveApiUrl } from "../../lib/api";
+import { useAuth } from "../../hooks/useAuth";
 
 // Sub-components
 import {
@@ -46,6 +46,7 @@ export function IncomeAdvisorModal({
 	currentApproach,
 	currentIncome,
 }: IncomeAdvisorModalProps) {
+	const { user } = useAuth();
 	const [state, setState] = useState<ExtendedStreamState>({
 		status: "idle",
 		events: [],
@@ -70,7 +71,6 @@ export function IncomeAdvisorModal({
 			statusCheckedRef.current = true;
 
 			try {
-				const user = getAuth().currentUser;
 				const token = user ? await user.getIdToken() : "";
 
 				// Check Redis status for running/waiting/complete workflows
@@ -144,7 +144,7 @@ export function IncomeAdvisorModal({
 		};
 
 		hydrateFromStatus();
-	}, [isOpen, caseId]);
+	}, [isOpen, caseId, user]);
 
 	// Connect to poll-based SSE stream for real-time updates
 	const connectToPollStream = useCallback(
@@ -153,8 +153,7 @@ export function IncomeAdvisorModal({
 				eventSourceRef.current.close();
 			}
 
-			const authToken =
-				token || (getAuth().currentUser ? await getAuth().currentUser!.getIdToken() : "");
+			const authToken = token || (user ? await user.getIdToken() : "");
 			const url = `${resolveApiUrl(`/api/case/${caseId}/income/advisor/stream/poll`)}?token=${encodeURIComponent(authToken)}`;
 
 			console.log("[ADVISOR] Connecting to poll stream");
@@ -264,7 +263,7 @@ export function IncomeAdvisorModal({
 				}
 			};
 		},
-		[caseId],
+		[caseId, user],
 	);
 
 	// Start analysis via Temporal workflow
@@ -279,7 +278,6 @@ export function IncomeAdvisorModal({
 			setState((prev) => ({ ...prev, status: "connecting", events: [] }));
 
 			try {
-				const user = getAuth().currentUser;
 				const token = user ? await user.getIdToken() : "";
 
 				// If we have a pending question, send response via signal
@@ -363,7 +361,7 @@ export function IncomeAdvisorModal({
 				}));
 			}
 		},
-		[caseId, scenarioId, state.status, state.workflowId, connectToPollStream],
+		[caseId, scenarioId, state.status, state.workflowId, connectToPollStream, user],
 	);
 
 	// Focus input when modal opens
@@ -397,7 +395,6 @@ export function IncomeAdvisorModal({
 	const clearThread = useCallback(async () => {
 		// Always allow clearing - use caseId, not threadId
 		try {
-			const user = getAuth().currentUser;
 			const token = user ? await user.getIdToken() : "";
 
 			// Delete thread (required for clear)
@@ -448,7 +445,7 @@ export function IncomeAdvisorModal({
 		} catch (error) {
 			console.error("[ADVISOR] Failed to clear thread:", error);
 		}
-	}, [caseId, state.threadId, state.workflowId]);
+	}, [caseId, state.threadId, state.workflowId, state.status, user]);
 
 	// Handle ask/submit
 	const handleAsk = () => {

@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
 import { useAuth } from "../hooks";
 import { completeRegistration } from "../hooks/useApi";
 import { trackSignUp } from "../lib/mixpanel";
@@ -109,8 +108,6 @@ export function CompleteRegistrationPage() {
 
 			console.log("Registration complete:", response);
 
-			const auth = getAuth();
-			const user = auth.currentUser;
 			if (user) {
 				trackSignUp({
 					user_id: user.uid,

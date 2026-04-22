@@ -32,6 +32,7 @@ import { ScenarioIncomeTab } from "./ScenarioIncomeTab";
 import { ScenarioRefinePage } from "./ScenarioRefinePage";
 import { ComparePage } from "./ComparePage";
 import { CompliancePage } from "../pages/CompliancePage";
+import { getCaseCompletionRedirect } from "./caseCompletionNavigation";
 import { trackCaseViewed, trackExtractionCompleted, trackFunnelStep } from "../lib/analytics";
 import { useCaseEventStore } from "../stores/caseEventStore";
 
@@ -235,10 +236,8 @@ export function CasePage() {
 		};
 	}, []);
 
-	// When extraction completes on the base case page, auto-navigate to the
-	// scenario summary IF a first-scenario was created during the workflow.
-	// If no scenario exists (manual scenario flow), stay on the extraction page
-	// so the user can see the completed state before creating a scenario.
+	// When extraction completes on the base case page, navigate like Gunnr UI
+	// (`caseCompletionNavigation.ts`), with extra polling so Memgraph lag does not miss new scenarios.
 	useEffect(() => {
 		if (location.pathname !== `/case/${caseId}`) return;
 
@@ -246,44 +245,71 @@ export function CasePage() {
 
 		if (!isComplete || !caseId || extractionNavDone) return;
 
-		// FAST PATH: SSE delivered the scenario_id — navigate immediately
+		const scenarioIdsFromCache = scenariosData?.scenarios?.map((s) => s.scenario_id) ?? [];
+
 		if (firstScenarioId) {
-			setExtractionNavDone(true);
-			navigate(`/case/${caseId}/scenario/${firstScenarioId}/summary`, { replace: true });
-			return;
-		}
-
-		// Check cached React Query data
-		if (scenariosData?.scenarios && scenariosData.scenarios.length > 0) {
-			setExtractionNavDone(true);
-			navigate(`/case/${caseId}/scenario/${scenariosData.scenarios[0].scenario_id}/summary`, {
-				replace: true,
+			const path = getCaseCompletionRedirect({
+				caseId,
+				isComplete,
+				firstScenarioId,
+				scenariosReady: true,
+				scenarioIds: [],
 			});
+			if (path) {
+				setExtractionNavDone(true);
+				navigate(path, { replace: true });
+			}
 			return;
 		}
 
-		// Poll the API a few times to handle propagation delay between the
-		// "completed" status and the scenario becoming queryable in Memgraph.
-		// If NO scenario is found, stay on the extraction page (don't force-redirect
-		// to /new-scenario — the user should see the completed state first).
+		if (scenarioIdsFromCache.length > 0) {
+			const path = getCaseCompletionRedirect({
+				caseId,
+				isComplete,
+				firstScenarioId: null,
+				scenariosReady: true,
+				scenarioIds: scenarioIdsFromCache,
+			});
+			if (path) {
+				setExtractionNavDone(true);
+				navigate(path, { replace: true });
+			}
+			return;
+		}
+
+		// Poll when scenarios may exist but are not visible in cache yet (Memgraph lag).
 		const MAX_RETRIES = 4;
 		const RETRY_DELAY_MS = 1500;
 
 		const attemptResolve = () => {
 			getCaseScenarios(caseId)
 				.then((scenariosRes) => {
-					if (scenariosRes?.scenarios && scenariosRes.scenarios.length > 0) {
+					const ids = scenariosRes?.scenarios?.map((s) => s.scenario_id) ?? [];
+					const path = getCaseCompletionRedirect({
+						caseId,
+						isComplete,
+						firstScenarioId: null,
+						scenariosReady: true,
+						scenarioIds: ids,
+					});
+					if (path) {
 						setExtractionNavDone(true);
-						navigate(`/case/${caseId}/scenario/${scenariosRes.scenarios[0].scenario_id}/summary`, {
-							replace: true,
-						});
+						navigate(path, { replace: true });
 					} else if (navRetryCountRef.current < MAX_RETRIES) {
 						navRetryCountRef.current += 1;
 						navRetryRef.current = setTimeout(attemptResolve, RETRY_DELAY_MS);
 					} else {
-						// No first-scenario was created — mark nav as done so we don't
-						// keep retrying, but stay on the extraction page.
+						const fallback = getCaseCompletionRedirect({
+							caseId,
+							isComplete: true,
+							firstScenarioId: null,
+							scenariosReady: true,
+							scenarioIds: [],
+						});
 						setExtractionNavDone(true);
+						if (fallback) {
+							navigate(fallback, { replace: true });
+						}
 					}
 				})
 				.catch(() => {
@@ -291,7 +317,17 @@ export function CasePage() {
 						navRetryCountRef.current += 1;
 						navRetryRef.current = setTimeout(attemptResolve, RETRY_DELAY_MS);
 					} else {
+						const fallback = getCaseCompletionRedirect({
+							caseId,
+							isComplete: true,
+							firstScenarioId: null,
+							scenariosReady: true,
+							scenarioIds: [],
+						});
 						setExtractionNavDone(true);
+						if (fallback) {
+							navigate(fallback, { replace: true });
+						}
 					}
 				});
 		};

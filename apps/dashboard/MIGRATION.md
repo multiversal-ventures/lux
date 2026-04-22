@@ -1,89 +1,74 @@
 # Gunnr UI → Lux `apps/dashboard` — screen map
 
-**Source of truth walked:** `gunnr/ui/src/` tree (`pages`, `components`, `contexts`, `stores`, `hooks`, `types`, `utils`) — same modules now live under `apps/dashboard/src/` (see repo history for excludes: Lux `App.tsx`, `main.tsx`, `LoginPage`, `useAuth`, `lib/firebase`).
+## Source layout
 
-**Target:** `apps/dashboard` routes in `src/App.tsx` + nested routes in `src/pages/CasePage.tsx`.
+| Location | Role |
+|----------|------|
+| **Upstream Gunnr UI** | `/Users/peyman/Projects/gunnr/ui` (sibling repo; **not** inside Lux). `App.tsx` still wraps authenticated routes with `ProtectedRoute` + `PublicRoute` from `components/shared/`. |
+| **Lux dashboard** | `apps/dashboard/src/` — same feature modules, with **Lux-owned shell**: `App.tsx`, `main.tsx`, `queryClient.ts`, `components/PublicRoute.tsx`, `components/TenantProtectedRoute.tsx`, `hooks/useAuth.ts`, `lib/firebase.ts`, `lib/devUiOnly.ts`. |
 
-**T3 note:** All API traffic goes through `lib/api.ts` (`apiRequest`, Bearer from `getAuth()`). That is the **same Firebase app** as `useAuth`. Replace any remaining **Gunnr-only route guards** (`ProtectedRoute`) with Lux **`TenantProtectedRoute`** + `useAuth` where still referenced.
+**Auth (single path in Lux):** Firebase session via `useAuth` + `main.tsx` (`initializeApp`, `waitForAuth`). Tenant/org gate and Redux `tenantId` / `tenantName` hydration live only in **`TenantProtectedRoute`** (`useAuth` + `GET /api/v1/auth/me` + optional `GET /api/v1/tenants/me`, `localStorage.bypass_tenant_check` for rare false negatives). Gunnr’s **`ProtectedRoute`** was **removed** from the dashboard tree; do not reintroduce a second guard.
+
+**API:** `lib/api.ts` — `resolveApiUrl`, `apiRequest`, Bearer from `getAuth()` (same default Firebase app as `useAuth`). Staging: set **`VITE_GUNNR_API_URL`** (see `README.md`, `.env.example`).
 
 ---
 
-## Global state & infrastructure (not a single “screen”)
+## Global state & infrastructure
 
 | Area | Location | Role |
 |------|----------|------|
-| **Redux** | `store/appSlice.ts` | UI: sidebars, `currentCaseId` / `currentCaseName`, `pendingEdits`, `tenantId` / `tenantName`, `selectedLoanProduct`. |
+| **Redux** | `store/appSlice.ts` | Sidebars, `currentCaseId` / `currentCaseName`, `pendingEdits`, `tenantId` / `tenantName`, `selectedLoanProduct`. |
 | **React Query** | `queryClient.ts` + hooks | Server cache; keys in `hooks/useCaseQueries.ts`. |
-| **SSE / events** | `stores/caseEventStore.ts`, `stores/reviewAgentStore.ts`, `hooks/useSSEConnection.ts`, `hooks/useGunnrCase.ts` | Stream events → Zustand → query invalidation (`hooks/useEventInvalidation.ts`). |
-| **Case history** | `contexts/CaseHistoryContext.tsx` | `localStorage` (`gunnr_case_history`), tenant case list via React Query (`useTenantCases`, batch status), `deleteCase` API. |
-| **Health** | `contexts/HealthContext.tsx` | `GET /api/v1/health` polling (bypass: `VITE_DEV_UI_ONLY`). |
+| **SSE / events** | `stores/caseEventStore.ts`, `stores/reviewAgentStore.ts`, `hooks/useSSEConnection.ts`, `hooks/useGunnrCase.ts` | Events → Zustand → invalidation (`hooks/useEventInvalidation.ts`). |
+| **Case history** | `contexts/CaseHistoryContext.tsx` | `localStorage` (`gunnr_case_history`), tenant cases, `deleteCase`. |
+| **Health** | `contexts/HealthContext.tsx` | `GET /api/v1/health` (bypass: `VITE_DEV_UI_ONLY`). |
 | **Analytics** | `lib/analytics.ts`, `lib/mixpanel.ts`, `components/analytics/RouteObserver.tsx` | Events / page views. |
+| **Post-extraction nav** | `pages/caseCompletionNavigation.ts` | Shared with Gunnr: summary vs `new-scenario` (`CasePage` adds polling before final redirect). |
 
 ---
 
 ## Screen → route → API (summary) → state
 
-**API column:** Representative only; full surface is `hooks/useApi.ts` + `useCaseQueries` + per-component `fetch`/`api.*` calls.
+**API column:** Representative; full surface is `hooks/useApi.ts`, `useCaseQueries`, and per-file `fetch` / `api.*` / SSE.
 
-| Screen | Gunnr route | `apps/dashboard` route | APIs / transport | Owned state |
-|--------|-------------|-------------------------|------------------|--------------|
-| **Landing** | `/` | `/` | None (static + links). | — |
-| **Login** | `/login` | `/login` | Firebase magic link (`firebase/auth`); no REST until post-login. | Local form UI (`LoginPage`). **Lux-only;** not Gunnr’s old login. |
-| **Complete registration** | `/complete-registration` | `/complete-registration` | `GET /api/v1/auth/me`; `completeRegistration` + related `useApi` helpers. | Form + `useAuth`. **Auth:** `getAuth` + `fetch` Bearer — align with T3 `useAuth` / same Firebase. |
-| **Home / case list** | `/app` | `/app` | Upload + case APIs via `useUpload`, `useApi` (`listSamples`, `createSampleCase`, …), case history context, analytics. | `HomePage` local UI; samples/expansion; `useCaseHistory` + context. |
-| **Spec workshop** | `/spec-workshop` | `/spec-workshop` | `evaluateSpec`, `generateSampleData`, `getDemoLoans`, `evaluateDemoLoan`, `generateDemoLoanSample`, `getSpec`, … (`useApi`). | Large local editor/eval state (`SpecWorkshopPage`). |
-| **Case shell** | `/case/:caseId/*` | `/case/:caseId/*` | **`useGunnrCase`** (SSE + case payload), `useCaseScenarios`, `getScenario`, layout APIs, tab modules (below). Redux dispatches for header case name. | `CasePage` view state, sidebars, `useCaseEventStore` subscription. |
+| Screen | Gunnr route | Dashboard route | APIs / transport | Owned state |
+|--------|-------------|-----------------|------------------|-------------|
+| **Landing** | `/` | `/` | None. | — |
+| **Login** | `/login` | `/login` | Firebase magic link. | `LoginPage` (Lux implementation). |
+| **Complete registration** | `/complete-registration` | `/complete-registration` | `GET /api/v1/auth/me`, `completeRegistration` (`useApi`). | Form + `useAuth`; `bypass_tenant_check` on edge-case errors. |
+| **Home** | `/app` | `/app` | Upload, samples, case list, case history, analytics. | `HomePage` + context. |
+| **Spec workshop** | `/spec-workshop` | `/spec-workshop` | Spec eval / demo loan APIs (`useApi`). | Large local state. |
+| **Case shell** | `/case/:caseId/*` | `/case/:caseId/*` | `useGunnrCase` (SSE), scenarios, layout APIs, tabs below. | `CasePage`, Redux case name, event store. |
 
-### Nested under `/case/:caseId/` (same paths Gunnr `CasePage` used)
+### Nested under `/case/:caseId/`
 
-| Sub-screen | Path suffix | APIs (pattern) | Owned state |
-|------------|-------------|----------------|-------------|
-| **Extraction** | `…`, `extraction` | Case status/result/extraction via queries + SSE. | `ExtractionTab` + hooks. |
-| **Documents** | `view` | Case result, documents, workflows. | `DocumentsTab` + sidebars. |
-| **Graph** | `graph` | Case graph query keys. | `GraphTab`. |
-| **Income** | `income` | Income verification + case result (`useCaseQueries` / `useApi`). | `IncomeTab`. |
-| **Credit** | `credit` | Credit workflows + extraction. | `CreditTab`. |
-| **Credit report** | `credit-report` | Credit report extraction endpoints. | `CreditReportTab`. |
-| **Ratios** | `ratios` | Ratios + workflows. | `RatiosTab`. |
-| **Bank statements** | `bank-statements` | Bank review/transactions; **image** `GET /api/v1/case/.../page/.../image` (needs auth/CORS if `VITE_GUNNR_API_URL` cross-origin). | `BankStatementsTab`. |
-| **Compare** | `compare` | `useCaseScenarios`, `getIncomeVerification`, `listRefinements`. | `ComparePage`. |
-| **Compliance** | `compliance` | **None** — static “Coming Soon” UI. | None. |
-| **New scenario** | `new-scenario` | `cancelWorkflows`, scenario/case mutations (`useCaseQueries` / `useApi`). | `CreateScenarioPage`. |
-| **Scenario** | `scenario/:scenarioId` (+ `summary`, `:productId`) | Scenario detail, income verification, refinements (`useCaseQueries`, `useApi`). | `ScenarioPage`, `ScenarioSummaryPage`, `ScenarioIncomeTab`; outlet context. |
-| **Refine** | `scenario/:scenarioId/refine` | Refinement + scenario APIs. | `ScenarioRefinePage`. |
-
----
-
-## Gunnr-specific auth / tenancy — T3 swap checklist
-
-| Item | Location | Note |
-|------|----------|------|
-| **`ProtectedRoute`** | `components/shared/ProtectedRoute.tsx` | Gunnr flow: `fetch /api/v1/auth/me`, `/tenants/me`, `complete-registration` bypass hack. **Not used in Lux `App.tsx`** (replaced by `TenantProtectedRoute`). Remove or rewrite to delegate to `useAuth` + single tenant check to avoid drift. |
-| **`TenantProtectedRoute`** | `components/TenantProtectedRoute.tsx` | Lux canonical guard: `useAuth` + `GET /api/v1/auth/me` (via `resolveApiUrl`). **Keep.** |
-| **`CompleteRegistrationPage`** | `pages/CompleteRegistrationPage.tsx` | Uses `useAuth` + direct `fetch` `auth/me` — same contract as guard; ensure token source stays `useAuth` / Firebase only. |
-| **Ad-hoc `getAuth()`** | Many components (`IncomeAdvisorModal`, `CaseActionBar`, SSE, …) | Same default Firebase app as `useAuth`; OK if T3 standardizes on hooks-only for readability. |
-| **`VITE_DEV_UI_ONLY`** | `lib/devUiOnly.ts`, `HealthGate`, `TenantProtectedRoute` | **Dev-only** bypass; must not ship enabled. |
+| Sub-screen | Path suffix | APIs (pattern) | Notes |
+|------------|-------------|----------------|--------|
+| **Extraction** | `…`, `extraction` | Case status / result / extraction + SSE | Uses `getCaseCompletionRedirect` after complete. |
+| **Documents** | `view` | Case result, workflows | |
+| **Graph** | `graph` | Graph queries | |
+| **Income** | `income` | Income verification, case result | |
+| **Credit** | `credit` | Credit workflows | |
+| **Credit report** | `credit-report` | Credit report extraction | |
+| **Ratios** | `ratios` | Ratios + workflows | |
+| **Bank statements** | `bank-statements` | Bank APIs; **images** may need CORS + auth strategy if API is cross-origin. | |
+| **Compare** | `compare` | Scenarios, refinements, income verification | |
+| **Compliance** | `compliance` | **None** — placeholder UI. | |
+| **New scenario** | `new-scenario` | Scenario create / workflows | Gunnr uses `ScenarioDraftEditor` + `useScenarioDraft`; Lux **inlines** draft UX in `CreateScenarioPage` (same feature, different structure). |
+| **Scenario** | `scenario/:scenarioId`, `summary`, `:productId` | Scenario + income APIs | |
+| **Refine** | `scenario/:scenarioId/refine` | Refinement APIs | Gunnr `ScenarioRefinePage` uses draft editor; Lux uses tab layout (`PeriodsTab`, …). |
 
 ---
 
-## Cannot port “as-is” (callouts)
+## Parity / portability callouts
 
-1. **`CompliancePage`** — Marketing/placeholder only; **no backend** yet. Route exists; feature TBD.
-2. **Cross-origin `VITE_GUNNR_API_URL`** — `<img src={resolveApiUrl(...)}>` and raw `EventSource` need **CORS** (and often **token** strategy for images) on Gunnr staging; not a code port gap but an **integration** requirement.
-3. **Lux `LoginPage`** — Intentionally **not** Gunnr’s login implementation; behavior is magic-link + `useAuth` (product decision, already merged).
+1. **`CompliancePage`** — No backend; route only.
+2. **Cross-origin `VITE_GUNNR_API_URL`** — CORS; `<img>` / `EventSource` may need backend support.
+3. **Lux `LoginPage`** — Product choice vs copying Gunnr’s login verbatim.
+4. **`VITE_DEV_UI_ONLY`** — Dev-only; must not ship enabled.
 
 ---
 
-## File index (where screens live)
+## File index (Gunnr `src/` → Lux `apps/dashboard/src/`)
 
-| Gunnr area | Dashboard path |
-|------------|----------------|
-| `pages/*.tsx` | `src/pages/*.tsx` |
-| `components/**` | `src/components/**` |
-| `contexts/**` | `src/contexts/**` |
-| `stores/**` | `src/stores/**` |
-| `hooks/**` | `src/hooks/**` |
-| `types/**` | `src/types/**` |
-| `utils/**` | `src/utils/**` |
-
-For **per-component** API drilling (e.g. every `api.post` in `RatiosTab`), grep `src/components` for `api\.`, `apiRequest`, `fetch(resolveApiUrl`, and `useCaseQueries` — the table above is the routing map; hooks consolidate most REST paths under `/api/v1/...` and `/api/case/...` (income advisor).
+`pages/`, `components/`, `contexts/`, `stores/`, `hooks/`, `types/`, `utils/`, `lib/` — same names except Lux-only files above and **no** `components/shared/ProtectedRoute.tsx` in dashboard.

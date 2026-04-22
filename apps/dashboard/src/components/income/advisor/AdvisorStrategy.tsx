@@ -2,7 +2,7 @@
  * Displays a single income strategy recommendation.
  */
 
-import { TrendingUp, ChevronRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronRight, TrendingUp } from "lucide-react";
 import type { IncomeStrategy } from "../../../hooks/useApi";
 import type { SourceReference } from "./types";
 

@@ -1,21 +1,21 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Briefcase, FileSpreadsheet } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { startIncomeVerification } from "../hooks/useApi";
+import { useAuth } from "../hooks/useAuth";
 import type { StoredCase } from "../hooks/useCaseHistory";
 import {
-	useIncomeVerification,
-	useCreditVerification,
-	useWorkflowStatus,
-	useCaseResult,
 	useCaseQueryInvalidation,
+	useCaseResult,
+	useCreditVerification,
+	useIncomeVerification,
+	useWorkflowStatus,
 } from "../hooks/useCaseQueries";
-import { Briefcase, FileSpreadsheet } from "lucide-react";
-import { formatRelativeTime } from "../utils/formatRelativeTime";
-import { useAuth } from "../hooks/useAuth";
-import { ExcelViewer } from "./shared/ExcelViewer";
+import { resolveApiUrl } from "../lib/api";
 import { useAppDispatch } from "../store";
 import { setSelectedLoanProduct } from "../store/appSlice";
-import { startIncomeVerification } from "../hooks/useApi";
-import { resolveApiUrl } from "../lib/api";
+import { formatRelativeTime } from "../utils/formatRelativeTime";
+import { ExcelViewer } from "./shared/ExcelViewer";
 
 function NavItem({
 	label,
@@ -193,7 +193,9 @@ export function CaseRow({
 				if (productId && (stage === "income" || stage === "credit")) {
 					url += `?product=${encodeURIComponent(productId)}`;
 				}
-				const response = await fetch(resolveApiUrl(url), { headers: { Authorization: `Bearer ${token}` } });
+				const response = await fetch(resolveApiUrl(url), {
+					headers: { Authorization: `Bearer ${token}` },
+				});
 				if (!response.ok) {
 					const err = await response.json().catch(() => ({}));
 					throw new Error((err as { detail?: string }).detail || "Failed to get Excel URL");

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { trackPageView } from "../../lib/mixpanel";
 import { useAuth } from "../../hooks";
+import { trackPageView } from "../../lib/mixpanel";
 
 /**
  * Tracks Page View events on route changes for Mixpanel

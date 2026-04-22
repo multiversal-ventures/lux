@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import type { CaseResult, ExtractedDocument, FileArtifact } from "../../types";
-import { PdfViewer } from "./PdfViewer";
 import { DocumentViewer } from "./DocumentViewer";
+import { PdfViewer } from "./PdfViewer";
 
 // Selection stores identifiers only - actual data is derived from result (source of truth)
 export type ViewerSelection =

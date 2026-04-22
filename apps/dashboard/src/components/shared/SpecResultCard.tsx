@@ -14,19 +14,19 @@
  * - Source navigation support
  */
 
-import { useState, useCallback } from "react";
-import {
-	SemanticTable,
-	type TableComponent,
-	type TableColumn,
-	type TableGroup,
-} from "./SemanticTable";
-import { MultiEntityTable, type EntityResult, type AggregateResult } from "./MultiEntityTable";
-import type { SourceRef } from "../../types";
+import { useCallback, useState } from "react";
 import type {
 	CalculationStep as ApiCalculationStep,
 	DeduplicationExclusion as ApiDeduplicationExclusion,
 } from "../../hooks/useApi";
+import type { SourceRef } from "../../types";
+import { type AggregateResult, type EntityResult, MultiEntityTable } from "./MultiEntityTable";
+import {
+	SemanticTable,
+	type TableColumn,
+	type TableComponent,
+	type TableGroup,
+} from "./SemanticTable";
 
 // =============================================================================
 // TYPES - Re-export API types for convenience

@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
-import type { CaseResult, CaseStatus, LoadedFile, ExtractedDocument } from "../../types";
-import { getDocClassInfo, isMISMOStandard } from "../../utils/docUtils";
+import { useEffect, useMemo, useState } from "react";
 import { isOngoing } from "../../lib/phases";
+import type { CaseResult, CaseStatus, ExtractedDocument, LoadedFile } from "../../types";
+import { getDocClassInfo, isMISMOStandard } from "../../utils/docUtils";
 import { FileCardSkeleton } from "../shared/Skeleton";
 
 // Pending file from upload navigation state

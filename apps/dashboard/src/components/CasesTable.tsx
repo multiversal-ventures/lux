@@ -1,9 +1,9 @@
+import { Mail } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail } from "lucide-react";
-import type { StoredCase, CaseProgress } from "../hooks/useCaseHistory";
-import type { CaseStatusCode } from "../types";
+import type { CaseHistoryProgress, StoredCase } from "../hooks/useCaseHistory";
 import { getStatusLabel as _getStatusLabel } from "../lib/phases";
+import type { CaseStatusCode } from "../types";
 
 interface CasesTableProps {
 	cases: StoredCase[];
@@ -22,8 +22,8 @@ function parsePageLimitError(
 	if (!error || !error.startsWith("PAGE_LIMIT_EXCEEDED|")) return null;
 	const parts = error.split("|");
 	if (parts.length >= 3) {
-		const totalPages = parseInt(parts[1], 10);
-		const pageLimit = parseInt(parts[2], 10);
+		const totalPages = Number.parseInt(parts[1], 10);
+		const pageLimit = Number.parseInt(parts[2], 10);
 		if (!isNaN(totalPages) && !isNaN(pageLimit)) {
 			return { totalPages, pageLimit };
 		}
@@ -39,7 +39,7 @@ function getStatusLabel(code: CaseStatusCode): string {
 }
 
 /** Get status badge based on detailed status code */
-function getStatusBadge(code: CaseStatusCode | null, fallbackProgress: CaseProgress) {
+function getStatusBadge(code: CaseStatusCode | null, fallbackProgress: CaseHistoryProgress) {
 	// If no status code yet, use fallback progress
 	if (!code) {
 		if (fallbackProgress === "completed") {

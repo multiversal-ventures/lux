@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
+import { TenantRestrictionPopup } from "../shared/TenantRestrictionPopup";
 import { Header } from "./Header";
 import { VersionBadge } from "./VersionBadge";
-import { TenantRestrictionPopup } from "../shared/TenantRestrictionPopup";
 
 export function Layout() {
 	return (

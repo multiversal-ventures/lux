@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from "react";
-import { User, Building2 } from "lucide-react";
+import { Building2, User } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 
 // Role display configuration
 const ROLE_DISPLAY: Record<string, { label: string; badgeClass: string; hint?: string }> = {

@@ -1,9 +1,9 @@
-import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import { caseKeys, useCaseScenarios } from "../hooks/useCaseQueries";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { getIncomeVerification, listRefinements } from "../hooks/useApi";
+import { caseKeys, useCaseScenarios } from "../hooks/useCaseQueries";
 
 interface ComparePageProps {
 	caseId: string;

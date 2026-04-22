@@ -1,20 +1,20 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-	useCaseStatus,
-	useWorkflowStatus,
-	useCaseResult,
-	useCaseQueryInvalidation,
-} from "../../hooks/useCaseQueries";
 import { checkIncomeReadiness } from "../../hooks/useApi";
 import type { IncomeReadinessResponse } from "../../hooks/useApi";
-import type { CaseResult, StreamEvent, Party } from "../../types";
-import { ExtractionTab } from "./ExtractionTab";
-import { extractStringValue } from "./PartiesView/partiesViewUtils";
-import { PartiesSummary } from "./PartiesSummary";
-import { Warnings } from "./Warnings";
+import {
+	useCaseQueryInvalidation,
+	useCaseResult,
+	useCaseStatus,
+	useWorkflowStatus,
+} from "../../hooks/useCaseQueries";
+import type { CaseResult, Party, StreamEvent } from "../../types";
 import { LoanProductSelector } from "../shared/LoanProductSelector";
 import { StartIncomeVerification } from "../shared/StartIncomeVerification";
+import { ExtractionTab } from "./ExtractionTab";
+import { PartiesSummary } from "./PartiesSummary";
+import { extractStringValue } from "./PartiesView/partiesViewUtils";
+import { Warnings } from "./Warnings";
 
 import { isOngoing } from "../../lib/phases";
 

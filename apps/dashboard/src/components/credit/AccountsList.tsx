@@ -2,9 +2,9 @@
  * AccountsList - Container for account cards with expand/collapse all
  */
 
-import { useState, useMemo } from "react";
-import type { LoanAccount, AccountType } from "./types";
+import { useMemo, useState } from "react";
 import { AccountCard } from "./AccountCard";
+import type { AccountType, LoanAccount } from "./types";
 
 interface AccountsListProps {
 	accounts: LoanAccount[];

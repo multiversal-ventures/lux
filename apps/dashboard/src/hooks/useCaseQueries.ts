@@ -8,8 +8,8 @@
  * which causes React Query to refetch once (not per-component).
  */
 
-import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { read } from "xlsx";
 import { APIError } from "../lib/api";
 import { useCaseEventStore } from "../stores/caseEventStore";
@@ -344,7 +344,7 @@ export function useCaseGraph(
  */
 export function useIncomeReadiness(
 	caseId: string | null,
-	loanProduct: string = "fannie_mae",
+	loanProduct = "fannie_mae",
 	options?: {
 		enabled?: boolean;
 	},
@@ -751,8 +751,8 @@ export function useCreditReportExtractionOverride(caseId: string | null) {
 		queryKey: caseKeys.creditReportExtractionOverride(caseId ?? ""),
 		queryFn: async () => undefined as api.CreditReportSummary | undefined,
 		enabled: false,
-		staleTime: Infinity,
-		gcTime: Infinity,
+		staleTime: Number.POSITIVE_INFINITY,
+		gcTime: Number.POSITIVE_INFINITY,
 	});
 }
 

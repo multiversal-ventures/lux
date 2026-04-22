@@ -10,15 +10,15 @@
  * - Falls back to standard SemanticTable behavior
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { SourceRef } from "../../types";
+import { type EntityInfo, EntitySelector } from "./EntitySelector";
 import {
 	SemanticTable,
-	type TableComponent,
 	type TableColumn,
+	type TableComponent,
 	type TableGroup,
 } from "./SemanticTable";
-import { EntitySelector, type EntityInfo } from "./EntitySelector";
-import type { SourceRef } from "../../types";
 
 // =============================================================================
 // TYPES

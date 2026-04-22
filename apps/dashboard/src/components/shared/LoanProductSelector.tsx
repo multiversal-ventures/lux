@@ -7,9 +7,9 @@
  * result and auto-selects products present in that result.
  */
 
-import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getLoanProducts, type LoanProduct } from "../../hooks/useApi";
+import { useEffect, useRef, useState } from "react";
+import { type LoanProduct, getLoanProducts } from "../../hooks/useApi";
 import { useIncomeVerification } from "../../hooks/useCaseQueries";
 import { Skeleton } from "./Skeleton";
 

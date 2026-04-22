@@ -1,7 +1,7 @@
 import type { ExtractedDocument } from "../../../types";
-import type { PartyWithId } from "./usePartiesViewState";
-import type { PartyType } from "./partiesViewTypes";
 import { BusinessEntityRow } from "./BusinessEntityRow";
+import type { PartyType } from "./partiesViewTypes";
+import type { PartyWithId } from "./usePartiesViewState";
 
 export interface BusinessesSectionProps {
 	businesses: PartyWithId[];

@@ -1,10 +1,9 @@
-import { Link, useParams, useLocation } from "react-router-dom";
+import { useSession } from "@fenero/lux-react";
+import { Link, useLocation, useParams } from "react-router-dom";
 import logoOrange from "../../assets/logo-orange.svg";
 import { useAuth, useCaseHistory } from "../../hooks";
-import { useAppSelector, useAppDispatch } from "../../store";
-import { setCurrentCaseName } from "../../store/appSlice";
-import { EditableCaseName } from "../shared";
 import { getCaseDisplayName } from "../../utils/caseNameUtils";
+import { EditableCaseName } from "../shared";
 
 interface LocationState {
 	caseName?: string;
@@ -14,11 +13,11 @@ interface LocationState {
 
 export function Header() {
 	const { user, signOut } = useAuth();
+	const session = useSession();
 	const { caseId: routeCaseId } = useParams<{ caseId?: string }>();
 	const location = useLocation();
-	const dispatch = useAppDispatch();
 	const { cases, updateCaseName, addCase } = useCaseHistory();
-	const storeCaseName = useAppSelector((s) => s.app.currentCaseName);
+	const storeCaseName = session.activeCaseName;
 
 	const activeCaseId = routeCaseId;
 	const stateCaseName = (location.state as LocationState | null)?.caseName;
@@ -42,7 +41,7 @@ export function Header() {
 				addCase(activeCaseId, 0);
 			}
 			updateCaseName(activeCaseId, newName);
-			dispatch(setCurrentCaseName(newName)); // Update store so header displays immediately
+			session.setActiveCaseName(newName);
 		}
 	};
 

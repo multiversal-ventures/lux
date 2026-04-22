@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import type { StreamEvent, SourceRef } from "../../types";
+import type { SourceRef, StreamEvent } from "../../types";
 
 interface WorkflowEventsProps {
 	events: StreamEvent[];

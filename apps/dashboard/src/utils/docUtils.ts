@@ -248,7 +248,7 @@ function parseYearFromValue(value: string | number | boolean): string | null {
 		const trimmed = value.trim();
 		const four = trimmed.slice(0, 4);
 		if (/^\d{4}$/.test(four)) {
-			const y = parseInt(four, 10);
+			const y = Number.parseInt(four, 10);
 			if (y >= 1900 && y <= 2100) return four;
 		}
 		const match = trimmed.match(/\b(19|20)\d{2}\b/);
@@ -344,7 +344,7 @@ export function getRefYear(
 		const yearStr =
 			doc.effective_period?.period_end?.slice(0, 4) ??
 			doc.effective_period?.period_start?.slice(0, 4);
-		if (yearStr) return parseInt(yearStr, 10);
+		if (yearStr) return Number.parseInt(yearStr, 10);
 		return null;
 	}
 	return null;

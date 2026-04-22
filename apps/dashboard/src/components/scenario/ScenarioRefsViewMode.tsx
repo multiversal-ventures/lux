@@ -3,13 +3,13 @@
  * Shows compact sidebar + selected row + document canvas when a ref is clicked.
  */
 
-import { useCallback, useState } from "react";
 import { X } from "lucide-react";
+import { useCallback, useState } from "react";
+import type { IncomeVerificationResult } from "../../hooks/useApi";
 import type { CaseResult, FactSource } from "../../types";
 import type { SourceRef } from "../../types";
 import { getRefYear } from "../../utils/docUtils";
 import { SimpleDocumentCanvas } from "../shared/SimpleDocumentCanvas";
-import type { IncomeVerificationResult } from "../../hooks/useApi";
 import type { RefRow } from "./scenarioRefsTypes";
 
 function formatCurrency(value: number | null | undefined): string {

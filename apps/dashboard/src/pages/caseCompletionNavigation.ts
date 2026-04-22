@@ -4,32 +4,31 @@ export interface CaseCompletionRedirectInput {
 	firstScenarioId: string | null;
 	scenariosReady: boolean;
 	scenarioIds: string[];
-  }
-  
-  export function getCaseCompletionRedirect({
+}
+
+export function getCaseCompletionRedirect({
 	caseId,
 	isComplete,
 	firstScenarioId,
 	scenariosReady,
 	scenarioIds,
-  }: CaseCompletionRedirectInput): string | null {
+}: CaseCompletionRedirectInput): string | null {
 	if (!caseId || !isComplete) {
-	  return null;
+		return null;
 	}
-  
+
 	if (firstScenarioId) {
-	  return `/case/${caseId}/scenario/${firstScenarioId}/summary`;
+		return `/case/${caseId}/scenario/${firstScenarioId}/summary`;
 	}
-  
+
 	const firstKnownScenarioId = scenarioIds[0];
 	if (firstKnownScenarioId) {
-	  return `/case/${caseId}/scenario/${firstKnownScenarioId}/summary`;
+		return `/case/${caseId}/scenario/${firstKnownScenarioId}/summary`;
 	}
-  
+
 	if (!scenariosReady) {
-	  return null;
+		return null;
 	}
-  
+
 	return `/case/${caseId}/new-scenario`;
-  }
-  
+}

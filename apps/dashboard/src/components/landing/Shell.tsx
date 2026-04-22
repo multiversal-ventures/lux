@@ -1,7 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import { useAuth } from "../../hooks";
 import feneroLogo from "../../assets/logo-orange.svg";
+import { useAuth } from "../../hooks";
 
 interface ShellProps {
 	children: React.ReactNode;

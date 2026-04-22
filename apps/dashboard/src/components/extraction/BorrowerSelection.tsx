@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
-import type { Party, CaseResult } from "../../types";
+import { useCallback, useMemo, useState } from "react";
 import { api } from "../../lib/api";
+import type { CaseResult, Party } from "../../types";
 
 interface BorrowerSelectionProps {
 	result: CaseResult | null;

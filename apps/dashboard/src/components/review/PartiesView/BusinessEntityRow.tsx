@@ -1,7 +1,7 @@
 import { Combine } from "lucide-react";
-import type { PartyWithId } from "./usePartiesViewState";
 import type { PartyType } from "./partiesViewTypes";
-import { formatPartyName, formatIdentifier } from "./partiesViewUtils";
+import { formatIdentifier, formatPartyName } from "./partiesViewUtils";
+import type { PartyWithId } from "./usePartiesViewState";
 
 export interface BusinessEntityRowProps {
 	business: PartyWithId;

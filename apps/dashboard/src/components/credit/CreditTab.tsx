@@ -2,34 +2,34 @@
  * CreditTab - Main container for credit assessment UI
  */
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { CreditCard, AlertCircle, RefreshCw, Upload, Loader2, FileText, X } from "lucide-react";
-import type { CreditReportData } from "./types";
-import { BorrowerSelector } from "./BorrowerSelector";
-import { CreditScorePanel } from "./CreditScorePanel";
-import { BorrowerInfoCard } from "./BorrowerInfoCard";
-import { CreditSummaryStats } from "./CreditSummaryStats";
-import { AccountsList } from "./AccountsList";
-import { ScoresTab } from "./ScoresTab";
-import { PublicRecordsTab } from "./PublicRecordsTab";
-import { InquiriesTab } from "./InquiriesTab";
-import { SubTabNav, type SubTab } from "./SubTabNav";
+import { AlertCircle, CreditCard, FileText, Loader2, RefreshCw, Upload, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-	startCreditVerificationWithOptions,
-	cancelWorkflows,
 	type GetCreditVerificationResponse,
+	cancelWorkflows,
+	startCreditVerificationWithOptions,
 } from "../../hooks/useApi";
-import { api } from "../../lib/api";
 import {
-	useCreditVerification,
-	useWorkflowStatus,
-	useCaseStatus,
 	useAdaptiveRefetchInterval,
 	useCaseQueryInvalidation,
+	useCaseStatus,
 	useCreditPullStatus,
+	useCreditVerification,
+	useWorkflowStatus,
 } from "../../hooks/useCaseQueries";
-import { UploadModal } from "../shared";
+import { api } from "../../lib/api";
 import { PullCreditModal } from "../results/PullCreditModal";
+import { UploadModal } from "../shared";
+import { AccountsList } from "./AccountsList";
+import { BorrowerInfoCard } from "./BorrowerInfoCard";
+import { BorrowerSelector } from "./BorrowerSelector";
+import { CreditScorePanel } from "./CreditScorePanel";
+import { CreditSummaryStats } from "./CreditSummaryStats";
+import { InquiriesTab } from "./InquiriesTab";
+import { PublicRecordsTab } from "./PublicRecordsTab";
+import { ScoresTab } from "./ScoresTab";
+import { type SubTab, SubTabNav } from "./SubTabNav";
+import type { CreditReportData } from "./types";
 
 /**
  * Upload state machine for tracking extraction progress.

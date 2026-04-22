@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { getSpecs, getSpec, type SpecSummary } from "../../hooks/useApi";
+import { useEffect, useMemo, useState } from "react";
+import { type SpecSummary, getSpec, getSpecs } from "../../hooks/useApi";
 
 interface SpecSelectorProps {
 	onSelect: (yamlContent: string) => void;

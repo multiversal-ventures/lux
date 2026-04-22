@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
 import { X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { type AddFilesProgress, addFilesToCase } from "../../hooks/useApi";
 import { DropZone } from "../upload/DropZone";
-import { addFilesToCase, type AddFilesProgress } from "../../hooks/useApi";
 
 interface UploadModalProps {
 	caseId: string;

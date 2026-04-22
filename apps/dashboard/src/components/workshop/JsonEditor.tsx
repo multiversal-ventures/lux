@@ -1,6 +1,6 @@
-import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { EditorView } from "@codemirror/view";
+import CodeMirror from "@uiw/react-codemirror";
 
 interface JsonEditorProps {
 	value: string;

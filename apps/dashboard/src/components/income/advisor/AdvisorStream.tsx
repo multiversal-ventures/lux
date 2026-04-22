@@ -3,12 +3,12 @@
  * Renders events and (when complete) result blocks as one chronological feed.
  */
 
+import { AlertCircle, FileText, HelpCircle, List, TrendingUp, Wand2 } from "lucide-react";
 import { forwardRef } from "react";
-import { FileText, TrendingUp, List, AlertCircle, HelpCircle, Wand2 } from "lucide-react";
-import type { AdvisorEvent, AdvisorResult as AdvisorResultType, ProposedScenario } from "./types";
 import { getEventIcon, renderEventContent } from "./AdvisorEventLog";
-import { AdvisorStrategy } from "./AdvisorStrategy";
 import { AdvisorProposedScenario } from "./AdvisorProposedScenario";
+import { AdvisorStrategy } from "./AdvisorStrategy";
+import type { AdvisorEvent, AdvisorResult as AdvisorResultType, ProposedScenario } from "./types";
 
 interface AdvisorStreamProps {
 	events: AdvisorEvent[];

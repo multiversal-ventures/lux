@@ -5,21 +5,21 @@
  * Right: Scrollable list of review items (AI decisions + manual reviews)
  */
 
-import { useEffect, useCallback, useRef, useState } from "react";
-import { subscribeIdTokenChange } from "../../lib/firebase";
-import { Loader2, Check, Sparkles, CheckCircle2, ArrowLeft, Eye, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useReviewAgentStore } from "../../stores/reviewAgentStore";
+import { ArrowLeft, Check, CheckCircle2, Eye, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-	startAIReview,
 	getAIReviewStatus,
-	submitReviewDecisions,
+	getPageExtractionStats,
 	getPageImageUrl,
 	getReviewDecisions,
-	getPageExtractionStats,
 	reextractBankStatementPages,
+	startAIReview,
+	submitReviewDecisions,
 	triggerReunification,
 } from "../../hooks/useApi";
+import { subscribeIdTokenChange } from "../../lib/firebase";
+import { useReviewAgentStore } from "../../stores/reviewAgentStore";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -282,7 +282,7 @@ export function BSReviewAgentModal({ caseId, dismissedTargets }: BSReviewAgentMo
 				.filter((d) => d.target_type === "page")
 				.map((d) => ({
 					file_id: d.target_id.split(":")[0] || "",
-					page_number: parseInt(d.target_id.split(":")[1] || "0", 10),
+					page_number: Number.parseInt(d.target_id.split(":")[1] || "0", 10),
 					action: d.action,
 					reason: d.reason || "",
 					reviewed_by: d.reviewed_by?.split("@")[0] || "unknown",

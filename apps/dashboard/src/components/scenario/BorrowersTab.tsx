@@ -1,4 +1,4 @@
-import { BorrowerSelectionTable, type Borrower } from "../shared";
+import { type Borrower, BorrowerSelectionTable } from "../shared";
 
 interface BorrowersTabProps {
 	borrowers: Borrower[];

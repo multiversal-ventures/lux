@@ -1,5 +1,5 @@
-import { useMemo, useEffect, useRef, useState } from "react";
 import { FileText, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ExtractedDocument, StreamEvent } from "../../types";
 
 interface DocumentStatusCardProps {

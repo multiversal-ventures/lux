@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import type { FileArtifact } from "../../types";
 import { resolveApiUrl } from "../../lib/api";
+import type { FileArtifact } from "../../types";
 
 interface CaseActionBarProps {
 	caseName?: string | null;

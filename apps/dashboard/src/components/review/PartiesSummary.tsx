@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import type { Party, FinancialEntities } from "../../types";
+import type { FinancialEntities, Party } from "../../types";
 
 type PartyWithId = Party & { _id: string };
 type BorrowerRole = "Primary" | "Co-borrower" | "Ignore";

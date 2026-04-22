@@ -1,24 +1,24 @@
-import {
-	createContext,
-	useContext,
-	useState,
-	useEffect,
-	useCallback,
-	useRef,
-	useMemo,
-	type ReactNode,
-} from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+	type ReactNode,
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { deleteCase } from "../hooks/useApi";
-import { useTenantCases, useCasesStatusBatch, caseKeys } from "../hooks/useCaseQueries";
-import { generateDefaultCaseName } from "../utils/caseNameUtils";
+import { caseKeys, useCasesStatusBatch, useTenantCases } from "../hooks/useCaseQueries";
 import { isOngoing } from "../lib/phases";
+import { generateDefaultCaseName } from "../utils/caseNameUtils";
 
 const STORAGE_KEY = "gunnr_case_history";
 const MAX_CASES = 20;
 const POLL_INTERVAL = 10000;
 
-export type CaseProgress = "uploading" | "processing" | "completed" | "failed";
+export type CaseHistoryProgress = "uploading" | "processing" | "completed" | "failed";
 
 export interface StoredCase {
 	case_id: string;
@@ -26,7 +26,7 @@ export interface StoredCase {
 	timestamp: string;
 	lastOpenedAt: string;
 	document_count: number;
-	progress: CaseProgress;
+	progress: CaseHistoryProgress;
 	// Status code from backend (e.g., 'loading', 'classifying', 'extracting', 'completed')
 	// Used for detailed status display in the cases table
 	status?: string;
@@ -41,7 +41,7 @@ interface CaseHistoryContextValue {
 	cases: StoredCase[];
 	addCase: (caseId: string, documentCount: number, name?: string) => void;
 	updateCaseName: (caseId: string, name: string) => void;
-	updateCaseProgress: (caseId: string, progress: CaseProgress) => void;
+	updateCaseProgress: (caseId: string, progress: CaseHistoryProgress) => void;
 	touchCase: (caseId: string) => void;
 	removeCase: (caseId: string) => Promise<void>;
 }
@@ -123,7 +123,7 @@ export function CaseHistoryProvider({ children }: { children: ReactNode }) {
 			const existingMap = new Map(prevCases.map((c) => [c.case_id, c]));
 			return backendCases.map((backendCase) => {
 				const existing = existingMap.get(backendCase.case_id);
-				let progress: CaseProgress = "processing";
+				let progress: CaseHistoryProgress = "processing";
 				if (backendCase.status === "completed") progress = "completed";
 				else if (["failed", "cancelled"].includes(backendCase.status)) progress = "failed";
 				else if (["pending", "uploading"].includes(backendCase.status)) progress = "uploading";
@@ -150,7 +150,7 @@ export function CaseHistoryProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (!statusBatch) return;
 
-		const updates: Array<{ caseId: string; progress: CaseProgress }> = [];
+		const updates: Array<{ caseId: string; progress: CaseHistoryProgress }> = [];
 		for (const c of casesRef.current.filter(
 			(c) => c.progress === "uploading" || c.progress === "processing",
 		)) {
@@ -160,7 +160,7 @@ export function CaseHistoryProvider({ children }: { children: ReactNode }) {
 				continue;
 			}
 			const code = status.status.code;
-			let newProgress: CaseProgress | null = null;
+			let newProgress: CaseHistoryProgress | null = null;
 			if (code === "completed") newProgress = "completed";
 			else if (["failed", "cancelled"].includes(code)) newProgress = "failed";
 			else if (isOngoing(code)) newProgress = "processing";
@@ -205,7 +205,7 @@ export function CaseHistoryProvider({ children }: { children: ReactNode }) {
 		setCases((prev) => prev.map((c) => (c.case_id === caseId ? { ...c, name } : c)));
 	}, []);
 
-	const updateCaseProgress = useCallback((caseId: string, progress: CaseProgress) => {
+	const updateCaseProgress = useCallback((caseId: string, progress: CaseHistoryProgress) => {
 		setCases((prev) => prev.map((c) => (c.case_id === caseId ? { ...c, progress } : c)));
 	}, []);
 

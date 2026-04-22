@@ -1,16 +1,15 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { subscribeIdTokenChange } from "../../lib/firebase";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-	getPageImageUrl,
+	type DocumentClassOption,
+	type PatchOperation,
 	getDocumentClasses,
+	getPageImageUrl,
 	patchCase,
 	reextractPages,
-	type PatchOperation,
-	type DocumentClassOption,
 } from "../../hooks/useApi";
-import type { ExtractedDocument, Fact, BoundingBox, FactSource } from "../../types";
-import { getDocClassName, getDocClassInfo, isMISMOStandard } from "../../utils/docUtils";
-import { PageImageLoader } from "./PageImageLoader";
+import { subscribeIdTokenChange } from "../../lib/firebase";
+import type { BoundingBox, ExtractedDocument, Fact, FactSource } from "../../types";
+import { getDocClassInfo, getDocClassName, isMISMOStandard } from "../../utils/docUtils";
 import {
 	BoundingBoxOverlay,
 	EditableBoundingBox,
@@ -20,12 +19,13 @@ import {
 	TableViewModal,
 } from "../documentViewer";
 import type {
-	BBoxEditMode,
-	PendingFactEdit,
-	NewFactDraft,
-	DragState,
 	ActiveInlineEdit,
+	BBoxEditMode,
+	DragState,
+	NewFactDraft,
+	PendingFactEdit,
 } from "../documentViewer/types";
+import { PageImageLoader } from "./PageImageLoader";
 
 interface DocumentViewerProps {
 	caseId: string;

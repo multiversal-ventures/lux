@@ -1,12 +1,12 @@
-import { memo, useMemo, useEffect, useState, useRef } from "react";
-import { AlertCircle, AlertTriangle, FileUp, BookOpen, FileCheck, Sparkles } from "lucide-react";
-import type { CaseStatus, CaseProgress, StreamEvent } from "../../types";
+import { AlertCircle, AlertTriangle, BookOpen, FileCheck, FileUp, Sparkles } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
 	PHASES as ALL_PHASES,
 	PHASE_PRIORITY,
-	normalizeStatus,
 	type PhaseConfig,
+	normalizeStatus,
 } from "../../lib/phases";
+import type { CaseProgress, CaseStatus, StreamEvent } from "../../types";
 
 type PhaseDefinition = PhaseConfig;
 

@@ -10,37 +10,37 @@
  * This is different from CreditTab which shows credit verification API data.
  */
 
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
 	AlertCircle,
 	ChevronDown,
 	ChevronUp,
 	CreditCard,
+	FileText,
+	Loader2,
 	ShieldCheck,
 	Upload,
-	Loader2,
-	FileText,
 	X,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cancelWorkflows } from "../../hooks/useApi";
+import type {
+	CreditReportCollection,
+	CreditReportExtraction,
+	CreditReportInquiry,
+	CreditReportPublicRecord,
+	CreditReportTradeAccount,
+} from "../../hooks/useApi";
 import {
 	useAdaptiveRefetchInterval,
 	useCaseQueryInvalidation,
-	useEffectiveCreditReportExtraction,
 	useCaseStatus,
-	useWorkflowStatus,
 	useCreditPullStatus,
+	useEffectiveCreditReportExtraction,
+	useWorkflowStatus,
 } from "../../hooks/useCaseQueries";
-import { cancelWorkflows } from "../../hooks/useApi";
-import type {
-	CreditReportExtraction,
-	CreditReportTradeAccount,
-	CreditReportCollection,
-	CreditReportPublicRecord,
-	CreditReportInquiry,
-} from "../../hooks/useApi";
-import { PullCreditModal } from "./PullCreditModal";
-import { UploadModal } from "../shared";
 import { api } from "../../lib/api";
+import { UploadModal } from "../shared";
+import { PullCreditModal } from "./PullCreditModal";
 
 /**
  * Upload state machine for tracking extraction progress.
@@ -616,7 +616,7 @@ function ReportSummaryStats({ report }: { report: CreditReportExtraction }) {
 	// Parse delinquencies from the "3/0/0" format
 	const parseDelinquencies = (value: string | null | undefined) => {
 		if (!value) return { d30: 0, d60: 0, d90: 0 };
-		const parts = value.split("/").map((n) => parseInt(n) || 0);
+		const parts = value.split("/").map((n) => Number.parseInt(n) || 0);
 		return { d30: parts[0] || 0, d60: parts[1] || 0, d90: parts[2] || 0 };
 	};
 

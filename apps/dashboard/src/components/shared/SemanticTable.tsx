@@ -10,7 +10,8 @@
  * - Render hints for special formatting (badge, outcome, percentage)
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import type React from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { SourceRef } from "../../types";
 
 // =============================================================================
@@ -147,7 +148,7 @@ export interface SemanticTableProps {
  * Format a single percentage value.
  * Handles both decimal (0.40 for 40%) and whole number (40 for 40%) conventions.
  */
-function formatPercentageValue(value: number, decimals: number = 1): string {
+function formatPercentageValue(value: number, decimals = 1): string {
 	// If value > 1, assume it's already a whole number percentage
 	const displayValue = Math.abs(value) > 1 ? value : value * 100;
 	return `${displayValue.toFixed(decimals)}%`;
@@ -221,11 +222,7 @@ export function formatArrayValue(
 /**
  * Format a value based on its data type.
  */
-export function formatValue(
-	value: unknown,
-	dataType: string = "currency",
-	renderHint?: string,
-): string {
+export function formatValue(value: unknown, dataType = "currency", renderHint?: string): string {
 	if (value == null) return "—";
 
 	// Handle array values (aggregation summary)

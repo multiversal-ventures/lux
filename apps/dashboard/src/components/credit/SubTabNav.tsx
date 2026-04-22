@@ -2,7 +2,7 @@
  * SubTabNav - Tab navigation for credit assessment sections
  */
 
-import { CreditCard, BarChart3, FileText, Search } from "lucide-react";
+import { BarChart3, CreditCard, FileText, Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type SubTab = "accounts" | "scores" | "public_records" | "inquiries";

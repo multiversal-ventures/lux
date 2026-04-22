@@ -86,9 +86,9 @@ export function rgbToHex(rgb: string): string {
 /** Relative luminance (0–1). Values < 0.4 are considered dark. */
 function getLuminance(hex: string): number {
 	if (!hex || hex.length < 7) return 0;
-	const r = parseInt(hex.slice(1, 3), 16) / 255;
-	const g = parseInt(hex.slice(3, 5), 16) / 255;
-	const b = parseInt(hex.slice(5, 7), 16) / 255;
+	const r = Number.parseInt(hex.slice(1, 3), 16) / 255;
+	const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
+	const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
 	return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 

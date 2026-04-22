@@ -1,9 +1,9 @@
-import type { ExtractedDocument } from "../../../types";
-import type { PartyWithId } from "./usePartiesViewState";
-import type { BorrowerRole, PartyType } from "./partiesViewTypes";
 import { Combine } from "lucide-react";
-import { formatPartyName } from "./partiesViewUtils";
+import type { ExtractedDocument } from "../../../types";
 import { IndividualPartyRow } from "./IndividualPartyRow";
+import type { BorrowerRole, PartyType } from "./partiesViewTypes";
+import { formatPartyName } from "./partiesViewUtils";
+import type { PartyWithId } from "./usePartiesViewState";
 
 export interface IndividualsSectionProps {
 	individuals: PartyWithId[];

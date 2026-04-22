@@ -1,9 +1,9 @@
+import { DollarSign, FileStack, Landmark, Loader2 } from "lucide-react";
 import { useMemo } from "react";
-import { Loader2, FileStack, Landmark, DollarSign } from "lucide-react";
-import type { CaseStatus, CaseResult, StreamEvent } from "../../types";
 import { isOngoing } from "../../lib/phases";
-import { WorkflowsView } from "../sidebar/WorkflowsView";
+import type { CaseResult, CaseStatus, StreamEvent } from "../../types";
 import { DocumentStatusCard } from "../extraction/DocumentStatusCard";
+import { WorkflowsView } from "../sidebar/WorkflowsView";
 
 const PHASE_CONFIG: Record<
 	string,

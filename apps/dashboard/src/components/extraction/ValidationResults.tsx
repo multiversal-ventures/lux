@@ -1,4 +1,4 @@
-import type { Tier4ReviewState, Tier4Issue } from "../../types";
+import type { Tier4Issue, Tier4ReviewState } from "../../types";
 
 interface ValidationResultsProps {
 	reviewState: Tier4ReviewState;

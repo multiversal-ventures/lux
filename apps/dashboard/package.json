@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fenero/lux-core": "workspace:*",
+    "@fenero/lux-react": "workspace:*",
     "@fenero/lux-themes": "workspace:*",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-yaml": "^6.1.2",

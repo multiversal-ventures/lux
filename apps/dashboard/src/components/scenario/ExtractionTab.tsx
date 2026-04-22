@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
-import { FileText, CheckCircle } from "lucide-react";
-import { DocumentViewer } from "../results/DocumentViewer";
+import { CheckCircle, FileText } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import type { ExtractedDocument } from "../../types";
+import { DocumentViewer } from "../results/DocumentViewer";
 
 interface ExtractionTabProps {
 	caseId: string;

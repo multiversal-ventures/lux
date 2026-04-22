@@ -5,21 +5,22 @@
  * to complete registration and create tenant.
  */
 
-import React, { useState, useEffect } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import feneroLogo from "../assets/logo-orange.svg";
 import { useAuth } from "../hooks";
 import { completeRegistration } from "../hooks/useApi";
-import { trackSignUp } from "../lib/mixpanel";
 import { resolveApiUrl } from "../lib/api";
-import feneroLogo from "../assets/logo-orange.svg";
+import { trackSignUp } from "../lib/mixpanel";
 
+import bgLargeJpg from "../assets/login-page/optimized_background_large.jpg";
+import bgLargeWebp from "../assets/login-page/optimized_background_large.webp";
+import bgMediumJpg from "../assets/login-page/optimized_background_medium.jpg";
+import bgMediumWebp from "../assets/login-page/optimized_background_medium.webp";
+import bgSmallJpg from "../assets/login-page/optimized_background_small.jpg";
 // Import background images
 import bgSmallWebp from "../assets/login-page/optimized_background_small.webp";
-import bgMediumWebp from "../assets/login-page/optimized_background_medium.webp";
-import bgLargeWebp from "../assets/login-page/optimized_background_large.webp";
-import bgSmallJpg from "../assets/login-page/optimized_background_small.jpg";
-import bgMediumJpg from "../assets/login-page/optimized_background_medium.jpg";
-import bgLargeJpg from "../assets/login-page/optimized_background_large.jpg";
 
 // Responsive background component with optimized images
 const BgPicture: React.FC = () => (

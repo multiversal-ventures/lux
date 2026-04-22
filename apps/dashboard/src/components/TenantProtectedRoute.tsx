@@ -1,11 +1,9 @@
+import { apiFetch, getCurrentUserProfile } from "@fenero/lux-core";
+import { useAuth, useSession } from "@fenero/lux-react";
 import type { ReactNode } from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import { resolveApiUrl } from "../lib/api";
 import { isDevUiOnlyBypass } from "../lib/devUiOnly";
-import { useAppDispatch } from "../store";
-import { setTenantId, setTenantName } from "../store/appSlice";
 
 interface TenantProtectedRouteProps {
 	children: ReactNode;
@@ -13,12 +11,11 @@ interface TenantProtectedRouteProps {
 
 /**
  * Route guard: Firebase session (`useAuth`) + organization via `GET /api/v1/auth/me`.
- * Hydrates Redux `tenantId` / `tenantName` from the same response (single path vs legacy `ProtectedRoute`).
- * Honors `localStorage.bypass_tenant_check` when the API false-negatives on `has_tenant` (see CompleteRegistrationPage).
+ * Hydrates `VeritasSession` tenant fields (consumed by `useAuth`).
  */
 export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 	const bypass = isDevUiOnlyBypass();
-	const dispatch = useAppDispatch();
+	const session = useSession();
 	const { user, loading } = useAuth();
 	const [hasTenant, setHasTenant] = useState<boolean | null>(() => (bypass ? true : null));
 	const [checkingTenant, setCheckingTenant] = useState(() => !bypass);
@@ -33,48 +30,27 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 				return;
 			}
 			try {
-				const token = await user.getIdToken();
-				const res = await fetch(resolveApiUrl("/api/v1/auth/me"), {
-					headers: { Authorization: `Bearer ${token}` },
-				});
-				if (res.ok) {
-					const data = (await res.json()) as {
-						has_tenant?: boolean;
-						tenant_id?: string;
-						tenant_name?: string;
-					};
-					if (data.has_tenant === true) {
-						localStorage.removeItem("bypass_tenant_check");
-						setHasTenant(true);
-						if (data.tenant_id && data.tenant_name) {
-							dispatch(setTenantId(data.tenant_id));
-							dispatch(setTenantName(data.tenant_name));
-						} else {
-							try {
-								const tenantResponse = await fetch(resolveApiUrl("/api/v1/tenants/me"), {
-									headers: { Authorization: `Bearer ${token}` },
-								});
-								if (tenantResponse.ok) {
-									const tenantData = (await tenantResponse.json()) as {
-										tenant_id?: string;
-										tenant_name?: string;
-									};
-									if (tenantData.tenant_id) {
-										dispatch(setTenantId(tenantData.tenant_id));
-									}
-									if (tenantData.tenant_name) {
-										dispatch(setTenantName(tenantData.tenant_name));
-									}
-								}
-							} catch {
-								/* ignore */
-							}
-						}
-					} else if (localStorage.getItem("bypass_tenant_check")) {
-						setHasTenant(true);
+				const data = await getCurrentUserProfile();
+				if (data.has_tenant === true) {
+					localStorage.removeItem("bypass_tenant_check");
+					setHasTenant(true);
+					if (data.tenant_id && data.tenant_name) {
+						session.setTenant(data.tenant_id, data.tenant_name);
 					} else {
-						setHasTenant(false);
+						try {
+							const tenantData = await apiFetch<{
+								tenant_id?: string;
+								tenant_name?: string;
+							}>("/tenants/me");
+							if (tenantData.tenant_id || tenantData.tenant_name) {
+								session.setTenant(tenantData.tenant_id ?? null, tenantData.tenant_name ?? null);
+							}
+						} catch {
+							/* ignore */
+						}
 					}
+				} else if (localStorage.getItem("bypass_tenant_check")) {
+					setHasTenant(true);
 				} else {
 					setHasTenant(false);
 				}
@@ -88,7 +64,7 @@ export function TenantProtectedRoute({ children }: TenantProtectedRouteProps) {
 		if (!loading) {
 			checkTenant();
 		}
-	}, [user, loading, bypass, dispatch]);
+	}, [user, loading, bypass, session]);
 
 	if (bypass) {
 		return <>{children}</>;

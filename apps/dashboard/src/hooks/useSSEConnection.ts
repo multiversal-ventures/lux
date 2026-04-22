@@ -8,12 +8,11 @@
  * This hook knows NOTHING about React Query or server data fetching.
  */
 
+import { getDefaultClient, getLuxToken } from "@fenero/lux-core";
 import { useCallback, useEffect, useRef } from "react";
-import { getFirebaseAuth } from "../lib/firebase";
-import { useCaseEventStore, getStoredEventHead } from "../stores/caseEventStore";
-import { resolveApiUrl } from "../lib/api";
-import { getCaseEvents } from "./useApi";
+import { getStoredEventHead, useCaseEventStore } from "../stores/caseEventStore";
 import type { StreamEvent } from "../types";
+import { getCaseEvents } from "./useApi";
 
 interface UseSSEConnectionOptions {
 	caseId: string | null;
@@ -148,19 +147,14 @@ export function useSSEConnection({
 
 		// Firebase auth token (force-refresh on retries)
 		const forceRefresh = retryCountRef.current > 0;
-		const auth = getFirebaseAuth();
-		const user = auth.currentUser;
 		let token: string | null = null;
-
-		if (user) {
-			try {
-				token = await user.getIdToken(forceRefresh);
-			} catch (err) {
-				console.error("Failed to get auth token for SSE:", err);
-				state.setStreamStatus("error");
-				onError?.(new Error("Authentication failed"));
-				return;
-			}
+		try {
+			token = await getLuxToken(forceRefresh);
+		} catch (err) {
+			console.error("Failed to get auth token for SSE:", err);
+			state.setStreamStatus("error");
+			onError?.(new Error("Authentication failed"));
+			return;
 		}
 
 		if (connectionEpochRef.current !== startEpoch) {
@@ -175,11 +169,7 @@ export function useSSEConnection({
 		if (lastId) params.set("Last-Event-ID", lastId);
 
 		const path = `/api/v1/stream/${caseId}${params.toString() ? `?${params}` : ""}`;
-		const resolved = resolveApiUrl(path);
-		const absolute =
-			resolved.startsWith("http://") || resolved.startsWith("https://")
-				? resolved
-				: new URL(resolved, window.location.origin).toString();
+		const absolute = getDefaultClient().toAbsoluteUrl(path);
 		const es = new EventSource(absolute);
 		eventSourceRef.current = es;
 

@@ -10,8 +10,8 @@
  * Mount this ONCE near the app root (e.g. in CasePage or App).
  */
 
+import { type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useCaseEventStore } from "../stores/caseEventStore";
 import { useReviewAgentStore } from "../stores/reviewAgentStore";
 import { caseKeys } from "./useCaseQueries";

@@ -1,8 +1,8 @@
-import type { IncomeReadinessResponse } from "../../../hooks/useApi";
-import type { PartyWithId } from "./usePartiesViewState";
-import type { ExtractedDocument } from "../../../types";
 import { XCircle } from "lucide-react";
-import { getDocTypeDisplay, formatPartyName } from "./partiesViewUtils";
+import type { IncomeReadinessResponse } from "../../../hooks/useApi";
+import type { ExtractedDocument } from "../../../types";
+import { formatPartyName, getDocTypeDisplay } from "./partiesViewUtils";
+import type { PartyWithId } from "./usePartiesViewState";
 
 const WarningIcon = () => (
 	<svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

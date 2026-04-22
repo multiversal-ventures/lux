@@ -1,6 +1,6 @@
-import CodeMirror from "@uiw/react-codemirror";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
+import CodeMirror from "@uiw/react-codemirror";
 
 interface YamlEditorProps {
 	value: string;

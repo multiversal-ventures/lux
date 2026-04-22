@@ -1,19 +1,19 @@
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch } from "../../store";
 import { collapseSidebarForView } from "../../store/appSlice";
-import { Sidebar } from "./Sidebar";
-import { DocumentsSidebar, type ViewerSelection } from "./DocumentsSidebar";
-import { DocumentsYearHeader } from "./DocumentsYearHeader";
-import { OverviewTab } from "../results";
 import type {
 	CaseResult,
 	CaseStatus,
 	LoadedFile,
-	StreamEvent,
 	SourceRef,
+	StreamEvent,
 	StreamStatus,
 } from "../../types";
+import { OverviewTab } from "../results";
+import { DocumentsSidebar, type ViewerSelection } from "./DocumentsSidebar";
+import { DocumentsYearHeader } from "./DocumentsYearHeader";
+import { Sidebar } from "./Sidebar";
 
 interface PendingFile {
 	filename: string;
@@ -121,7 +121,7 @@ export function DocumentsTab({
 		const currentUrlKey = `${fileParam}:${pageParam}:${factParam || ""}:${location.key}`;
 		if (currentUrlKey === processedUrlParams) return;
 
-		const pageNumber = parseInt(pageParam, 10);
+		const pageNumber = Number.parseInt(pageParam, 10);
 		if (!isNaN(pageNumber)) {
 			setFocusedSource({
 				file_id: fileParam,

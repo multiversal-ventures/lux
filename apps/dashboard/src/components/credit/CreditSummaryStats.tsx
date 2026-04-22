@@ -2,7 +2,7 @@
  * CreditSummaryStats - Summary statistics row derived from accounts
  */
 
-import type { LoanAccount, Inquiry } from "./types";
+import type { Inquiry, LoanAccount } from "./types";
 
 interface CreditSummaryStatsProps {
 	accounts: LoanAccount[];

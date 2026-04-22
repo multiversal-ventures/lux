@@ -8,6 +8,7 @@
  */
 
 import { AlertTriangle, Mail } from "lucide-react";
+import { type TenantRestriction, useCaseEventStore } from "../../stores/caseEventStore";
 import {
 	Dialog,
 	DialogContent,
@@ -16,7 +17,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "../ui/dialog";
-import { useCaseEventStore, type TenantRestriction } from "../../stores/caseEventStore";
 
 // Contact email is frontend-only (not sent from backend)
 const CONTACT_EMAIL = "akshay@fenero.ai";

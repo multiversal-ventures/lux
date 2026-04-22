@@ -1,24 +1,24 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { YamlEditor, JsonEditor, SpecSelector } from "../components/workshop";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-	SemanticTable,
+	type AggregateResult,
+	type EntityResult,
 	MultiEntityTable,
+	SemanticTable,
 	SpecResultCard,
 	type TableComponent,
-	type EntityResult,
-	type AggregateResult,
 } from "../components/shared";
+import { JsonEditor, SpecSelector, YamlEditor } from "../components/workshop";
 import {
+	type DemoLoanEvaluateResponse,
+	type DemoLoanListResponse,
+	type DemoLoanSummary,
+	type SpecEvaluateResponse,
+	evaluateDemoLoan,
 	evaluateSpec,
+	generateDemoLoanSample,
 	generateSampleData,
 	getDemoLoans,
-	evaluateDemoLoan,
-	generateDemoLoanSample,
 	getSpec,
-	type SpecEvaluateResponse,
-	type DemoLoanSummary,
-	type DemoLoanListResponse,
-	type DemoLoanEvaluateResponse,
 } from "../hooks/useApi";
 
 // Simple YAML-like serializer (for display purposes only)

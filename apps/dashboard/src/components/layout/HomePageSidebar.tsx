@@ -1,7 +1,7 @@
-import { useAppSelector, useAppDispatch } from "../../store";
+import type { StoredCase } from "../../hooks/useCaseHistory";
+import { useAppDispatch, useAppSelector } from "../../store";
 import { toggleDocumentsSidebar } from "../../store/appSlice";
 import { CaseHistory } from "../CaseHistory";
-import type { StoredCase } from "../../hooks/useCaseHistory";
 
 interface HomePageSidebarProps {
 	cases: StoredCase[];

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Header bar with uploaded file name tabs, spanning from document sidebar to above document view.

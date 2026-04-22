@@ -1,5 +1,5 @@
+import type { CalculationStep, IncomeVerificationResult } from "../../hooks/useApi";
 import { CalculationLog } from "../results/CalculationLog";
-import type { IncomeVerificationResult, CalculationStep } from "../../hooks/useApi";
 
 interface ScenarioLogsTabProps {
 	caseId: string;

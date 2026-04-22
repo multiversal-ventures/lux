@@ -2,8 +2,8 @@
  * AccountCard - Expandable card for a single credit account
  */
 
-import type { LoanAccount, AccountStatus } from "./types";
 import { PaymentHistoryDots } from "./PaymentHistoryDots";
+import type { AccountStatus, LoanAccount } from "./types";
 
 interface AccountCardProps {
 	account: LoanAccount;

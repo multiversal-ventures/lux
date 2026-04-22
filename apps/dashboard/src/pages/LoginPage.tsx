@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation, Navigate } from "react-router-dom";
-import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
-import { getFirebaseAuth } from "../lib/firebase";
+import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { getFirebaseAuth } from "../lib/firebase";
 
 export function LoginPage() {
 	const { user, loading } = useAuth();

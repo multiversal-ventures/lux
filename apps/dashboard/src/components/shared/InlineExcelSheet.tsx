@@ -5,10 +5,10 @@
  * Scales table width to fit container when it would overflow.
  */
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { utils } from "xlsx";
 import type { WorkSheet } from "xlsx";
-import { Eye, EyeOff } from "lucide-react";
 import { sheetToHtmlWithStyles } from "../../lib/excelSheet";
 
 interface InlineExcelSheetProps {

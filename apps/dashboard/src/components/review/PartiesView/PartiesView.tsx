@@ -1,11 +1,11 @@
 import { ArrowLeft } from "lucide-react";
-import { usePartiesViewState } from "./usePartiesViewState";
-import { PartiesViewEmpty } from "./PartiesViewEmpty";
-import { IndividualsSection } from "./IndividualsSection";
 import { BusinessesSection } from "./BusinessesSection";
-import { PartiesSummaryCard } from "./PartiesSummaryCard";
-import { MergePartiesModal } from "./MergePartiesModal";
 import { EditNameModal } from "./EditNameModal";
+import { IndividualsSection } from "./IndividualsSection";
+import { MergePartiesModal } from "./MergePartiesModal";
+import { PartiesSummaryCard } from "./PartiesSummaryCard";
+import { PartiesViewEmpty } from "./PartiesViewEmpty";
+import { usePartiesViewState } from "./usePartiesViewState";
 
 export interface PartiesViewProps {
 	result: Parameters<typeof usePartiesViewState>[0]["result"];

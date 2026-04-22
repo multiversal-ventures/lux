@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { StreamEvent, CaseStatus, Tier4ReviewState, Tier4Issue } from "../../types";
 import logoOrange from "../../assets/logo-orange.svg";
+import type { CaseStatus, StreamEvent, Tier4Issue, Tier4ReviewState } from "../../types";
 
 interface ExtractionReviewModalProps {
 	isOpen: boolean;

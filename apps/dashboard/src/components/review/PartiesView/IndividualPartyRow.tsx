@@ -1,14 +1,14 @@
-import { User, UserRound, UserX, Combine } from "lucide-react";
+import { Combine, User, UserRound, UserX } from "lucide-react";
 import type { ExtractedDocument } from "../../../types";
-import type { PartyWithId } from "./usePartiesViewState";
+import { BusinessEntityRow } from "./BusinessEntityRow";
 import type { BorrowerRole, PartyType } from "./partiesViewTypes";
 import {
-	formatPartyName,
 	formatIdentifier,
+	formatPartyName,
 	getDocTypeDisplay,
 	getTopSourceRef,
 } from "./partiesViewUtils";
-import { BusinessEntityRow } from "./BusinessEntityRow";
+import type { PartyWithId } from "./usePartiesViewState";
 
 const DocIcon = () => (
 	<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

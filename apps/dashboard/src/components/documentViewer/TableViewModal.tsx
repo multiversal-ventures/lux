@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-	getCaseTables,
 	type CaseTablesResponse,
-	type TableData,
 	type DocumentTables,
+	type TableData,
+	getCaseTables,
 } from "../../hooks/useApi";
 
 export interface TableViewModalProps {

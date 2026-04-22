@@ -3,7 +3,7 @@
  */
 
 import type { CreditReportData } from "./types";
-import { maskSSN, calculateAge } from "./types";
+import { calculateAge, maskSSN } from "./types";
 
 interface BorrowerInfoCardProps {
 	borrower: CreditReportData;

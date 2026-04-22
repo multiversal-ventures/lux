@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeIdTokenChange } from "../../lib/firebase";
 import { getPageImageUrl } from "../../hooks/useApi";
+import { subscribeIdTokenChange } from "../../lib/firebase";
 import type { DocumentPageRef, FactSource } from "../../types";
 
 interface SimpleDocumentCanvasProps {

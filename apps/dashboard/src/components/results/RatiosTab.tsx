@@ -1,20 +1,20 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, Upload, Plus, CreditCard } from "lucide-react";
+import { CreditCard, Plus, ShieldCheck, Upload } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { cancelWorkflows } from "../../hooks/useApi";
 import {
 	caseKeys,
 	useCaseScenarios,
+	useCaseStatus,
+	useCreditPullStatus,
 	useCreditVerification,
 	useIncomeVerification,
-	useCaseStatus,
 	useWorkflowStatus,
-	useCreditPullStatus,
 } from "../../hooks/useCaseQueries";
-import { cancelWorkflows } from "../../hooks/useApi";
 import { api } from "../../lib/api";
+import { InlineWorkflowProgressMulti, UploadModal } from "../shared";
 import { PullCreditModal } from "./PullCreditModal";
-import { UploadModal, InlineWorkflowProgressMulti } from "../shared";
 
 /**
  * Upload state machine for tracking extraction progress.

@@ -1,4 +1,4 @@
-import { Loader2, FileText, X, AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, FileText, Loader2, RefreshCw, X } from "lucide-react";
 
 type Phase = "extracting" | "error" | "completed";
 

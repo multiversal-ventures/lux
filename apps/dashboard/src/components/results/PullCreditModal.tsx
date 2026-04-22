@@ -1,5 +1,8 @@
+import { AlertCircle, CreditCard, DollarSign, Edit3, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { AlertCircle, CreditCard, DollarSign, Loader2, Edit3 } from "lucide-react";
+import { useAppConfig } from "../../hooks/useCaseQueries";
+import { api } from "../../lib/api";
+import { AddressAutocomplete, type AddressResult } from "../shared";
 import {
 	Dialog,
 	DialogContent,
@@ -8,9 +11,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "../ui/dialog";
-import { api } from "../../lib/api";
-import { useAppConfig } from "../../hooks/useCaseQueries";
-import { AddressAutocomplete, type AddressResult } from "../shared";
 interface PullCreditModalProps {
 	caseId: string;
 	borrowerId?: string;

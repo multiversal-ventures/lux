@@ -6,9 +6,9 @@
  * to the rendered HTML table.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { Download, Eye, EyeOff, FileSpreadsheet, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { read, utils } from "xlsx";
-import { X, Download, FileSpreadsheet, Eye, EyeOff } from "lucide-react";
 import { sheetToHtmlWithStyles } from "../../lib/excelSheet";
 
 interface ExcelViewerProps {

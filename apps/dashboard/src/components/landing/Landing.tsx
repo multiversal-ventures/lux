@@ -1,8 +1,8 @@
+import { ArrowRight, CheckCircle2, FileText, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
-import { FileText, CheckCircle2, Shield, ArrowRight } from "lucide-react";
-import feneroLogo from "../../assets/logo-orange.svg";
 import heroBackground from "../../assets/landing-page/background-hero.png";
 import soc2Badge from "../../assets/landing-page/soc2-badge.png";
+import feneroLogo from "../../assets/logo-orange.svg";
 
 import Shell from "./Shell";
 

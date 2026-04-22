@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import {
+	type ScenarioDraft,
+	type ScenarioPeriodVariant,
 	areDraftIdSetsEqual,
 	normalizeScenarioDraftPeriodFields,
 	resolveScenarioPeriodVariant,
-	type ScenarioDraft,
-	type ScenarioPeriodVariant,
 } from "../utils/scenarioDraft";
 
 interface UseScenarioDraftOptions {

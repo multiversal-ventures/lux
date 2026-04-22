@@ -6,5 +6,5 @@
 export {
 	useCaseHistoryContext as useCaseHistory,
 	type StoredCase,
-	type CaseProgress,
+	type CaseHistoryProgress,
 } from "../contexts/CaseHistoryContext";

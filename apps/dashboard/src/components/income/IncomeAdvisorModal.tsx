@@ -9,19 +9,19 @@
  * - Interactive Q&A with workflow signals
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { X, Loader2, Wand2, MessageCircle, Send, Trash2, AlertTriangle } from "lucide-react";
-import { resolveApiUrl } from "../../lib/api";
+import { AlertTriangle, Loader2, MessageCircle, Send, Trash2, Wand2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { resolveApiUrl } from "../../lib/api";
 
 // Sub-components
 import {
-	type StreamState,
-	AdvisorStream,
+	AdvisorContextBar,
+	AdvisorIdleState,
 	AdvisorPendingQuestion,
 	AdvisorProposedScenario,
-	AdvisorIdleState,
-	AdvisorContextBar,
+	AdvisorStream,
+	type StreamState,
 } from "./advisor";
 
 interface IncomeAdvisorModalProps {
@@ -323,18 +323,21 @@ export function IncomeAdvisorModal({
 					}
 				}
 
-				const startResponse = await fetch(resolveApiUrl(`/api/case/${caseId}/income/advisor/start`), {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
+				const startResponse = await fetch(
+					resolveApiUrl(`/api/case/${caseId}/income/advisor/start`),
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${token}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							scenario_id: scenarioId,
+							question: enrichedQuestion || undefined,
+							max_tool_calls: 15,
+						}),
 					},
-					body: JSON.stringify({
-						scenario_id: scenarioId,
-						question: enrichedQuestion || undefined,
-						max_tool_calls: 15,
-					}),
-				});
+				);
 
 				if (!startResponse.ok) {
 					const error = await startResponse.json();

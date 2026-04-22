@@ -1,21 +1,21 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-	startIncomeVerificationWithOptions,
+	type LoanProduct,
 	getLoanProducts,
 	getStageExcelUrl,
-	type LoanProduct,
+	startIncomeVerificationWithOptions,
 } from "../../hooks/useApi";
 import {
-	useWorkflowStatus,
-	useIncomeVerification,
-	useCaseQueryInvalidation,
 	caseKeys,
+	useCaseQueryInvalidation,
+	useIncomeVerification,
+	useWorkflowStatus,
 } from "../../hooks/useCaseQueries";
-import { useQueryClient } from "@tanstack/react-query";
+import { trackEvent, trackFunnelStep, trackIncomeVerificationCompleted } from "../../lib/analytics";
 import type { SourceRef } from "../../types";
-import { SpecResultCard, type TableComponent, ExcelViewer } from "../shared";
-import { trackIncomeVerificationCompleted, trackFunnelStep, trackEvent } from "../../lib/analytics";
+import { ExcelViewer, SpecResultCard, type TableComponent } from "../shared";
 import { TaxYearConfidence } from "./TaxYearConfidence";
 
 interface IncomeTabProps {

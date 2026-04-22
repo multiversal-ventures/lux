@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { useLocation, useParams } from "react-router-dom";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { useAppSelector, useAppDispatch } from "../../store";
-import { toggleSidebar, collapseSidebarForView } from "../../store/appSlice";
-import type { StreamEvent, CaseStatus, SourceRef, StreamStatus } from "../../types";
+import utc from "dayjs/plugin/utc";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { collapseSidebarForView, toggleSidebar } from "../../store/appSlice";
+import type { CaseStatus, SourceRef, StreamEvent, StreamStatus } from "../../types";
 import { WorkflowEvents } from "../sidebar/WorkflowEvents";
 
 // Configure dayjs plugins

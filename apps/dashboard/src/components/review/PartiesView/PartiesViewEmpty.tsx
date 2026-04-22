@@ -1,5 +1,5 @@
-import type { IncomeReadinessResponse } from "../../../hooks/useApi";
 import { XCircle } from "lucide-react";
+import type { IncomeReadinessResponse } from "../../../hooks/useApi";
 
 const PeopleIcon = () => (
 	<svg

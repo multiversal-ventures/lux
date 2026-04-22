@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { trackSearch } from "../../lib/mixpanel";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../hooks";
+import { trackSearch } from "../../lib/mixpanel";
 import type { Fact } from "../../types";
 import { FactCard } from "./FactCard";
 import type { PendingFactEdit } from "./types";

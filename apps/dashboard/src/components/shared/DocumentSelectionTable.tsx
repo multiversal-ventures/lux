@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { getDocClassInfo } from "../../utils/docUtils";
 
 export interface DocumentItem {

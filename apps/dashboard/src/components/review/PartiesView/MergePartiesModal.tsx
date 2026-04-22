@@ -1,5 +1,5 @@
-import type { PartyWithId } from "./usePartiesViewState";
 import { formatPartyName } from "./partiesViewUtils";
+import type { PartyWithId } from "./usePartiesViewState";
 
 export interface MergePartiesModalProps {
 	open: boolean;

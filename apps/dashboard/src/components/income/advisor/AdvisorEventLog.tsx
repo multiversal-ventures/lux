@@ -2,19 +2,19 @@
  * Displays the event log during advisor analysis.
  */
 
-import { forwardRef } from "react";
 import {
-	Wand2,
-	FileText,
-	Brain,
-	Wrench,
-	CheckCircle,
 	AlertTriangle,
+	Brain,
+	CheckCircle,
 	ChevronRight,
+	FileText,
 	HelpCircle,
-	TrendingUp,
 	MessageCircle,
+	TrendingUp,
+	Wand2,
+	Wrench,
 } from "lucide-react";
+import { forwardRef } from "react";
 import type { AdvisorEvent } from "./types";
 
 interface AdvisorEventLogProps {

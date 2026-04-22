@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CalculationStep, CalculationInput } from "../../hooks/useApi";
+import type { CalculationInput, CalculationStep } from "../../hooks/useApi";
 
 /**
  * Format a calculation result based on its result_type.

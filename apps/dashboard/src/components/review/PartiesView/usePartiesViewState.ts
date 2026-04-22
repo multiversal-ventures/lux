@@ -1,17 +1,17 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Party, ExtractedDocument, CaseResult } from "../../../types";
-import { api } from "../../../lib/api";
-import { mergeParties, updateParty, checkIncomeReadiness } from "../../../hooks/useApi";
+import { checkIncomeReadiness, mergeParties, updateParty } from "../../../hooks/useApi";
 import type { IncomeReadinessResponse } from "../../../hooks/useApi";
+import { api } from "../../../lib/api";
+import type { CaseResult, ExtractedDocument, Party } from "../../../types";
 import type { BorrowerRole, PartyType } from "./partiesViewTypes";
 import {
 	extractIdentifierValue,
 	extractLast4Digits,
 	formatPartyName,
+	isBusinessIdentifierField,
 	isOrganizationName,
 	isPersonIdentifierField,
-	isBusinessIdentifierField,
 } from "./partiesViewUtils";
 
 export interface UsePartiesViewStateParams {

@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import type { IncomeVerificationResult, IncomeSection } from "../../hooks/useApi";
+import type { IncomeSection, IncomeVerificationResult } from "../../hooks/useApi";
 import type { CaseResult } from "../../types";
 import type { SourceRef } from "../../types";
 import { getRefYear } from "../../utils/docUtils";

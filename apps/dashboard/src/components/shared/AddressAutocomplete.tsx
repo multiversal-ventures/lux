@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { MapPin, Loader2, X } from "lucide-react";
+import { Loader2, MapPin, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 
 export interface AddressResult {

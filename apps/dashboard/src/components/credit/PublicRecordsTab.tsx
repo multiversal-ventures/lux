@@ -3,7 +3,7 @@
  * Shows category counts prominently (0 = clear, 1+ = found with warning)
  */
 
-import type { PublicRecord, PublicRecordType, PublicRecordStatus } from "./types";
+import type { PublicRecord, PublicRecordStatus, PublicRecordType } from "./types";
 
 interface PublicRecordsTabProps {
 	records: PublicRecord[];

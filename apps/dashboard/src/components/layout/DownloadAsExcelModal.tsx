@@ -3,17 +3,17 @@
  * Uses reports API: catalog + excel-url.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiRequest } from "../../lib/api";
 import {
 	Dialog,
 	DialogContent,
-	DialogHeader,
-	DialogTitle,
 	DialogDescription,
 	DialogFooter,
+	DialogHeader,
+	DialogTitle,
 } from "../ui/dialog";
-import { apiRequest } from "../../lib/api";
 
 // API types (match backend ReportCatalogResponse, ReportInfo, ScenarioOption, ReportExcelUrlResponse)
 export interface ScenarioOption {

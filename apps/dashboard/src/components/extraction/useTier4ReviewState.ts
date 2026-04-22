@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
-import type { StreamEvent, CaseStatus, Tier4ReviewState, Tier4Issue } from "../../types";
+import type { CaseStatus, StreamEvent, Tier4Issue, Tier4ReviewState } from "../../types";
 
 const initialReviewState: Tier4ReviewState = {
 	phase: "idle",

@@ -30,6 +30,7 @@ Veritas (backend)              Lux (frontend)
 Composable APIs        →       @fenero/lux-core     (API client, session, types)
 SDUI display_hints     →       @fenero/lux-react    (component registry, pre-built UI)
 Design tokens          →       @fenero/lux-themes   (CSS custom properties)
+                               apps/dashboard       (LO dashboard — consumes core + react)
                                apps/portal          (reference borrower portal)
 ```
 
@@ -38,23 +39,23 @@ Design tokens          →       @fenero/lux-themes   (CSS custom properties)
 ```
 lux/
 ├── packages/
-│   ├── core/                  API client, session management, TypeScript types
+│   ├── core/                  @fenero/lux-core — HTTP client, Gunnr API surface, session, intents, SSE transport
 │   │   └── src/
-│   │       ├── client.ts        Veritas HTTP client (envelope-aware)
-│   │       ├── session.ts       VeritasSession (token → composed state)
-│   │       ├── types.ts         Generated from Veritas OpenAPI spec
-│   │       ├── events.ts        SSE / polling for live updates
+│   │       ├── client.ts        VeritasClient (Bearer + Veritas-Version)
+│   │       ├── auth.ts          AuthProvider + Firebase / portal token helpers
+│   │       ├── runtime.ts       initLux / getDefaultClient / getLuxToken
+│   │       ├── gunnr-api.ts     Typed Gunnr REST (dashboard today)
+│   │       ├── gunnr-types.ts   Shared DTOs (+ re-export `@fenero/lux-core/gunnr-types`)
+│   │       ├── session.ts       VeritasSession (tenant, active case name, intent, SSE attach)
+│   │       ├── intents.ts       dispatchLuxIntent — maps to gunnr-api calls
+│   │       ├── events.ts        CaseSseTransport for `/api/v1/stream/:caseId`
+│   │       ├── generated.ts     Veritas OpenAPI types (`pnpm codegen`)
 │   │       └── index.ts
 │   │
-│   ├── react/                 React component library
+│   ├── react/                 @fenero/lux-react — thin React glue (no feature widgets yet)
 │   │   └── src/
-│   │       ├── SessionProvider.tsx   React context for VeritasSession
-│   │       ├── Checklist.tsx         Renders findings as actionable items
-│   │       ├── FileUpload.tsx        Secure document upload (portal-token auth)
-│   │       ├── ConsentForm.tsx       TCPA/GLBA consent toggles
-│   │       ├── StatusCard.tsx        Case state + progress
-│   │       ├── DocumentViewer.tsx    PDF with extraction highlights
-│   │       ├── registry.ts          display_hints.component → React component
+│   │       ├── SessionProvider.tsx
+│   │       ├── useSession.ts / useAuth.ts / useIntent.ts / useCase.ts / useEvents.ts
 │   │       └── index.ts
 │   │
 │   └── themes/                Design tokens and CSS
@@ -63,7 +64,8 @@ lux/
 │       └── tokens.ts
 │
 ├── apps/
-│   └── portal/                Reference borrower portal (Next.js)
+│   ├── dashboard/             LO dashboard (Vite) — `initLux` + SessionProvider + `@fenero/lux-core` API
+│   └── portal/                Reference borrower portal (Vite)
 │       └── src/
 │
 ├── turbo.json
@@ -77,64 +79,61 @@ lux/
 | Package | npm | Who uses it |
 |---------|-----|-------------|
 | `@fenero/lux-core` | API client, session, types | Everyone — React, Vue, vanilla JS, agents |
-| `@fenero/lux-react` | Components, SessionProvider, registry | React frontends |
+| `@fenero/lux-react` | SessionProvider, `useSession` / `useAuth` / `useIntent` / `useEvents` (display_hints UI planned) | React frontends |
 | `@fenero/lux-themes` | CSS custom properties, design tokens | Anyone who wants Fenero styling |
 
 ## How It Works
 
-### 1. Session-first API
-
-One call returns everything the UI needs:
+### 1. Bootstrap the HTTP client (dashboard)
 
 ```typescript
-import { VeritasSession } from '@fenero/lux-core'
+import { initLux, createFirebaseAuthProvider, VeritasSession, getDefaultClient } from '@fenero/lux-core'
 
-const session = await VeritasSession.create({ token: 'portal_token_uuid' })
-// session.entity       → { name, role, identity_id }
-// session.checklist    → [{ title, detail, action, display_hints }]
-// session.consent      → { sms_opt_in, doc_sharing }
-// session.uploadConfig → { endpoint, maxSize, acceptedTypes }
+initLux({
+  baseUrl: import.meta.env.VITE_GUNNR_API_URL ?? '',
+  auth: createFirebaseAuthProvider(() => getFirebaseAuth()),
+})
+const session = new VeritasSession(getDefaultClient())
+// session.tenantId / tenantName — hydrated after GET /api/v1/auth/me
+// session.intent({ type: 'patch_case', caseId, request }) — typed Gunnr actions
 ```
 
-### 2. Server-driven component registry
+Static portal tokens use `PortalTokenAuthProvider` with the same `VeritasClient` / `VeritasSession` pattern.
 
-Veritas returns `display_hints.component` on each checklist item.
-Lux maps it to a React component:
+### 2. React shell
 
 ```tsx
-import { SessionProvider, Checklist, FileUpload } from '@fenero/lux-react'
+import { SessionProvider, useAuth } from '@fenero/lux-react'
 
-function Portal({ token }) {
+function App() {
   return (
-    <SessionProvider token={token}>
-      <Checklist />   {/* Renders from session.checklist + display_hints */}
-      <FileUpload />  {/* Configured from session.uploadConfig */}
+    <SessionProvider firebaseAuth={() => getFirebaseAuth()}>
+      <Header /> {/* useAuth() → Firebase user + session tenant */}
     </SessionProvider>
   )
 }
 ```
 
+Server-driven `display_hints` widgets (`Checklist`, `FileUpload`, …) are not in `@fenero/lux-react` yet; the LO dashboard ships feature UI in `apps/dashboard` and uses `gunnr-api` from `@fenero/lux-core`.
+
 ### 3. Intents
 
-User operations flow through `session.intent()` — a single method for
-all interactions. One intent or many in a batch, same method:
+User operations flow through `session.intent()` on `VeritasSession`. The
+dashboard maps each `LuxIntent` to Gunnr HTTP calls today; batch calls run
+serially until a Veritas batch endpoint exists.
 
 ```typescript
-// Single intent
-await session.intent({ type: 'consent', params: { consent_type: 'doc_sharing', granted: true } })
+await session.intent({ type: 'patch_case', caseId: '…', request: { patch: [...] } })
 
-// Batch — multiple intents in one round-trip
 await session.intent([
-  { type: 'consent', params: { consent_type: 'sms_opt_in', granted: true } },
-  { type: 'upload', params: { files: [file] } },
+  { type: 'cancel_case', caseId: '…' },
+  { type: 'delete_case', caseId: '…' },
 ])
-// Returns refreshed session state
 ```
 
-Intent types are **generated from the Veritas OpenAPI spec**, versioned
-by `Veritas-Version` header. Lux doesn't define what intents exist —
-Veritas does. When the backend adds a new intent type, `pnpm codegen`
-updates the TypeScript union. The SDK never gates what the server accepts.
+OpenAPI-generated `paths` / `operations` in `generated.ts` describe the
+**Veritas** composable API; Gunnr-specific paths stay in `gunnr-api.ts` until
+the specs converge. See [docs/openapi.md](docs/openapi.md).
 
 ## Quick Start
 

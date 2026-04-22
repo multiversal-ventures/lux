@@ -1,11 +1,13 @@
+import { createFirebaseAuthProvider, initLux } from "@fenero/lux-core";
+import { type FirebaseOptions, initializeApp } from "firebase/app";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { initializeApp, type FirebaseOptions } from "firebase/app";
 import "./index.css";
 import { App } from "./App";
-import { waitForAuth } from "./lib/firebase";
-import { identifyMixpanel, initMixpanel, resetMixpanel } from "./lib/mixpanel";
 import { initAnalytics, setAnalyticsUserId } from "./lib/analytics";
+import { getGunnrApiBaseUrl } from "./lib/api";
+import { getFirebaseAuth, waitForAuth } from "./lib/firebase";
+import { identifyMixpanel, initMixpanel, resetMixpanel, trackError } from "./lib/mixpanel";
 
 const firebaseConfig: FirebaseOptions = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,8 +22,25 @@ if (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) {
 }
 
 initializeApp(firebaseConfig);
+
 initAnalytics();
 initMixpanel();
+
+initLux({
+	baseUrl: getGunnrApiBaseUrl(),
+	auth: createFirebaseAuthProvider(() => getFirebaseAuth()),
+	hooks: {
+		onApiError: (info) => {
+			trackError({
+				error_type: info.error_type,
+				error_message: info.error_message,
+				error_code: info.error_code,
+				page_url: info.page_url,
+				user_id: getFirebaseAuth().currentUser?.uid,
+			});
+		},
+	},
+});
 
 waitForAuth().then((user) => {
 	if (user) {

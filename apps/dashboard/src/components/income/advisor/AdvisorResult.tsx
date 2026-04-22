@@ -3,9 +3,9 @@
  */
 
 import { FileText } from "lucide-react";
-import type { AdvisorResult as AdvisorResultType, ProposedScenario } from "./types";
-import { AdvisorStrategy } from "./AdvisorStrategy";
 import { AdvisorProposedScenario } from "./AdvisorProposedScenario";
+import { AdvisorStrategy } from "./AdvisorStrategy";
+import type { AdvisorResult as AdvisorResultType, ProposedScenario } from "./types";
 
 interface AdvisorResultProps {
 	result: AdvisorResultType;

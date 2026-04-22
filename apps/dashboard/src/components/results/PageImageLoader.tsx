@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 interface PageImageLoaderProps {
 	src: string;

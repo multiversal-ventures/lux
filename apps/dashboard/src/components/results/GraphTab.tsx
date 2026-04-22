@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
-import { trackSearch } from "../../lib/mixpanel";
 import { useAuth } from "../../hooks";
 import { useCaseGraph } from "../../hooks/useCaseQueries";
+import { trackSearch } from "../../lib/mixpanel";
 
 // =============================================================================
 // Types

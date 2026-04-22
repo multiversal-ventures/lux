@@ -12,11 +12,11 @@
  * hooks/stores directly.
  */
 
-import type { StreamEvent, StreamStatus, CaseStatus, CaseResult, LoadedFile } from "../types";
 import { useCaseEventStore } from "../stores/caseEventStore";
-import { useSSEConnection } from "./useSSEConnection";
+import type { CaseResult, CaseStatus, LoadedFile, StreamEvent, StreamStatus } from "../types";
+import { useCaseProgress, useCaseResult, useCaseStatus } from "./useCaseQueries";
 import { useEventInvalidation } from "./useEventInvalidation";
-import { useCaseStatus, useCaseResult, useCaseProgress } from "./useCaseQueries";
+import { useSSEConnection } from "./useSSEConnection";
 
 interface UseGunnrCaseOptions {
 	caseId: string | null;

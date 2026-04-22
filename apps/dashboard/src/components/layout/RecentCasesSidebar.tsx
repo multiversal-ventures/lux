@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom";
-import { CaseHistory } from "../CaseHistory";
 import { useCaseHistory } from "../../hooks";
-import { useAppSelector, useAppDispatch } from "../../store";
+import { useAppDispatch, useAppSelector } from "../../store";
 import { toggleDocumentsSidebar } from "../../store/appSlice";
+import { CaseHistory } from "../CaseHistory";
 
 interface RecentCasesSidebarProps {
 	/** Called when user clicks any case section (Review, Documents, Extraction, Parties, Income) – e.g. to collapse right Agent Log/Info panel */

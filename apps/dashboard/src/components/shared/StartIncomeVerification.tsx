@@ -11,17 +11,17 @@
  * - PartiesTab, ReviewView
  */
 
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
+	getIncomeVerification,
+	startCreditVerificationWithOptions,
 	startIncomeVerification,
 	startIncomeVerificationForAllProducts,
 	startIncomeVerificationWithOptions,
-	startCreditVerificationWithOptions,
-	getIncomeVerification,
 } from "../../hooks/useApi";
 import { useCaseQueryInvalidation } from "../../hooks/useCaseQueries";
-import { trackIncomeVerificationStarted, trackFunnelStep } from "../../lib/analytics";
+import { trackFunnelStep, trackIncomeVerificationStarted } from "../../lib/analytics";
 import { useAppSelector } from "../../store";
 
 type IncomeRunIntent = {

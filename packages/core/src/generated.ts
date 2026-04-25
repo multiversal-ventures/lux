@@ -243,7 +243,11 @@ export interface paths {
         get: operations["get_case_api_cases__case_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Case
+         * @description Delete a case and all its related data. Irreversible.
+         */
+        delete: operations["delete_case_api_cases__case_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -326,6 +330,29 @@ export interface paths {
          *     are scope-checked to their own case.
          */
         post: operations["upload_files_api_cases__case_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/qualify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Qualify Case
+         * @description Trigger qualification on an already-extracted case.
+         *
+         *     Pass ?spec_id=<uuid> to run a specific DB-stored spec.
+         *     Without spec_id, runs all registered product specs.
+         */
+        post: operations["qualify_case_api_cases__case_id__qualify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1847,6 +1874,35 @@ export interface operations {
             };
         };
     };
+    delete_case_api_cases__case_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_entities_api_cases__case_id__entities_get: {
         parameters: {
             query?: never;
@@ -1958,6 +2014,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    qualify_case_api_cases__case_id__qualify_post: {
+        parameters: {
+            query?: {
+                spec_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

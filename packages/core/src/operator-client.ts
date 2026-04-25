@@ -241,6 +241,22 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		}
 	}
 
+	async function deleteCase(caseId: string): Promise<Result<null>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}`, {
+				method: "DELETE",
+				headers: authHeaders(),
+			});
+			if (!res.ok) {
+				const message = await res.text().catch(() => res.statusText);
+				return { data: null, error: { status: res.status, message } };
+			}
+			return { data: null, error: null };
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	async function getCase(caseId: string): Promise<Result<CaseResponse>> {
 		try {
 			const res = await fetch(`${base}/api/cases/${caseId}`, {
@@ -258,6 +274,19 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				headers: authHeaders(),
 			});
 			return request<{ state: string }>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
+	/** Trigger qualification on an extracted case. Pass specId to run a specific spec. */
+	async function qualifyCase(caseId: string, specId?: string): Promise<Result<{ workflow_id: string }>> {
+		try {
+			const url = specId
+				? `${base}/api/cases/${caseId}/qualify?spec_id=${encodeURIComponent(specId)}`
+				: `${base}/api/cases/${caseId}/qualify`;
+			const res = await fetch(url, { method: "POST", headers: authHeaders() });
+			return request<{ workflow_id: string }>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -327,6 +356,62 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		};
 	}
 
+	/**
+	 * Stream case events with SSE parsing handled internally.
+	 *
+	 * Mirrors `generateSpecStream` — callback-based, hides the SSE wire format.
+	 * Calls `onEvent` for each parsed CaseEvent. Returns `abort()` to stop the stream.
+	 *
+	 * Usage:
+	 *   const { abort } = client.streamEventsParsed(caseId, (event) => {
+	 *     if (event.event_type === "case.system.completed") abort();
+	 *   });
+	 */
+	function streamEventsParsed(
+		caseId: string,
+		onEvent: (event: CaseEvent) => void,
+	): { abort: () => void } {
+		const controller = new AbortController();
+
+		(async () => {
+			let res: Response;
+			try {
+				res = await fetch(`${base}/api/cases/${caseId}/events/stream`, {
+					headers: authHeaders(),
+					signal: controller.signal,
+				});
+			} catch {
+				return;
+			}
+			if (!res.body) return;
+
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split("\n");
+					buffer = lines.pop() ?? "";
+					for (const line of lines) {
+						if (!line.startsWith("data: ")) continue;
+						const raw = line.slice(6).trim();
+						if (!raw || raw === "[DONE]") continue;
+						try {
+							const event = JSON.parse(raw) as CaseEvent;
+							onEvent(event);
+						} catch { /* malformed line — skip */ }
+					}
+				}
+			} catch { /* aborted or network error — stop silently */ }
+		})();
+
+		return { abort: () => controller.abort() };
+	}
+
 	async function getEvents(caseId: string): Promise<Result<CaseEvent[]>> {
 		try {
 			const res = await fetch(`${base}/api/cases/${caseId}/events`, {
@@ -359,6 +444,9 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		getSpecDetail,
 		listSpecs,
 		listCases,
+		deleteCase,
+		qualifyCase,
+		streamEventsParsed,
 		createSpec,
 		submitSpec,
 		approveSpec,

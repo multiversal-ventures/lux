@@ -29,3 +29,17 @@ export type Intent = components["schemas"]["Intent"];
 
 export { createPortalClient } from "./client";
 export type { PortalClientConfig, PortalClientError, FetchSessionResult, SubmitIntentsResult } from "./client";
+
+export { createOperatorClient } from "./operator-client";
+export type {
+	OperatorClient,
+	OperatorClientConfig,
+	OperatorClientError,
+	CaseEvent,
+	CaseResponse,
+	SpecResponse,
+	Result,
+	SpecAuditResponse,
+	CalculationStepResponse,
+	GenerateSpecResult,
+} from "./operator-client";

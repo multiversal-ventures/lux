@@ -359,6 +359,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/files/{file_id}/pages/{page_number}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Page Png
+         * @description Return the PNG bytes for a given (case, file, page_number) triple.
+         */
+        get: operations["get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/scenarios": {
         parameters: {
             query?: never;
@@ -485,6 +505,66 @@ export interface paths {
          *     or the client disconnects.
          */
         get: operations["stream_events_api_cases__case_id__events_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Documents
+         * @description List documents for a case, joined with source File for filename.
+         */
+        get: operations["list_documents_api_cases__case_id__documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/extractions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Extractions
+         * @description List extractions (with sources) for a case, optionally filtered by doc_id.
+         */
+        get: operations["list_extractions_api_cases__case_id__extractions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/banking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Banking
+         * @description Return per-account banking rollups for a case, with totals.
+         */
+        get: operations["get_banking_api_cases__case_id__banking_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -760,6 +840,72 @@ export interface components {
             /** Approved By */
             approved_by: string;
         };
+        /** BankingAccount */
+        BankingAccount: {
+            /** Account Id */
+            account_id?: string | null;
+            /**
+             * Gross Deposits
+             * @default 0
+             */
+            gross_deposits: number;
+            /**
+             * Average Monthly
+             * @default 0
+             */
+            average_monthly: number;
+            /** Months Covered */
+            months_covered?: number | null;
+            /**
+             * Streams
+             * @default []
+             */
+            streams: components["schemas"]["BankingStream"][];
+        };
+        /** BankingResponse */
+        BankingResponse: {
+            /**
+             * Accounts
+             * @default []
+             */
+            accounts: components["schemas"]["BankingAccount"][];
+            /**
+             * Total Gross Deposits
+             * @default 0
+             */
+            total_gross_deposits: number;
+            /**
+             * Total Average Monthly
+             * @default 0
+             */
+            total_average_monthly: number;
+        };
+        /** BankingStream */
+        BankingStream: {
+            /** Description Pattern */
+            description_pattern?: string | null;
+            /** Classification */
+            classification?: string | null;
+            /** Frequency */
+            frequency?: string | null;
+            /** Average Amount */
+            average_amount?: number | null;
+            /** Occurrence Count */
+            occurrence_count?: number | null;
+            /** Confidence */
+            confidence?: number | null;
+        };
+        /** BboxResponse */
+        BboxResponse: {
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+            /** Width */
+            width: number;
+            /** Height */
+            height: number;
+        };
         /** Body_upload_files_api_cases__case_id__files_post */
         Body_upload_files_api_cases__case_id__files_post: {
             /** Files */
@@ -985,6 +1131,31 @@ export interface components {
             /** Label */
             label?: string | null;
         };
+        /** DocumentResponse */
+        DocumentResponse: {
+            /**
+             * Doc Id
+             * Format: uuid
+             */
+            doc_id: string;
+            /** Doc Type */
+            doc_type?: string | null;
+            /** Original Filename */
+            original_filename?: string | null;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** Page Numbers */
+            page_numbers?: number[] | null;
+            /** Effective Period Start */
+            effective_period_start?: string | null;
+            /** Effective Period End */
+            effective_period_end?: string | null;
+            /** Tax Year */
+            tax_year?: number | null;
+        };
         /** EntityGroupResponse */
         EntityGroupResponse: {
             /**
@@ -1036,6 +1207,46 @@ export interface components {
              * @default
              */
             role: string;
+        };
+        /** ExtractionResponse */
+        ExtractionResponse: {
+            /**
+             * Extraction Id
+             * Format: uuid
+             */
+            extraction_id: string;
+            /**
+             * Doc Id
+             * Format: uuid
+             */
+            doc_id: string;
+            /** Doc Type */
+            doc_type?: string | null;
+            /** Field Name */
+            field_name?: string | null;
+            /** Canonical Key */
+            canonical_key?: string | null;
+            /** Value */
+            value?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Sources
+             * @default []
+             */
+            sources: components["schemas"]["ExtractionSourceResponse"][];
+        };
+        /** ExtractionSourceResponse */
+        ExtractionSourceResponse: {
+            /** Page Number */
+            page_number?: number | null;
+            bbox?: components["schemas"]["BboxResponse"] | null;
+            /** Ocr Text Snippet */
+            ocr_text_snippet?: string | null;
+            /** File Id */
+            file_id?: string | null;
+            /** Source Type */
+            source_type?: string | null;
         };
         /** FunctionCallResponse */
         FunctionCallResponse: {
@@ -2069,6 +2280,37 @@ export interface operations {
             };
         };
     };
+    get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                file_id: string;
+                page_number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_scenarios_api_cases__case_id__scenarios_get: {
         parameters: {
             query?: never;
@@ -2303,6 +2545,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_cases__case_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_extractions_api_cases__case_id__extractions_get: {
+        parameters: {
+            query?: {
+                doc_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_banking_api_cases__case_id__banking_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankingResponse"];
                 };
             };
             /** @description Validation Error */

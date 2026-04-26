@@ -42,4 +42,11 @@ export type {
 	SpecAuditResponse,
 	CalculationStepResponse,
 	GenerateSpecResult,
+	DocumentResponse,
+	ExtractionResponse,
+	ExtractionSourceResponse,
+	BankingResponse,
+	BankingAccount,
+	BankingStream,
+	BboxResponse,
 } from "./operator-client";

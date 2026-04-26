@@ -12,6 +12,13 @@ export type CaseResponse = components["schemas"]["CaseResponse"];
 export type SpecAuditResponse = components["schemas"]["SpecAuditResponse"];
 export type CalculationStepResponse = components["schemas"]["CalculationStepResponse"];
 export type SpecResponse = components["schemas"]["SpecResponse"];
+export type DocumentResponse = components["schemas"]["DocumentResponse"];
+export type ExtractionResponse = components["schemas"]["ExtractionResponse"];
+export type ExtractionSourceResponse = components["schemas"]["ExtractionSourceResponse"];
+export type BankingResponse = components["schemas"]["BankingResponse"];
+export type BankingAccount = components["schemas"]["BankingAccount"];
+export type BankingStream = components["schemas"]["BankingStream"];
+export type BboxResponse = components["schemas"]["BboxResponse"];
 
 export interface CaseEvent {
 	event_id: number;
@@ -438,6 +445,65 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		}
 	}
 
+	// -------------------------------------------------------------------------
+	// Case documents / extractions / banking
+	// -------------------------------------------------------------------------
+
+	async function listDocuments(
+		caseId: string,
+	): Promise<Result<DocumentResponse[]>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}/documents`, {
+				headers: authHeaders(),
+			});
+			return request<DocumentResponse[]>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
+	async function listExtractions(
+		caseId: string,
+		opts?: { docId?: string },
+	): Promise<Result<ExtractionResponse[]>> {
+		try {
+			const url = opts?.docId
+				? `${base}/api/cases/${caseId}/extractions?doc_id=${encodeURIComponent(opts.docId)}`
+				: `${base}/api/cases/${caseId}/extractions`;
+			const res = await fetch(url, { headers: authHeaders() });
+			return request<ExtractionResponse[]>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
+	async function getBanking(
+		caseId: string,
+	): Promise<Result<BankingResponse>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}/banking`, {
+				headers: authHeaders(),
+			});
+			return request<BankingResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
+	/** Build the page PNG URL for a (case, file, page) triple. Does NOT fetch.
+	 *
+	 * Consumers that need the bytes (e.g. <img>) must fetch with
+	 * Authorization: Bearer ... themselves. In lux-react this is done by
+	 * <AuthedImage>.
+	 */
+	function pagePngUrl(
+		caseId: string,
+		fileId: string,
+		pageNumber: number,
+	): string {
+		return `${base}/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`;
+	}
+
 	return {
 		generateSpec,
 		generateSpecStream,
@@ -457,6 +523,10 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		streamEvents,
 		getEvents,
 		getAudit,
+		listDocuments,
+		listExtractions,
+		getBanking,
+		pagePngUrl,
 	};
 }
 

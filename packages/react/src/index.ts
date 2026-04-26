@@ -40,3 +40,5 @@ export { PipelineFeed } from "./components/PipelineFeed";
 export type { PipelineFeedProps } from "./components/PipelineFeed";
 export { AuditTrail } from "./components/AuditTrail";
 export type { AuditTrailProps } from "./components/AuditTrail";
+export { ResultCard } from "./components/ResultCard";
+export type { ResultCardProps } from "./components/ResultCard";

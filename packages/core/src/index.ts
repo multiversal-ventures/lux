@@ -47,8 +47,11 @@ export type {
 	ExtractionSourceResponse,
 	BankingResponse,
 	BankingAccount,
-	BankingStream,
+	BankingBorrowerRollup,
 	BboxResponse,
+	TransactionsResponse,
+	TransactionRegion,
+	TransactionRow,
 } from "./operator-client.js";
 
 export { normalizeQualifyResult } from "./normalize.js";

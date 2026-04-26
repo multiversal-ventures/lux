@@ -32,36 +32,29 @@ export function BankingSummary({ data, className }: BankingSummaryProps) {
 				</div>
 			</div>
 
-			{data.accounts.map((a) => (
-				<div key={a.account_id ?? Math.random()} className={styles.account}>
+			{data.accounts.map((a, i) => (
+				<div
+					key={a.account_id != null && a.account_id !== "" ? a.account_id : i}
+					className={styles.account}
+				>
 					<div className={styles.accountHeader}>
-						<span>Account {a.account_id ?? "—"}</span>
+						<span>
+							{a.account_holder_name
+								? `${a.account_holder_name} · ${a.account_id ?? "—"}`
+								: `Account ${a.account_id ?? "—"}`}
+						</span>
 						<span>{a.months_covered != null ? `${a.months_covered} months` : ""}</span>
 					</div>
 					<div className={styles.accountStats}>
 						<div>
 							<div className={styles.totalLabel}>Gross Deposits</div>
-							<div className={styles.totalValue}>{fmt(a.gross_deposits)}</div>
+							<div className={styles.totalValue}>{fmt(a.gross_deposits_aggressive)}</div>
 						</div>
 						<div>
 							<div className={styles.totalLabel}>Avg Monthly</div>
-							<div className={styles.totalValue}>{fmt(a.average_monthly)}</div>
+							<div className={styles.totalValue}>{fmt(a.average_monthly_deposits)}</div>
 						</div>
 					</div>
-					{a.streams.map((s, i) => (
-						<div key={i} className={styles.stream}>
-							<span className={styles.classification}>
-								{s.classification ?? "—"}
-							</span>
-							<span className={styles.streamPattern}>
-								{s.description_pattern ?? "—"}
-							</span>
-							<span className={styles.streamFreq}>{s.frequency ?? ""}</span>
-							<span className={styles.streamAmount}>
-								{s.average_amount != null ? fmt(s.average_amount) : "—"}
-							</span>
-						</div>
-					))}
 				</div>
 			))}
 		</div>

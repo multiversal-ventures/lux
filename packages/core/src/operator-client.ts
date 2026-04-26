@@ -15,10 +15,67 @@ export type SpecResponse = components["schemas"]["SpecResponse"];
 export type DocumentResponse = components["schemas"]["DocumentResponse"];
 export type ExtractionResponse = components["schemas"]["ExtractionResponse"];
 export type ExtractionSourceResponse = components["schemas"]["ExtractionSourceResponse"];
-export type BankingResponse = components["schemas"]["BankingResponse"];
-export type BankingAccount = components["schemas"]["BankingAccount"];
-export type BankingStream = components["schemas"]["BankingStream"];
 export type BboxResponse = components["schemas"]["BboxResponse"];
+
+// Banking response shape is pivoted from long-format aggregation rows on
+// the backend, so the generated OpenAPI types lag. We declare them
+// inline and expose them as the public type surface.
+export interface BankingAccount {
+	account_id: string | null;
+	account_holder_name: string | null;
+	currency: string | null;
+	gross_deposits_aggressive: number;
+	gross_deposits_conservative: number;
+	average_monthly_deposits: number;
+	months_covered: number | null;
+	stream_count: number;
+	payroll_stream_confidence: number | null;
+	balance_reconciled: boolean | null;
+	coverage_passed: boolean | null;
+	summary_matched: boolean | null;
+	source_doc_ids: string[];
+}
+
+export interface BankingBorrowerRollup {
+	borrower_id: string | null;
+	borrower_name: string | null;
+	account_count: number;
+	source_account_ids: string[];
+	gross_deposits_aggressive: number;
+	gross_deposits_conservative: number;
+	average_monthly_deposits: number;
+	months_covered: number | null;
+	stream_count: number;
+	payroll_stream_confidence: number | null;
+}
+
+export interface BankingResponse {
+	accounts: BankingAccount[];
+	borrowers: BankingBorrowerRollup[];
+	total_gross_deposits: number;
+	total_average_monthly: number;
+}
+
+export interface TransactionRow {
+	row_index: number | null;
+	data: Record<string, unknown>;
+}
+
+export interface TransactionRegion {
+	region_id: string;
+	page_number: number | null;
+	parquet_path: string;
+	columns: string[];
+	row_count: number;
+	rows: TransactionRow[];
+}
+
+export interface TransactionsResponse {
+	doc_id: string;
+	source_filename: string | null;
+	regions: TransactionRegion[];
+	total_rows: number;
+}
 
 export interface CaseEvent {
 	event_id: number;
@@ -490,6 +547,21 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		}
 	}
 
+	async function listTransactions(
+		caseId: string,
+		docId: string,
+	): Promise<Result<TransactionsResponse>> {
+		try {
+			const res = await fetch(
+				`${base}/api/cases/${caseId}/documents/${docId}/transactions`,
+				{ headers: authHeaders() },
+			);
+			return request<TransactionsResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	/** Build the page PNG URL for a (case, file, page) triple. Does NOT fetch.
 	 *
 	 * Consumers that need the bytes (e.g. <img>) must fetch with
@@ -526,6 +598,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		listDocuments,
 		listExtractions,
 		getBanking,
+		listTransactions,
 		pagePngUrl,
 	};
 }

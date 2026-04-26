@@ -4,13 +4,13 @@ import { type CSSProperties, useState } from "react";
 import { CodeBlock } from "./CodeBlock.js";
 import {
 	SNIPPET_API_LAYER,
-	SNIPPET_INIT_FIREBASE,
+	SNIPPET_APP_AUTH_UI,
+	SNIPPET_INIT_CUSTOM_AUTH,
 	SNIPPET_INIT_MAIN,
 	SNIPPET_INIT_PORTAL_TOKEN,
 	SNIPPET_LINKING_PACKAGE_JSON,
 	SNIPPET_LINKING_SHELL,
 	SNIPPET_SESSION_PROVIDER,
-	SNIPPET_USE_AUTH,
 	SNIPPET_USE_CASE_EVENTS,
 	SNIPPET_USE_SESSION,
 } from "./guideSnippets.js";
@@ -79,8 +79,8 @@ function SectionBootstrap() {
 				</dd>
 				<dt>Auth in this sample</dt>
 				<dd>
-					Inline object in <code>main.tsx</code> returning a dev token — replace with Firebase or
-					portal token in production.
+					Inline object in <code>main.tsx</code> returning a dev token — replace with your real{" "}
+					<code>AuthProvider</code> (IdP, portal token, etc.) in production.
 				</dd>
 			</dl>
 
@@ -89,8 +89,8 @@ function SectionBootstrap() {
 			</h3>
 			<CodeBlock code={SNIPPET_INIT_MAIN} label="initLux minimal bootstrap" />
 
-			<h3 style={h3}>Dashboard / LO app — Firebase</h3>
-			<CodeBlock code={SNIPPET_INIT_FIREBASE} label="initLux with Firebase" />
+			<h3 style={h3}>Custom identity provider — typed wrapper</h3>
+			<CodeBlock code={SNIPPET_INIT_CUSTOM_AUTH} label="initLux with custom AuthProvider" />
 
 			<h3 style={h3}>Borrower portal — static portal token</h3>
 			<CodeBlock code={SNIPPET_INIT_PORTAL_TOKEN} label="initLux with portal token" />
@@ -108,8 +108,7 @@ function SectionReact() {
 			</h2>
 			<p style={p}>
 				Wrap your tree in <code>SessionProvider</code>. It creates a <code>VeritasSession</code>{" "}
-				tied to <code>getDefaultClient()</code>. Pass <code>firebaseAuth</code> only if you use{" "}
-				<code>useAuth</code>.
+				tied to <code>getDefaultClient()</code> for tenant/case state and SSE helpers.
 			</p>
 
 			<h3 style={h3}>Provider</h3>
@@ -156,10 +155,12 @@ function SectionReact() {
 			</h3>
 			<CodeBlock code={SNIPPET_USE_SESSION} label="useSession snippet" />
 
-			<h3 style={h3}>
-				<code>useAuth</code> (needs <code>firebaseAuth</code> on provider)
-			</h3>
-			<CodeBlock code={SNIPPET_USE_AUTH} label="useAuth snippet" />
+			<h3 style={h3}>End-user login UI (app-level)</h3>
+			<p style={p}>
+				Lux does not ship a user-auth hook. Keep sign-in, profile, and token refresh in your app;
+				only <code>AuthProvider.getToken</code> needs to reach the HTTP client.
+			</p>
+			<CodeBlock code={SNIPPET_APP_AUTH_UI} label="App-level auth guidance" />
 
 			<h3 style={h3}>
 				<code>useCase</code> / <code>useEvents</code>

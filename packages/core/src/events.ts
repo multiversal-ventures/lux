@@ -20,7 +20,7 @@ export type CaseSseTransportOptions = {
 };
 
 /**
- * SSE transport for `/api/v1/stream/:caseId` (Firebase Bearer in query).
+ * SSE transport for `/api/v1/stream/:caseId` (Bearer token in query via {@link getLuxToken}).
  * Mirrors {@link apps/dashboard/src/hooks/useSSEConnection.ts} reconnect semantics.
  */
 export class CaseSseTransport {

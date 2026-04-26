@@ -183,11 +183,10 @@ pnpm --filter @fenero/lux-react pack --pack-destination ./dist-pack
 
 A minimal app that demonstrates how to consume `@fenero/lux-core` and
 `@fenero/lux-react` from a customer application. This is **a sample**, not
-a product. It exists to:
-
-- Show the smallest possible `initLux` setup.
-- Show `<SessionProvider>` + `useSession`.
-- Show one `getDefaultClient().requestJson(...)` call.
+a product. It exists as an **interactive integration guide**: copyable
+snippets for `initLux`, `SessionProvider` / hooks, a thin `getDefaultClient`
+API layer, local `pnpm pack` linking, plus a live session demo and health
+ping.
 
 For the real Gunnr product, see the `gunnr` repo.
 

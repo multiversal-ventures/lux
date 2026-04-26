@@ -17,12 +17,23 @@ initLux({
   },
 });`;
 
-export const SNIPPET_INIT_FIREBASE = `import { createFirebaseAuthProvider, initLux } from "@fenero/lux-core";
-import { getAuth } from "firebase/auth";
+export const SNIPPET_INIT_CUSTOM_AUTH = `import { initLux, type AuthProvider } from "@fenero/lux-core";
+
+/** Bridge your identity layer (OIDC, magic link, cookie session, etc.) to Lux. */
+function createAuthFromMyIdP(getAccessToken: () => Promise<string | null>): AuthProvider {
+  return {
+    async getToken(forceRefresh) {
+      return getAccessToken();
+    },
+  };
+}
 
 initLux({
   baseUrl: import.meta.env.VITE_API_BASE_URL ?? "",
-  auth: createFirebaseAuthProvider(() => getAuth()),
+  auth: createAuthFromMyIdP(async () => {
+    // e.g. read from secure storage, refresh silently, exchange session cookie — app-specific
+    return null;
+  }),
   hooks: {
     onApiError: (info) => myTracker.track("api_error", info),
   },
@@ -39,9 +50,7 @@ export const SNIPPET_SESSION_PROVIDER = `import { SessionProvider } from "@fener
 
 function App() {
   return (
-    <SessionProvider
-      firebaseAuth={() => getAuth()} // optional: only if you use useAuth()
-    >
+    <SessionProvider>
       <Shell />
     </SessionProvider>
   );
@@ -58,19 +67,9 @@ function Header() {
   );
 }`;
 
-export const SNIPPET_USE_AUTH = `import { useAuth } from "@fenero/lux-react";
-
-// Requires <SessionProvider firebaseAuth={() => getAuth()} />
-function UserMenu() {
-  const { user, loading, signOut, tenantName } = useAuth();
-  if (loading) return null;
-  if (!user) return <a href="/login">Sign in</a>;
-  return (
-    <button type="button" onClick={() => void signOut()}>
-      Sign out ({tenantName})
-    </button>
-  );
-}`;
+export const SNIPPET_APP_AUTH_UI = `// User identity (sign-in, sign-out, profile) is not part of @fenero/lux-react.
+// Implement hooks/context in your app using your IdP, then pass tokens via AuthProvider + initLux.
+// VeritasSession (useSession) holds tenant/case UI state for API flows — separate from end-user login UI.`;
 
 export const SNIPPET_USE_CASE_EVENTS = `import { useCase, useEvents } from "@fenero/lux-react";
 

@@ -1,7 +1,7 @@
 /**
  * @fenero/lux-core — Veritas SDK primitives.
  *
- * Includes: generated OpenAPI types, auth provider abstraction,
+ * Includes: generated OpenAPI types, {@link AuthProvider} abstraction,
  * VeritasClient (HTTP, Bearer-based — dashboard apps),
  * createPortalClient (X-Portal-Token — borrower portal apps),
  * runtime singleton (initLux/getDefaultClient),

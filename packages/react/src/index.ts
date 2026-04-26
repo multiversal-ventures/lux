@@ -36,3 +36,5 @@ export { BoundingBoxOverlay } from "./components/BoundingBoxOverlay";
 export type { BoundingBoxOverlayProps, BboxNormalized, BboxHighlight } from "./components/BoundingBoxOverlay";
 export { DocumentPageImage } from "./components/DocumentPageImage";
 export type { DocumentPageImageProps } from "./components/DocumentPageImage";
+export { PipelineFeed } from "./components/PipelineFeed";
+export type { PipelineFeedProps } from "./components/PipelineFeed";

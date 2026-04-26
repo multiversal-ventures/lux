@@ -15,3 +15,14 @@ export type {
 	UseCaseEventsOptions,
 	UseCaseEventsResult,
 } from "./providers/CaseEventsProvider";
+
+export {
+	useCase,
+	useCases,
+	useSpecs,
+	useSpecDetail,
+	useDocuments,
+	useExtractions,
+	useBanking,
+	useAudit,
+} from "./hooks";

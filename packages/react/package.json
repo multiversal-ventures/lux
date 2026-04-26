@@ -1,6 +1,6 @@
 {
   "name": "@fenero/lux-react",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.json && node scripts/copy-css.mjs",
     "dev": "tsc --watch --project tsconfig.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

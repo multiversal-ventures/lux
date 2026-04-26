@@ -10,8 +10,8 @@ import {
 } from "react";
 import type { CaseEvent } from "@fenero/lux-core";
 import { useQueryClient } from "@tanstack/react-query";
-import { useOperatorClient } from "./OperatorProvider";
-import { invalidationMap, terminalEventTypes } from "./invalidation-map";
+import { useOperatorClient } from "./OperatorProvider.js";
+import { invalidationMap, terminalEventTypes } from "./invalidation-map.js";
 
 interface CaseEventsContextValue {
 	events: CaseEvent[];

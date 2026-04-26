@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useBearerToken } from "../providers/OperatorProvider";
+import { useBearerToken } from "../providers/OperatorProvider.js";
 
 /**
  * Fetch a URL with bearer auth and return an object URL for use in <img>.

@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { PipelineFeed } from "./PipelineFeed";
+import { PipelineFeed } from "./PipelineFeed.js";
 
 describe("PipelineFeed", () => {
 	it("renders events with the formatted action", () => {

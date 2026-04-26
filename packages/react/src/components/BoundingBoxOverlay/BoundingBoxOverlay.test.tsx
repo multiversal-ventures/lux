@@ -1,6 +1,6 @@
 import { render, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { BoundingBoxOverlay } from "./BoundingBoxOverlay";
+import { BoundingBoxOverlay } from "./BoundingBoxOverlay.js";
 
 describe("BoundingBoxOverlay", () => {
 	it("renders one box per highlight and fires click", () => {

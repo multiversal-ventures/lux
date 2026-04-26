@@ -1,5 +1,5 @@
 import type { ExtractionResponse } from "@fenero/lux-core";
-import { useOperatorQuery } from "./_useOperatorQuery";
+import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useExtractions(
 	caseId: string,

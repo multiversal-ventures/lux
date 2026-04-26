@@ -5,7 +5,7 @@ import {
 	useOperatorClient,
 	useBearerToken,
 	useBaseUrl,
-} from "./OperatorProvider";
+} from "./OperatorProvider.js";
 
 describe("OperatorProvider", () => {
 	it("exposes a memoized client via useOperatorClient", () => {

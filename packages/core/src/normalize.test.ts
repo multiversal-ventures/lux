@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeQualifyResult } from "./normalize";
+import { normalizeQualifyResult } from "./normalize.js";
 
 describe("normalizeQualifyResult", () => {
 	it("prefers product === 'custom' even when other products have total_monthly > 0", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createPortalClient } from "./client";
-import { createOperatorClient } from "./operator-client";
+import { createPortalClient } from "./client.js";
+import { createOperatorClient } from "./operator-client.js";
 
 const SESSION_FIXTURE = {
 	session_id: "sess-1",

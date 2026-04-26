@@ -1,4 +1,4 @@
-import type { components } from "./generated";
+import type { components } from "./generated.js";
 
 type PortalSession = components["schemas"]["PortalSessionResponse"];
 type Intent = components["schemas"]["Intent"];

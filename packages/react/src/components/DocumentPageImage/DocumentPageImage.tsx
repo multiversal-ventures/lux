@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useOperatorClient } from "../../providers/OperatorProvider";
-import { AuthedImage } from "../AuthedImage";
-import { BoundingBoxOverlay, type BboxHighlight } from "../BoundingBoxOverlay";
+import { useOperatorClient } from "../../providers/OperatorProvider.js";
+import { AuthedImage } from "../AuthedImage/index.js";
+import { BoundingBoxOverlay, type BboxHighlight } from "../BoundingBoxOverlay/index.js";
 import styles from "./DocumentPageImage.module.css";
 
 export interface DocumentPageImageProps {

@@ -1,2 +1,2 @@
-export { AuthedImage } from "./AuthedImage";
-export type { AuthedImageProps } from "./AuthedImage";
+export { AuthedImage } from "./AuthedImage.js";
+export type { AuthedImageProps } from "./AuthedImage.js";

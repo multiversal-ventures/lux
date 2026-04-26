@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions, type UseQueryResult, type QueryKey } from "@tanstack/react-query";
 import type { OperatorClient, Result } from "@fenero/lux-core";
-import { useOperatorClient } from "../providers/OperatorProvider";
+import { useOperatorClient } from "../providers/OperatorProvider.js";
 
 /**
  * Shared wrapper that turns a Result<T>-returning client method into a

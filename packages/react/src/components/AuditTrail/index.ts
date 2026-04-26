@@ -1,2 +1,2 @@
-export { AuditTrail } from "./AuditTrail";
-export type { AuditTrailProps } from "./AuditTrail";
+export { AuditTrail } from "./AuditTrail.js";
+export type { AuditTrailProps } from "./AuditTrail.js";

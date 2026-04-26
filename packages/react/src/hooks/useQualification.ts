@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import type { CaseEvent, QualifyResult } from "@fenero/lux-core";
 import { normalizeQualifyResult } from "@fenero/lux-core";
-import { useOperatorClient } from "../providers/OperatorProvider";
-import { useCaseEvents } from "../providers/CaseEventsProvider";
+import { useOperatorClient } from "../providers/OperatorProvider.js";
+import { useCaseEvents } from "../providers/CaseEventsProvider.js";
 
 export type QualificationState = "idle" | "running" | "complete" | "error";
 

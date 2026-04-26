@@ -6,7 +6,7 @@
  * the /api prefix used by the Veritas API router.
  */
 
-import type { components } from "./generated";
+import type { components } from "./generated.js";
 
 export type CaseResponse = components["schemas"]["CaseResponse"];
 export type SpecAuditResponse = components["schemas"]["SpecAuditResponse"];

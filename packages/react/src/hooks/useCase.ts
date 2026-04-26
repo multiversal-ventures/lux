@@ -1,5 +1,5 @@
 import type { CaseResponse } from "@fenero/lux-core";
-import { useOperatorQuery } from "./_useOperatorQuery";
+import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useCase(caseId: string) {
 	return useOperatorQuery<CaseResponse>(

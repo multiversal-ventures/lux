@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { AuditTrail } from "./AuditTrail";
+import { AuditTrail } from "./AuditTrail.js";
 
 describe("AuditTrail", () => {
 	it("renders spec with calculation steps", () => {

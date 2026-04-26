@@ -1,2 +1,2 @@
-export { BankingSummary } from "./BankingSummary";
-export type { BankingSummaryProps } from "./BankingSummary";
+export { BankingSummary } from "./BankingSummary.js";
+export type { BankingSummaryProps } from "./BankingSummary.js";

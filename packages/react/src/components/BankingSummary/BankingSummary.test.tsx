@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { BankingSummary } from "./BankingSummary";
+import { BankingSummary } from "./BankingSummary.js";
 
 describe("BankingSummary", () => {
 	it("renders totals and per-account streams", () => {

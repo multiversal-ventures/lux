@@ -1,2 +1,2 @@
-export { PipelineFeed } from "./PipelineFeed";
-export type { PipelineFeedProps } from "./PipelineFeed";
+export { PipelineFeed } from "./PipelineFeed.js";
+export type { PipelineFeedProps } from "./PipelineFeed.js";

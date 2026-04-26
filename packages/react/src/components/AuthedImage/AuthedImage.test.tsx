@@ -1,8 +1,8 @@
 import { render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { OperatorProvider } from "../../providers/OperatorProvider";
-import { AuthedImage } from "./AuthedImage";
+import { OperatorProvider } from "../../providers/OperatorProvider.js";
+import { AuthedImage } from "./AuthedImage.js";
 
 function makeWrapper() {
 	const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

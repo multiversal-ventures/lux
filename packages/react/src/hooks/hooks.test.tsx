@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createContext, useContext, type ReactNode } from "react";
 import { describe, it, expect, vi } from "vitest";
 import type { OperatorClient } from "@fenero/lux-core";
-import { OperatorProvider } from "../providers/OperatorProvider";
+import { OperatorProvider } from "../providers/OperatorProvider.js";
 import {
 	useCase,
 	useCases,
@@ -13,7 +13,7 @@ import {
 	useExtractions,
 	useBanking,
 	useAudit,
-} from "./index";
+} from "./index.js";
 
 const FakeClientContext = createContext<OperatorClient | null>(null);
 vi.mock("../providers/OperatorProvider", async (importOriginal) => {

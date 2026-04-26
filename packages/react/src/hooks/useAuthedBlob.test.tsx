@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { OperatorProvider } from "../providers/OperatorProvider";
-import { useAuthedBlob } from "./useAuthedBlob";
+import { OperatorProvider } from "../providers/OperatorProvider.js";
+import { useAuthedBlob } from "./useAuthedBlob.js";
 
 function makeWrapper(qc?: QueryClient) {
 	const q = qc ?? new QueryClient({ defaultOptions: { queries: { retry: false } } });

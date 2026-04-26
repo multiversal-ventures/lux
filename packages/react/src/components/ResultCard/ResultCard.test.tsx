@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { ResultCard } from "./ResultCard";
+import { ResultCard } from "./ResultCard.js";
 
 describe("ResultCard", () => {
 	it("renders QUALIFIES for positive total_monthly", () => {

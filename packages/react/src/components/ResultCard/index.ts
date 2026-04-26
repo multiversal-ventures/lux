@@ -1,2 +1,2 @@
-export { ResultCard } from "./ResultCard";
-export type { ResultCardProps } from "./ResultCard";
+export { ResultCard } from "./ResultCard.js";
+export type { ResultCardProps } from "./ResultCard.js";

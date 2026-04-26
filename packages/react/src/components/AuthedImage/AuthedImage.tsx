@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { useAuthedBlob } from "../../hooks/useAuthedBlob";
+import { useAuthedBlob } from "../../hooks/useAuthedBlob.js";
 import styles from "./AuthedImage.module.css";
 
 export interface AuthedImageProps {

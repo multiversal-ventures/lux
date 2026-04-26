@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { DocumentList } from "./DocumentList";
+import { DocumentList } from "./DocumentList.js";
 
 describe("DocumentList", () => {
 	it("renders a doc with doc_type badge and filename", () => {

@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { ExtractionTable } from "./ExtractionTable";
+import { ExtractionTable } from "./ExtractionTable.js";
 
 describe("ExtractionTable", () => {
 	it("renders field, value, confidence, and page chip", () => {

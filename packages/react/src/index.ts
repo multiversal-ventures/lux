@@ -26,4 +26,6 @@ export {
 	useBanking,
 	useAudit,
 	useAuthedBlob,
+	useQualification,
 } from "./hooks";
+export type { UseQualificationReturn, QualificationState } from "./hooks";

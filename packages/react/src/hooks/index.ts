@@ -7,3 +7,5 @@ export { useExtractions } from "./useExtractions";
 export { useBanking } from "./useBanking";
 export { useAudit } from "./useAudit";
 export { useAuthedBlob } from "./useAuthedBlob";
+export { useQualification } from "./useQualification";
+export type { UseQualificationReturn, QualificationState } from "./useQualification";

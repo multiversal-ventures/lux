@@ -27,8 +27,9 @@ export {
 	useAudit,
 	useAuthedBlob,
 	useQualification,
+	usePortalSession,
 } from "./hooks/index.js";
-export type { UseQualificationReturn, QualificationState } from "./hooks/index.js";
+export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn } from "./hooks/index.js";
 
 export { AuthedImage } from "./components/AuthedImage/index.js";
 export type { AuthedImageProps } from "./components/AuthedImage/index.js";
@@ -48,3 +49,7 @@ export { ExtractionTable } from "./components/ExtractionTable/index.js";
 export type { ExtractionTableProps } from "./components/ExtractionTable/index.js";
 export { BankingSummary } from "./components/BankingSummary/index.js";
 export type { BankingSummaryProps } from "./components/BankingSummary/index.js";
+export { Checklist } from "./components/Checklist/index.js";
+export type { ChecklistProps } from "./components/Checklist/index.js";
+export { ConsentBanner } from "./components/ConsentBanner/index.js";
+export type { ConsentBannerProps } from "./components/ConsentBanner/index.js";

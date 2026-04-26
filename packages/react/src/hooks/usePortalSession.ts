@@ -2,18 +2,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Intent, PortalClientError, PortalSession } from "@fenero/lux-core";
 import { createPortalClient } from "@fenero/lux-core";
 
-interface UsePortalSessionReturn {
+export interface UsePortalSessionReturn {
 	session: PortalSession | null;
 	loading: boolean;
 	error: PortalClientError | null;
 	submitIntent: (intents: Intent[]) => Promise<void>;
 }
 
-export function usePortalSession(): UsePortalSessionReturn {
+/**
+ * Manage the lifecycle of a portal session for a given token.
+ *
+ * @param token - Portal token string (from URL, storage, etc.), or null to
+ *   produce an immediate "no_token" error. The caller owns token sourcing.
+ */
+export function usePortalSession(token: string | null): UsePortalSessionReturn {
 	const [session, setSession] = useState<PortalSession | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<PortalClientError | null>(null);
-	const [token, setToken] = useState<string | null>(null);
 
 	const client = useMemo(() => createPortalClient(), []);
 
@@ -33,18 +38,13 @@ export function usePortalSession(): UsePortalSessionReturn {
 	);
 
 	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
-		const t = params.get("token");
-		setToken(t);
-
-		if (!t) {
+		if (!token) {
 			setError({ code: "no_token", message: "No portal token provided" });
 			setLoading(false);
 			return;
 		}
-
-		void loadSession(t);
-	}, [loadSession]);
+		void loadSession(token);
+	}, [token, loadSession]);
 
 	const submitIntent = useCallback(
 		async (intents: Intent[]) => {

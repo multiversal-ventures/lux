@@ -13,10 +13,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useOperatorClient } from "./OperatorProvider.js";
 import { invalidationMap, terminalEventTypes } from "./invalidation-map.js";
 
+interface StreamError {
+	message: string;
+}
+
 interface CaseEventsContextValue {
 	events: CaseEvent[];
 	connecting: boolean;
 	streamClosed: boolean;
+	/** Set when backfill fetch or SSE stream connection fails. */
+	streamError: StreamError | null;
 	caseId: string;
 	/** Imperative subscription that doesn't trigger re-render. */
 	subscribe: (listener: (event: CaseEvent) => void) => () => void;
@@ -41,6 +47,7 @@ export function CaseEventsProvider({
 	const [events, setEvents] = useState<CaseEvent[]>([]);
 	const [connecting, setConnecting] = useState(true);
 	const [streamClosed, setStreamClosed] = useState(false);
+	const [streamError, setStreamError] = useState<StreamError | null>(null);
 
 	const seenIds = useRef<Set<number>>(new Set());
 	const listeners = useRef<Set<(event: CaseEvent) => void>>(new Set());
@@ -91,20 +98,31 @@ export function CaseEventsProvider({
 		setEvents([]);
 		setConnecting(true);
 		setStreamClosed(false);
+		setStreamError(null);
 
 		async function run() {
 			// Backfill historical events.
 			const res = await client.getEvents(caseId);
 			if (cancelled) return;
-			if (res.data) {
-				for (const ev of res.data) ingestEvent.current(ev);
+			if (res.error) {
+				setStreamError({ message: res.error.message });
+				setConnecting(false);
+				return;
 			}
+			for (const ev of res.data) ingestEvent.current(ev);
 
 			// Open SSE stream.
-			const { abort } = client.streamEventsParsed(caseId, (ev) => {
-				if (cancelled) return;
-				ingestEvent.current(ev);
-			});
+			const { abort } = client.streamEventsParsed(
+				caseId,
+				(ev) => {
+					if (cancelled) return;
+					ingestEvent.current(ev);
+				},
+				(err) => {
+					if (cancelled) return;
+					setStreamError({ message: err.message });
+				},
+			);
 			abortRef.current = abort;
 			setConnecting(false);
 		}
@@ -130,10 +148,11 @@ export function CaseEventsProvider({
 			events,
 			connecting,
 			streamClosed,
+			streamError,
 			caseId,
 			subscribe: subscribe.current,
 		}),
-		[events, connecting, streamClosed, caseId],
+		[events, connecting, streamClosed, streamError, caseId],
 	);
 
 	return (
@@ -153,6 +172,8 @@ export interface UseCaseEventsResult {
 	events: CaseEvent[];
 	connecting: boolean;
 	streamClosed: boolean;
+	/** Set when backfill fetch or SSE stream connection fails. */
+	streamError: StreamError | null;
 	caseId: string;
 }
 
@@ -184,6 +205,7 @@ export function useCaseEvents(
 		events: filteredEvents,
 		connecting: ctx.connecting,
 		streamClosed: ctx.streamClosed,
+		streamError: ctx.streamError,
 		caseId: ctx.caseId,
 	};
 }

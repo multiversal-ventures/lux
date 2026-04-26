@@ -160,14 +160,21 @@ async function consumeSseEventStream(
 	headers: Record<string, string>,
 	signal: AbortSignal,
 	onEvent: (event: CaseEvent) => void,
+	onError?: (err: OperatorClientError) => void,
 ): Promise<void> {
 	let res: Response;
 	try {
 		res = await fetch(url, { headers, signal });
 	} catch {
+		if (!signal.aborted) {
+			onError?.({ status: 0, message: "Failed to connect to event stream" });
+		}
 		return;
 	}
-	if (!res.body) return;
+	if (!res.body) {
+		onError?.({ status: res.status, message: "No response body from event stream" });
+		return;
+	}
 
 	const reader = res.body.getReader();
 	const decoder = new TextDecoder();
@@ -192,7 +199,9 @@ async function consumeSseEventStream(
 			}
 		}
 	} catch {
-		/* aborted or network error — stop silently */
+		if (!signal.aborted) {
+			onError?.({ status: 0, message: "Event stream disconnected" });
+		}
 	}
 }
 
@@ -455,48 +464,6 @@ export function createOperatorClient(config: OperatorClientConfig) {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Stream case events via fetch (not EventSource — supports auth headers).
-	 * Returns a ReadableStreamDefaultReader that yields raw SSE lines.
-	 *
-	 * Usage:
-	 *   const reader = streamEvents(caseId);
-	 *   // parse lines: lines starting with "data: " contain JSON CaseEvent
-	 */
-	function streamEvents(
-		caseId: string,
-	): { reader: ReadableStreamDefaultReader<Uint8Array>; abort: () => void } {
-		const controller = new AbortController();
-		const promise = fetch(`${base}/api/cases/${caseId}/events/stream`, {
-			headers: authHeaders(),
-			signal: controller.signal,
-		});
-
-		const stream = new ReadableStream<Uint8Array>({
-			async start(ctrl) {
-				let res: Response;
-				try {
-					res = await promise;
-				} catch {
-					ctrl.close();
-					return;
-				}
-				if (!res.body) { ctrl.close(); return; }
-				const reader = res.body.getReader();
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) { ctrl.close(); break; }
-					ctrl.enqueue(value);
-				}
-			},
-		});
-
-		return {
-			reader: stream.getReader(),
-			abort: () => controller.abort(),
-		};
-	}
-
-	/**
 	 * Stream case events with SSE parsing handled internally.
 	 *
 	 * Mirrors `generateSpecStream` — callback-based, hides the SSE wire format.
@@ -510,10 +477,11 @@ export function createOperatorClient(config: OperatorClientConfig) {
 	function streamEventsParsed(
 		caseId: string,
 		onEvent: (event: CaseEvent) => void,
+		onError?: (err: OperatorClientError) => void,
 	): { abort: () => void } {
 		const controller = new AbortController();
 		const url = `${base}/api/cases/${caseId}/events/stream`;
-		void consumeSseEventStream(url, authHeaders(), controller.signal, onEvent);
+		void consumeSseEventStream(url, authHeaders(), controller.signal, onEvent, onError);
 		return { abort: () => controller.abort() };
 	}
 

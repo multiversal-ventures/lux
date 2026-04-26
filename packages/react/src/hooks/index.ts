@@ -9,3 +9,5 @@ export { useAudit } from "./useAudit.js";
 export { useAuthedBlob } from "./useAuthedBlob.js";
 export { useQualification } from "./useQualification.js";
 export type { UseQualificationReturn, QualificationState } from "./useQualification.js";
+export { usePortalSession } from "./usePortalSession.js";
+export type { UsePortalSessionReturn } from "./usePortalSession.js";

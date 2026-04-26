@@ -38,3 +38,5 @@ export { DocumentPageImage } from "./components/DocumentPageImage";
 export type { DocumentPageImageProps } from "./components/DocumentPageImage";
 export { PipelineFeed } from "./components/PipelineFeed";
 export type { PipelineFeedProps } from "./components/PipelineFeed";
+export { AuditTrail } from "./components/AuditTrail";
+export type { AuditTrailProps } from "./components/AuditTrail";

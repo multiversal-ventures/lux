@@ -1,5 +1,9 @@
 /// <reference types="vite/client" />
 
+declare const __LUX_CORE_PKG_VERSION__: string;
+declare const __LUX_REACT_PKG_VERSION__: string;
+declare const __LUX_SAMPLE_DASHBOARD_PKG_VERSION__: string;
+
 declare const __APP_VERSION__: string;
 declare const __GIT_HASH__: string;
 declare const __GIT_BRANCH__: string;

@@ -6,3 +6,4 @@ export { useDocuments } from "./useDocuments";
 export { useExtractions } from "./useExtractions";
 export { useBanking } from "./useBanking";
 export { useAudit } from "./useAudit";
+export { useAuthedBlob } from "./useAuthedBlob";

@@ -25,4 +25,5 @@ export {
 	useExtractions,
 	useBanking,
 	useAudit,
+	useAuthedBlob,
 } from "./hooks";

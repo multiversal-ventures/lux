@@ -36,6 +36,7 @@ export type {
 	OperatorClientConfig,
 	OperatorClientError,
 	CaseEvent,
+	CaseEventType,
 	CaseResponse,
 	SpecResponse,
 	Result,

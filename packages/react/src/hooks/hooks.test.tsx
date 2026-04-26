@@ -14,6 +14,7 @@ import {
 	useBanking,
 	useAudit,
 } from "./index.js";
+import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 const FakeClientContext = createContext<OperatorClient | null>(null);
 vi.mock("../providers/OperatorProvider", async (importOriginal) => {
@@ -140,5 +141,37 @@ describe("query hooks", () => {
 		await waitFor(() => expect(result.current.isError).toBe(true));
 		const err = result.current.error as { status: number; message: string };
 		expect(err.status).toBe(500);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// _useOperatorQuery
+// ---------------------------------------------------------------------------
+
+describe("useOperatorQuery", () => {
+	type FakeResult = import("@fenero/lux-core").Result<unknown[]>;
+
+	it("returns data when Result.data is set", async () => {
+		const fetcher = vi.fn().mockResolvedValue({ data: ["item-1"], error: null } as FakeResult);
+		const mockClient = makeClient({});
+		const { result } = renderHook(
+			() => useOperatorQuery(["q-ok"], (_c) => fetcher(_c) as Promise<FakeResult>),
+			{ wrapper: makeWrapper(mockClient) },
+		);
+		await waitFor(() => expect(result.current.isSuccess).toBe(true));
+		expect(result.current.data).toEqual(["item-1"]);
+	});
+
+	it("throws the OperatorClientError when Result.error is set", async () => {
+		const fetcher = vi.fn().mockResolvedValue({ data: null, error: { status: 503, message: "Service unavailable" } } as FakeResult);
+		const mockClient = makeClient({});
+		const { result } = renderHook(
+			() => useOperatorQuery(["q-err"], (_c) => fetcher(_c) as Promise<FakeResult>),
+			{ wrapper: makeWrapper(mockClient) },
+		);
+		await waitFor(() => expect(result.current.isError).toBe(true));
+		const err = result.current.error as { status: number; message: string };
+		expect(err.status).toBe(503);
+		expect(err.message).toBe("Service unavailable");
 	});
 });

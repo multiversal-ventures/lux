@@ -81,6 +81,9 @@ importers:
       '@fenero/lux-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fenero/lux-react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@fenero/lux-themes':
         specifier: workspace:*
         version: link:../../packages/themes

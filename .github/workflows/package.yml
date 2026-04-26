@@ -1,0 +1,43 @@
+name: Package
+
+on:
+  push:
+    branches:
+      - "release/*"
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - run: pnpm test
+
+      - name: Pack distributable packages
+        run: |
+          mkdir -p dist-pack
+          pnpm --filter @fenero/lux-core pack --pack-destination ../../dist-pack
+          pnpm --filter @fenero/lux-react pack --pack-destination ../../dist-pack
+          pnpm --filter @fenero/lux-themes pack --pack-destination ../../dist-pack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lux-packages-${{ github.sha }}
+          path: dist-pack/*.tgz
+          retention-days: 30

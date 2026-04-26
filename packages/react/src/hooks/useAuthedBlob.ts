@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { QueryCacheNotifyEvent } from "@tanstack/react-query";
 import { useBearerToken } from "../providers/OperatorProvider.js";
 
 /**
@@ -12,25 +13,32 @@ import { useBearerToken } from "../providers/OperatorProvider.js";
  *
  * Pass url=null to disable (no fetch, no data).
  */
+
+/** Module-level — no captured state, safe to pass as a stable reference. */
+function revokeEvictedBlobUrl(event: QueryCacheNotifyEvent): void {
+	if (event.type !== "removed") return;
+	const data = event.query.state.data as unknown;
+	const key = event.query.queryKey;
+	if (
+		Array.isArray(key) &&
+		key[0] === "blob" &&
+		typeof data === "string" &&
+		data.startsWith("blob:")
+	) {
+		URL.revokeObjectURL(data);
+	}
+}
+
 export function useAuthedBlob(url: string | null) {
 	const token = useBearerToken();
 	const qc = useQueryClient();
 
-	// Register a cache listener exactly once per QueryClient to revoke
-	// object URLs on eviction. We tag queries we "own" with queryMeta.
+	// Register a cache listener exactly once per QueryClient to revoke object URLs on eviction.
 	useEffect(() => {
-		const tagged = (qc as unknown as { __luxRevokeInstalled?: boolean });
+		const tagged = qc as unknown as { __luxRevokeInstalled?: boolean };
 		if (tagged.__luxRevokeInstalled) return;
 		tagged.__luxRevokeInstalled = true;
-
-		qc.getQueryCache().subscribe((event) => {
-			if (event.type !== "removed") return;
-			const data = event.query.state.data;
-			const key = event.query.queryKey;
-			if (Array.isArray(key) && key[0] === "blob" && typeof data === "string" && data.startsWith("blob:")) {
-				URL.revokeObjectURL(data);
-			}
-		});
+		qc.getQueryCache().subscribe(revokeEvictedBlobUrl);
 	}, [qc]);
 
 	return useQuery<string, { status: number; message: string }>({

@@ -46,30 +46,37 @@ export function CaseEventsProvider({
 	const listeners = useRef<Set<(event: CaseEvent) => void>>(new Set());
 	const abortRef = useRef<(() => void) | null>(null);
 
+	// Keep refs in sync with props so ingestEvent (stored in a useRef) always
+	// reads current values rather than capturing stale closures from mount.
+	const caseIdRef = useRef(caseId);
+	caseIdRef.current = caseId;
+	const autoStopRef = useRef(autoStop);
+	autoStopRef.current = autoStop;
+
 	const ingestEvent = useRef((event: CaseEvent) => {
 		if (seenIds.current.has(event.event_id)) return;
 		seenIds.current.add(event.event_id);
 		setEvents((prev) => [...prev, event]);
 
-		// Fire imperative subscribers.
+		// Fire imperative subscribers. Errors are isolated — never crash the event loop.
 		listeners.current.forEach((fn) => {
 			try {
 				fn(event);
-			} catch (err) {
-				// Never let a subscriber crash the event loop.
-				console.error("[CaseEventsProvider] subscriber threw", err);
+			} catch {
+				/* subscriber error is isolated */
 			}
 		});
 
-		// Centralized invalidation.
+		// Centralized invalidation — use ref so stale caseId doesn't invalidate
+		// the wrong case's query keys when caseId prop changes between renders.
 		const invalidator = invalidationMap[event.event_type];
 		if (invalidator) {
-			for (const key of invalidator(caseId)) {
+			for (const key of invalidator(caseIdRef.current)) {
 				queryClient.invalidateQueries({ queryKey: key });
 			}
 		}
 
-		if (autoStop && terminalEventTypes.has(event.event_type)) {
+		if (autoStopRef.current && terminalEventTypes.has(event.event_type)) {
 			abortRef.current?.();
 			abortRef.current = null;
 			setStreamClosed(true);

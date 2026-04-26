@@ -8,6 +8,7 @@
 
 import type { components } from "./generated.js";
 
+
 export type CaseResponse = components["schemas"]["CaseResponse"];
 export type SpecAuditResponse = components["schemas"]["SpecAuditResponse"];
 export type CalculationStepResponse = components["schemas"]["CalculationStepResponse"];
@@ -107,6 +108,94 @@ export type Result<T> =
 	| { data: T; error: null }
 	| { data: null; error: OperatorClientError };
 
+// ---------------------------------------------------------------------------
+// Module-level SSE helpers (no access to config closure)
+// ---------------------------------------------------------------------------
+
+type MetaType = { name: string; domain: string; version: string };
+
+interface SpecStreamState {
+	yaml: string;
+	meta: MetaType | null;
+}
+
+/** Process a single decoded SSE data value for the spec-generation stream. */
+function processSpecDataLine(
+	decoded: string,
+	state: SpecStreamState,
+	onChunk: (chunk: string) => void,
+): { error?: OperatorClientError } {
+	if (decoded.includes("\nMETA:")) {
+		const idx = decoded.indexOf("\nMETA:");
+		const text = decoded.slice(0, idx);
+		const metaJson = decoded.slice(idx + 6);
+		if (text) {
+			state.yaml += text;
+			onChunk(text);
+		}
+		try {
+			state.meta = JSON.parse(metaJson) as MetaType;
+		} catch {
+			/* skip malformed meta */
+		}
+	} else if (decoded.startsWith("META:")) {
+		try {
+			state.meta = JSON.parse(decoded.slice(5)) as MetaType;
+		} catch {
+			/* skip malformed meta */
+		}
+	} else if (decoded.startsWith('{"error"')) {
+		const err = JSON.parse(decoded) as { error: string };
+		return { error: { status: 502, message: err.error } };
+	} else {
+		state.yaml += decoded;
+		onChunk(decoded);
+	}
+	return {};
+}
+
+/** Stream SSE case events from an authenticated URL, calling onEvent per parsed event. */
+async function consumeSseEventStream(
+	url: string,
+	headers: Record<string, string>,
+	signal: AbortSignal,
+	onEvent: (event: CaseEvent) => void,
+): Promise<void> {
+	let res: Response;
+	try {
+		res = await fetch(url, { headers, signal });
+	} catch {
+		return;
+	}
+	if (!res.body) return;
+
+	const reader = res.body.getReader();
+	const decoder = new TextDecoder();
+	let buffer = "";
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			buffer += decoder.decode(value, { stream: true });
+			const lines = buffer.split("\n");
+			buffer = lines.pop() ?? "";
+			for (const line of lines) {
+				if (!line.startsWith("data: ")) continue;
+				const raw = line.slice(6).trim();
+				if (!raw || raw === "[DONE]") continue;
+				try {
+					const event = JSON.parse(raw) as CaseEvent;
+					onEvent(event);
+				} catch {
+					/* malformed line — skip */
+				}
+			}
+		}
+	} catch {
+		/* aborted or network error — stop silently */
+	}
+}
+
 export function createOperatorClient(config: OperatorClientConfig) {
 	const base = config.baseUrl ?? "";
 	const token = config.bearerToken;
@@ -146,53 +235,40 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				const msg = await res.text().catch(() => res.statusText);
 				return { data: null, error: { status: res.status, message: msg } };
 			}
+
 			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
 			let buffer = "";
-			let yaml = "";
-			type MetaType = { name: string; domain: string; version: string };
-			let meta: MetaType | null = null;
+			// Each chunk is JSON-encoded: "data: \"token text\""
+			// META chunk: "data: \"\\nMETA:{...}\""
+			const state: SpecStreamState = { yaml: "", meta: null };
 
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
 				buffer += decoder.decode(value, { stream: true });
-				const lines = buffer.split("\n\n");
-				buffer = lines.pop() ?? "";
-				for (const block of lines) {
+				const blocks = buffer.split("\n\n");
+				buffer = blocks.pop() ?? "";
+				for (const block of blocks) {
 					for (const line of block.split("\n")) {
 						if (!line.startsWith("data: ")) continue;
 						const raw = line.slice(6).trim();
 						if (!raw) continue;
-						// Each chunk is JSON-encoded: "data: \"token text\""
-						// META chunk: "data: \"\\nMETA:{...}\""
 						let decoded: string;
 						try {
 							decoded = JSON.parse(raw) as string;
 						} catch {
-							decoded = raw; // fallback: treat as plain text
+							decoded = raw;
 						}
-						if (decoded.includes("\nMETA:")) {
-							const idx = decoded.indexOf("\nMETA:");
-							const text = decoded.slice(0, idx);
-							const metaJson = decoded.slice(idx + 6);
-							if (text) { yaml += text; onChunk(text); }
-							try { meta = JSON.parse(metaJson) as MetaType; } catch { /* skip */ }
-						} else if (decoded.startsWith("META:")) {
-							try { meta = JSON.parse(decoded.slice(5)) as MetaType; } catch { /* skip */ }
-						} else if (decoded.startsWith('{"error"')) {
-							const err = JSON.parse(decoded) as { error: string };
-							return { data: null, error: { status: 502, message: err.error } };
-						} else {
-							yaml += decoded;
-							onChunk(decoded);
-						}
+						const { error } = processSpecDataLine(decoded, state, onChunk);
+						if (error) return { data: null, error };
 					}
 				}
 			}
 
-			if (!meta) return { data: null, error: { status: 500, message: "No metadata in stream" } };
-			return { data: { yaml, name: meta.name, domain: meta.domain, version: meta.version }, error: null };
+			if (!state.meta) return { data: null, error: { status: 500, message: "No metadata in stream" } };
+			const { name, domain, version } = state.meta;
+			return { data: { yaml: state.yaml, name, domain, version }, error: null };
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -205,7 +281,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				headers: authHeaders({ "Content-Type": "application/json" }),
 				body: JSON.stringify({ description }),
 			});
-			return request<GenerateSpecResult>(res);
+			return await request<GenerateSpecResult>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -214,7 +290,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 	async function getSpecDetail(specId: string): Promise<Result<SpecResponse & { yaml_content?: string | null }>> {
 		try {
 			const res = await fetch(`${base}/api/specs/${specId}`, { headers: authHeaders() });
-			return request<SpecResponse & { yaml_content?: string | null }>(res);
+			return await request<SpecResponse & { yaml_content?: string | null }>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -226,7 +302,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				? `${base}/api/specs?domain=${encodeURIComponent(domain)}`
 				: `${base}/api/specs`;
 			const res = await fetch(url, { headers: authHeaders() });
-			return request<SpecResponse[]>(res);
+			return await request<SpecResponse[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -245,7 +321,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				headers: authHeaders({ "Content-Type": "application/json" }),
 				body: JSON.stringify(payload),
 			});
-			return request<{ spec_id: string }>(res);
+			return await request<{ spec_id: string }>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -257,7 +333,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				method: "PUT",
 				headers: authHeaders(),
 			});
-			return request<unknown>(res);
+			return await request<unknown>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -270,7 +346,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				headers: authHeaders({ "Content-Type": "application/json" }),
 				body: JSON.stringify({ approved_by: "operator" }),
 			});
-			return request<unknown>(res);
+			return await request<unknown>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -286,7 +362,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				? `${base}/api/cases?spec_id=${encodeURIComponent(specId)}`
 				: `${base}/api/cases`;
 			const res = await fetch(url, { headers: authHeaders() });
-			return request<CaseResponse[]>(res);
+			return await request<CaseResponse[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -299,7 +375,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				headers: authHeaders({ "Content-Type": "application/json" }),
 				body: JSON.stringify(specId ? { spec_id: specId } : {}),
 			});
-			return request<CaseResponse>(res);
+			return await request<CaseResponse>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -326,7 +402,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 			const res = await fetch(`${base}/api/cases/${caseId}`, {
 				headers: authHeaders(),
 			});
-			return request<CaseResponse>(res);
+			return await request<CaseResponse>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -337,7 +413,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 			const res = await fetch(`${base}/api/cases/${caseId}/status`, {
 				headers: authHeaders(),
 			});
-			return request<{ state: string }>(res);
+			return await request<{ state: string }>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -350,7 +426,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				? `${base}/api/cases/${caseId}/qualify?spec_id=${encodeURIComponent(specId)}`
 				: `${base}/api/cases/${caseId}/qualify`;
 			const res = await fetch(url, { method: "POST", headers: authHeaders() });
-			return request<{ workflow_id: string }>(res);
+			return await request<{ workflow_id: string }>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -368,7 +444,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				headers: authHeaders(), // no Content-Type — browser sets multipart boundary
 				body: form,
 			});
-			return request<unknown>(res);
+			return await request<unknown>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -436,43 +512,8 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		onEvent: (event: CaseEvent) => void,
 	): { abort: () => void } {
 		const controller = new AbortController();
-
-		(async () => {
-			let res: Response;
-			try {
-				res = await fetch(`${base}/api/cases/${caseId}/events/stream`, {
-					headers: authHeaders(),
-					signal: controller.signal,
-				});
-			} catch {
-				return;
-			}
-			if (!res.body) return;
-
-			const reader = res.body.getReader();
-			const decoder = new TextDecoder();
-			let buffer = "";
-
-			try {
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split("\n");
-					buffer = lines.pop() ?? "";
-					for (const line of lines) {
-						if (!line.startsWith("data: ")) continue;
-						const raw = line.slice(6).trim();
-						if (!raw || raw === "[DONE]") continue;
-						try {
-							const event = JSON.parse(raw) as CaseEvent;
-							onEvent(event);
-						} catch { /* malformed line — skip */ }
-					}
-				}
-			} catch { /* aborted or network error — stop silently */ }
-		})();
-
+		const url = `${base}/api/cases/${caseId}/events/stream`;
+		void consumeSseEventStream(url, authHeaders(), controller.signal, onEvent);
 		return { abort: () => controller.abort() };
 	}
 
@@ -481,7 +522,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 			const res = await fetch(`${base}/api/cases/${caseId}/events`, {
 				headers: authHeaders(),
 			});
-			return request<CaseEvent[]>(res);
+			return await request<CaseEvent[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -496,7 +537,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 			const res = await fetch(`${base}/api/cases/${caseId}/audit`, {
 				headers: authHeaders(),
 			});
-			return request<SpecAuditResponse[]>(res);
+			return await request<SpecAuditResponse[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -513,7 +554,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 			const res = await fetch(`${base}/api/cases/${caseId}/documents`, {
 				headers: authHeaders(),
 			});
-			return request<DocumentResponse[]>(res);
+			return await request<DocumentResponse[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -528,7 +569,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				? `${base}/api/cases/${caseId}/extractions?doc_id=${encodeURIComponent(opts.docId)}`
 				: `${base}/api/cases/${caseId}/extractions`;
 			const res = await fetch(url, { headers: authHeaders() });
-			return request<ExtractionResponse[]>(res);
+			return await request<ExtractionResponse[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -541,7 +582,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 			const res = await fetch(`${base}/api/cases/${caseId}/banking`, {
 				headers: authHeaders(),
 			});
-			return request<BankingResponse>(res);
+			return await request<BankingResponse>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -556,7 +597,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 				`${base}/api/cases/${caseId}/documents/${docId}/transactions`,
 				{ headers: authHeaders() },
 			);
-			return request<TransactionsResponse>(res);
+			return await request<TransactionsResponse>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
 		}
@@ -592,7 +633,6 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		getCase,
 		getCaseStatus,
 		uploadFiles,
-		streamEvents,
 		getEvents,
 		getAudit,
 		listDocuments,

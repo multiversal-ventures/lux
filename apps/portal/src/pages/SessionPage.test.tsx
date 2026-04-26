@@ -6,7 +6,7 @@ import { SessionPage } from "./SessionPage";
 
 vi.mock("../hooks/usePortalSession");
 import { usePortalSession } from "../hooks/usePortalSession";
-import type { PortalError } from "../hooks/usePortalSession";
+import type { PortalClientError } from "@fenero/lux-core";
 const mockUsePortalSession = usePortalSession as Mock;
 
 const SESSION_FIXTURE = {
@@ -39,21 +39,21 @@ describe("SessionPage", () => {
 	});
 
 	it("redirects to /expired when error code is 'expired'", () => {
-		const error: PortalError = { code: "expired", message: "Expired" };
+		const error: PortalClientError = { code: "expired", message: "Expired" };
 		mockUsePortalSession.mockReturnValue({ session: null, loading: false, error, submitIntent: vi.fn() });
 		const { container } = renderPage();
 		expect(container.textContent).toBe("");
 	});
 
 	it("redirects to /expired when error code is 'no_token'", () => {
-		const error: PortalError = { code: "no_token", message: "No token" };
+		const error: PortalClientError = { code: "no_token", message: "No token" };
 		mockUsePortalSession.mockReturnValue({ session: null, loading: false, error, submitIntent: vi.fn() });
 		const { container } = renderPage();
 		expect(container.textContent).toBe("");
 	});
 
 	it("shows error message for server errors", () => {
-		const error: PortalError = { code: "server", message: "Server error 500" };
+		const error: PortalClientError = { code: "server", message: "Server error 500" };
 		mockUsePortalSession.mockReturnValue({ session: null, loading: false, error, submitIntent: vi.fn() });
 		renderPage();
 		expect(screen.getByText("Server error 500")).toBeDefined();

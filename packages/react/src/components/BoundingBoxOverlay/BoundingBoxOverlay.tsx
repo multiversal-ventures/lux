@@ -25,20 +25,16 @@ export interface BoundingBoxOverlayProps {
 
 export function BoundingBoxOverlay({
 	bboxes,
-	imageNaturalSize,
-	renderedSize,
+	// imageNaturalSize and renderedSize are in the prop surface for future
+	// pixel-accurate offset support; removing them would be a breaking API change.
+	imageNaturalSize: _imageNaturalSize,
+	renderedSize: _renderedSize,
 	onHighlightClick,
 	activeHighlightId,
 	className,
 }: BoundingBoxOverlayProps) {
 	// Normalized bbox values are 0-1 fractions. We emit percentage-based
 	// positions so the overlay scales with whatever the <img> is rendered at.
-	// imageNaturalSize and renderedSize exist for the rare case when a
-	// consumer wants pixel-accurate offsets (e.g. to cap label width); they
-	// are currently unused — kept in the prop surface because they are
-	// cheap to thread through and removing them is a breaking API change.
-	void imageNaturalSize;
-	void renderedSize;
 
 	return (
 		<div className={`${styles.root}${className ? ` ${className}` : ""}`}>

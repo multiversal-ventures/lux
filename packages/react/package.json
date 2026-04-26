@@ -16,15 +16,23 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
   "peerDependencies": {
+    "@fenero/lux-core": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@fenero/lux-core": "workspace:*",
+    "@fenero/lux-themes": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "happy-dom": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vitest": "^3.0.0"

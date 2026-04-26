@@ -5,3 +5,13 @@ export {
 	useBaseUrl,
 } from "./providers/OperatorProvider";
 export type { OperatorProviderProps } from "./providers/OperatorProvider";
+
+export {
+	CaseEventsProvider,
+	useCaseEvents,
+} from "./providers/CaseEventsProvider";
+export type {
+	CaseEventsProviderProps,
+	UseCaseEventsOptions,
+	UseCaseEventsResult,
+} from "./providers/CaseEventsProvider";

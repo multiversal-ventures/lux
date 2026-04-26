@@ -63,7 +63,7 @@ lux/
 │   ├── core/                  @fenero/lux-core — Veritas SDK primitives
 │   │   └── src/
 │   │       ├── client.ts        VeritasClient (Bearer + Veritas-Version)
-│   │       ├── auth.ts          AuthProvider abstraction (+ Firebase / portal-token helpers)
+│   │       ├── auth.ts          AuthProvider + PortalTokenAuthProvider
 │   │       ├── runtime.ts       initLux / getDefaultClient / getLuxToken
 │   │       ├── session.ts       VeritasSession (tenant, active case, SSE attach/detach)
 │   │       ├── events.ts        CaseSseTransport for `/api/v1/stream/:caseId`
@@ -73,7 +73,7 @@ lux/
 │   ├── react/                 @fenero/lux-react — React glue (no feature widgets yet)
 │   │   └── src/
 │   │       ├── SessionProvider.tsx
-│   │       ├── useSession.ts / useAuth.ts / useCase.ts / useEvents.ts
+│   │       ├── useSession.ts / useCase.ts / useEvents.ts
 │   │       └── index.ts
 │   │
 │   └── themes/                Design tokens and CSS
@@ -102,7 +102,7 @@ the SDK primitives below.
 | Package | What's in it | Who uses it |
 |---------|--------------|-------------|
 | `@fenero/lux-core` | `VeritasClient`, `initLux`, `VeritasSession`, `CaseSseTransport`, OpenAPI types | Everyone — React, Vue, vanilla JS, agents |
-| `@fenero/lux-react` | `SessionProvider`, `useSession` / `useAuth` / `useCase` / `useEvents` | React frontends |
+| `@fenero/lux-react` | `SessionProvider`, `useSession` / `useCase` / `useEvents` | React frontends |
 | `@fenero/lux-themes` | CSS custom properties, design tokens, global styles | Anyone who wants Fenero styling |
 
 ## How It Works
@@ -110,11 +110,18 @@ the SDK primitives below.
 ### 1. Bootstrap
 
 ```ts
-import { initLux, createFirebaseAuthProvider } from '@fenero/lux-core'
+import { initLux, type AuthProvider } from '@fenero/lux-core'
+
+const auth: AuthProvider = {
+  async getToken(forceRefresh) {
+    // Return an access token from your identity layer (OIDC, magic link, etc.)
+    return getAccessTokenFromYourApp(forceRefresh)
+  },
+}
 
 initLux({
   baseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
-  auth: createFirebaseAuthProvider(() => getFirebaseAuth()),
+  auth,
   hooks: {
     onApiError: (info) => myErrorTracker(info),
   },
@@ -132,14 +139,15 @@ import { SessionProvider, useSession } from '@fenero/lux-react'
 
 function App() {
   return (
-    <SessionProvider firebaseAuth={() => getFirebaseAuth()}>
+    <SessionProvider>
       <Header />
     </SessionProvider>
   )
 }
 ```
 
-`firebaseAuth` is optional — only required if your app calls `useAuth`.
+End-user sign-in UI and token refresh live in your app; the SDK only needs
+`AuthProvider` passed to `initLux`.
 
 ### 3. HTTP calls
 
@@ -207,8 +215,8 @@ still works).
 
 What it does **not** include (on purpose):
 
-- Auth (uses a hardcoded sample token; real apps plug in
-  `createFirebaseAuthProvider` or any `AuthProvider` implementation).
+- Auth (uses a hardcoded sample token; real apps plug in any
+  `AuthProvider` implementation).
 - Routing, Redux, React Query, Tailwind, Mixpanel.
 - Any product-specific endpoints.
 
@@ -265,7 +273,8 @@ Hand-typed in Lux until the spec includes them (non-exhaustive):
 
 Three app shells in `lux/apps/` prove the monorepo wiring works. Each app
 is a thin Vite+React shell importing `@fenero/lux-react` and
-`@fenero/lux-themes`. Firebase auth is adapted from `gunnr-app/ui`.
+`@fenero/lux-themes`. End-user authentication and identity providers are
+implemented in app code, not in the SDK.
 
 ### `packages/themes/` — Fenero design tokens
 
@@ -286,52 +295,25 @@ is a thin Vite+React shell importing `@fenero/lux-react` and
 
 `package.json` exports include `default.css`, `globals.css`, and `dark.css`.
 
-### `apps/portal/` — Borrower-facing app
+### `apps/portal/` — Borrower-facing reference shell
 
-**Stack:** Vite, React 19, Tailwind v4, react-router-dom 7
-**Port:** 3001
-**Auth:** Firebase magic-link (no tenant check — borrowers don't have tenants)
+**Stack:** Vite, React 19, Tailwind v4, react-router-dom 7  
+**Port:** 3001 (see `apps/portal/vite.config.ts` if overridden)  
+**Auth:** App-level — wire `initLux` + `PortalTokenAuthProvider` or your own
+`AuthProvider` in the shell; the SDK stays identity-agnostic.
 
-**Files:**
+### `apps/dashboard/` — Sample + integration guide
 
-- `vite.config.ts` — Vite + React + Tailwind plugins
-- `index.html` — entry HTML
-- `src/main.tsx` — Firebase init, `waitForAuth`, render
-- `src/App.tsx` — `BrowserRouter` with routes
-- `src/index.css` — Tailwind import + themes import
-- `src/lib/firebase.ts` — `waitForAuth`, `isAuthenticated`, `getCurrentUser`
-- `src/hooks/useAuth.ts` — `useAuth` hook (no `bypass_tenant_check`)
-- `src/pages/LoginPage.tsx` — Magic-link login (no background images, no Mixpanel)
-- `src/pages/HomePage.tsx` — Placeholder borrower dashboard
-- `src/components/ProtectedRoute.tsx` — Auth guard (no tenant check)
-- `src/components/PublicRoute.tsx` — Public route guard
-- `src/vite-env.d.ts` — Vite env types
-- `tsconfig.json`, `package.json`
-
-**Routes:**
-
-- `/` → `PublicRoute` → redirect to `/login` or `/app`
-- `/login` → `LoginPage`
-- `/app` → `ProtectedRoute` → `HomePage`
-
-### `apps/dashboard/` — LO dashboard
-
-**Stack:** Same as portal
-**Port:** 3002
-**Auth:** Firebase magic-link **with** tenant check (LOs must belong to a tenant)
-
-Same file structure as portal, with these differences:
-
-- `ProtectedRoute.tsx` includes tenant check via `/api/v1/auth/me`
-- `HomePage.tsx` shows LO-specific placeholder
-- `vite.config.ts` includes proxy for `/api` → `http://localhost:8000`
-
-**Routes:** Same as portal, plus `/complete-registration` placeholder.
+**Stack:** Vite, React 19  
+**Port:** 3332  
+**Role:** Interactive guide for `initLux`, `SessionProvider`, and
+`getDefaultClient` (see `apps/dashboard/src/`). Proxies `/api` to
+`http://localhost:8000` by default for optional health checks.
 
 ### `apps/storybook/` — Component showcase
 
-**Stack:** Storybook 8, Vite builder
-**Port:** 6006
+**Stack:** Storybook 8, Vite builder  
+**Port:** 6006  
 
 **Files:**
 
@@ -342,14 +324,13 @@ Same file structure as portal, with these differences:
 
 ### Shared decisions
 
-- **Auth is app-level, not SDK-level.** Each app has its own `useAuth`
-  and Firebase init. The SDK (`@fenero/lux-react`) does not know about
-  Firebase.
-- **No Redux, Mixpanel, or analytics.** Those are gunnr-app concerns. Apps
-  start minimal.
-- **Same Firebase env vars** as gunnr-app: `VITE_FIREBASE_API_KEY`,
-  `VITE_FIREBASE_AUTH_DOMAIN`, etc.
-- **Tailwind v4** with `@tailwindcss/vite` plugin.
+- **Auth is app-level, not SDK-level.** Tokens reach the HTTP client only via
+  `AuthProvider` on `initLux`. `@fenero/lux-react` has no identity-provider
+  hooks.
+- **No Redux, Mixpanel, or analytics in the SDK.** Consumer apps add those as
+  needed.
+- **Tailwind v4** with `@tailwindcss/vite` plugin where an app shell uses
+  Tailwind.
 - **Biome** for linting/formatting (inherited from workspace root).
 
 ### Out of scope

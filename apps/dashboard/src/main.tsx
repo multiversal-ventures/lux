@@ -6,17 +6,14 @@ import "./index.css";
 
 /**
  * Sample-only auth provider. Returns a hardcoded dev token so the sample
- * stays runnable with no backend / Firebase setup.
+ * stays runnable with no backend or identity provider.
  *
- * Real apps should plug in `createFirebaseAuthProvider` (or any other
- * `AuthProvider` implementation) here.
+ * Real apps should plug in any `AuthProvider` implementation (IdP tokens,
+ * portal token, etc.) here.
  */
 const sampleAuth = {
 	async getToken(): Promise<string | null> {
 		return "dev-sample-token";
-	},
-	async getUserId(): Promise<string | null> {
-		return "dev-sample-user";
 	},
 };
 

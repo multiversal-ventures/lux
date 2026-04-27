@@ -1,0 +1,51 @@
+.root {
+	border: 2px solid var(--color-border-strong, #cbd5e1);
+	border-radius: var(--radius-md, 12px);
+	padding: var(--space-5, 20px);
+	background: var(--color-surface, #fff);
+}
+
+.rootQualifies {
+	border-color: var(--color-success, #10b981);
+	background: color-mix(in srgb, var(--color-success, #10b981) 8%, transparent);
+}
+
+.rootDenies {
+	border-color: var(--color-error, #ef4444);
+	background: color-mix(in srgb, var(--color-error, #ef4444) 8%, transparent);
+}
+
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-3, 12px);
+}
+
+.outcome {
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.outcomePass { color: var(--color-success, #10b981); }
+.outcomeFail { color: var(--color-error, #ef4444); }
+
+.productLabel {
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	color: var(--color-text-muted, #64748b);
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-3, 12px);
+	font-size: 14px;
+}
+
+.label { color: var(--color-text-muted, #64748b); }
+.value {
+	font-weight: 600;
+	color: var(--color-text-primary, #0f172a);
+}

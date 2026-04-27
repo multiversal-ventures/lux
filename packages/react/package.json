@@ -1,6 +1,6 @@
 {
   "name": "@fenero/lux-react",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,21 +11,28 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.json && node scripts/copy-css.mjs",
     "dev": "tsc --watch --project tsconfig.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@fenero/lux-core": "workspace:*"
-  },
   "peerDependencies": {
+    "@fenero/lux-core": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@fenero/lux-core": "workspace:*",
+    "@fenero/lux-themes": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "happy-dom": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vitest": "^3.0.0"

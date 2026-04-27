@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	getAuth,
 	onAuthStateChanged,
@@ -16,19 +16,26 @@ export function useAuth(): UseAuthReturn {
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
 
-	useEffect(() => {
-		const auth = getAuth();
-		const unsubscribe = onAuthStateChanged(auth, (u) => {
-			setUser(u);
-			setLoading(false);
-		});
-		return () => unsubscribe();
+	const onAuthChange = useCallback((u: User | null) => {
+		setUser(u);
+		setLoading(false);
 	}, []);
 
-	const signOut = async () => {
+	useEffect(() => {
 		const auth = getAuth();
-		await firebaseSignOut(auth);
-	};
+		const unsubscribe = onAuthStateChanged(auth, onAuthChange);
+		return () => unsubscribe();
+	}, [onAuthChange]);
+
+	const signOut = useCallback(async () => {
+		try {
+			const auth = getAuth();
+			await firebaseSignOut(auth);
+		} catch {
+			// Firebase sign-out failures are non-recoverable from the UI perspective;
+			// the auth state listener will reflect truth regardless.
+		}
+	}, []);
 
 	return { user, loading, signOut };
 }

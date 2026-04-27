@@ -1,11 +1,15 @@
 {
   "name": "@fenero/lux-themes",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "exports": {
     "./default.css": "./default.css",
     "./globals.css": "./globals.css",
-    "./dark.css": "./dark.css"
+    "./dark.css": "./dark.css",
+    "./scrollbars.css": "./scrollbars.css",
+    "./base.css": "./base.css",
+    "./animations.css": "./animations.css",
+    "./components.css": "./components.css"
   },
   "scripts": {
     "build": "echo 'no build step for themes'",

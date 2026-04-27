@@ -27,10 +27,34 @@
   --color-action: #253C80;
   --color-action-hover: #1E3066;
 
+  /* Surfaces (lux-react components) */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Text */
+  --color-text-primary: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+
   /* Border Radius */
   --radius-sm: 8px;
   --radius: 12px;
   --radius-md: 16px;
   --radius-lg: 20px;
   --radius-xl: 24px;
+
+  /* Typography */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* Spacing (4px step) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
 }

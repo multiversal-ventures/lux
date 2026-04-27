@@ -45,11 +45,16 @@ lux/
 │   │       └── index.ts         Re-exports paths, components, operations
 │   │                            [planned: client.ts, session.ts, events.ts]
 │   │
-│   ├── react/                 React component library (in progress)
+│   ├── react/                 React SDK (v0.1.0)
 │   │   └── src/
-│   │       └── index.ts         Empty — components being built
-│   │                            [planned: SessionProvider, Checklist, FileUpload,
-│   │                             ConsentForm, StatusCard, registry]
+│   │       ├── providers/       OperatorProvider, CaseEventsProvider
+│   │       ├── hooks/           useCase, useCaseEvents, useQualification,
+│   │       │                    useDocuments, useExtractions, useBanking,
+│   │       │                    useAudit, useAuthedBlob, ...
+│   │       └── components/      PipelineFeed, AuditTrail, ResultCard,
+│   │                            DocumentList, ExtractionTable,
+│   │                            BankingSummary, DocumentPageImage,
+│   │                            BoundingBoxOverlay, AuthedImage
 │   │
 │   └── themes/                Design tokens and CSS custom properties
 │       ├── globals.css          Base reset and variables
@@ -77,10 +82,10 @@ lux/
 
 ## How It Works (Target Architecture)
 
-The SDK is under active development. The patterns below describe the
-intended API once `@fenero/lux-core` and `@fenero/lux-react` are built out.
-Current state: types are generated and exported from `@fenero/lux-core`;
-React components are not yet implemented.
+The SDK's v0.1.0 ships the React primitives described above. SessionProvider
+and the server-driven component registry remain on the roadmap — see
+`unsecured-demos/docs/superpowers/specs/2026-04-25-lux-react-v1-and-case-api-design.md`
+for the v0.1.0 design.
 
 ### 1. Session-first API (planned)
 

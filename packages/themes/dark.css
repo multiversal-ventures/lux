@@ -1,2 +1,11 @@
 [data-theme="dark"] {
+  /* Dark-mode overrides for surface/border/text tokens; color + radius +
+     spacing + typography inherit from default.css. */
+  --color-surface: #0f172a;
+  --color-surface-muted: #1e293b;
+  --color-border: #334155;
+  --color-border-strong: #475569;
+  --color-text-primary: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
 }

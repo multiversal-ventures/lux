@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	getAuth,
-	sendSignInLinkToEmail,
 	isSignInWithEmailLink,
+	sendSignInLinkToEmail,
 	signInWithEmailLink,
 } from "firebase/auth";
 import { useAuth } from "../hooks/useAuth";
@@ -44,6 +44,10 @@ async function sendMagicLink(email: string): Promise<void> {
 	localStorage.setItem("emailForSignIn", email);
 }
 
+// ---------------------------------------------------------------------------
+// Sub-views
+// ---------------------------------------------------------------------------
+
 interface EmailSentViewProps {
 	email: string;
 	onRetry: () => void;
@@ -59,6 +63,7 @@ function EmailSentView({ email, onRetry }: EmailSentViewProps) {
 						We sent a magic link to <strong>{email}</strong>. Click the link to sign in.
 					</p>
 					<button
+						type="button"
 						onClick={onRetry}
 						className="text-cta hover:text-cta-hover font-medium cursor-pointer"
 					>
@@ -70,60 +75,37 @@ function EmailSentView({ email, onRetry }: EmailSentViewProps) {
 	);
 }
 
-export function LoginPage() {
-	const { loading } = useAuth();
+interface SignInFormProps {
+	/** Pre-filled error from magic-link processing (e.g. expired link). */
+	initialError?: string;
+	onEmailSent: (email: string) => void;
+}
+
+function SignInForm({ initialError = "", onEmailSent }: SignInFormProps) {
 	const [email, setEmail] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const [emailSent, setEmailSent] = useState(false);
-	const [error, setError] = useState("");
-	const [processingMagicLink, setProcessingMagicLink] = useState(false);
+	const [error, setError] = useState(initialError);
 
-	useEffect(() => {
-		if (!loading) {
-			setProcessingMagicLink(true);
-			processMagicLink(
-				(msg) => setError(msg),
-				() => setProcessingMagicLink(false),
-			);
-		}
-	}, [loading]);
-
-	if (loading || processingMagicLink) {
-		return (
-			<div className="min-h-screen flex items-center justify-center bg-slate-50">
-				<div className="text-center">
-					<div className="spinner mx-auto mb-4" />
-					<p className="text-slate-600">
-						{processingMagicLink ? "Signing you in..." : "Loading..."}
-					</p>
-				</div>
-			</div>
-		);
-	}
-
-	if (emailSent) {
-		return <EmailSentView email={email} onRetry={() => setEmailSent(false)} />;
-	}
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setError("");
-
-		if (!email) {
-			setError("Please enter your email address");
-			return;
-		}
-
-		setIsLoading(true);
-		try {
-			await sendMagicLink(email);
-			setEmailSent(true);
-		} catch {
-			setError("Failed to send magic link. Please try again.");
-		} finally {
-			setIsLoading(false);
-		}
-	};
+	const handleSubmit = useCallback(
+		async (e: React.FormEvent) => {
+			e.preventDefault();
+			setError("");
+			if (!email) {
+				setError("Please enter your email address");
+				return;
+			}
+			setIsLoading(true);
+			try {
+				await sendMagicLink(email);
+				onEmailSent(email);
+			} catch {
+				setError("Failed to send magic link. Please try again.");
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[email, onEmailSent],
+	);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -139,7 +121,10 @@ export function LoginPage() {
 					)}
 
 					<form onSubmit={handleSubmit}>
-						<label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+						<label
+							htmlFor="email"
+							className="block text-sm font-medium text-slate-700 mb-2"
+						>
 							Email
 						</label>
 						<input
@@ -162,5 +147,55 @@ export function LoginPage() {
 				</div>
 			</div>
 		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+export function LoginPage() {
+	const { loading } = useAuth();
+	const [sentEmail, setSentEmail] = useState("");
+	const [processingMagicLink, setProcessingMagicLink] = useState(false);
+	const [magicLinkError, setMagicLinkError] = useState("");
+
+	useEffect(() => {
+		if (!loading) {
+			setProcessingMagicLink(true);
+			processMagicLink(
+				(msg) => setMagicLinkError(msg),
+				() => setProcessingMagicLink(false),
+			);
+		}
+	}, [loading]);
+
+	if (loading || processingMagicLink) {
+		return (
+			<div className="min-h-screen flex items-center justify-center bg-slate-50">
+				<div className="text-center">
+					<div className="spinner mx-auto mb-4" />
+					<p className="text-slate-600">
+						{processingMagicLink ? "Signing you in..." : "Loading..."}
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (sentEmail) {
+		return (
+			<EmailSentView
+				email={sentEmail}
+				onRetry={() => setSentEmail("")}
+			/>
+		);
+	}
+
+	return (
+		<SignInForm
+			initialError={magicLinkError}
+			onEmailSent={(em) => setSentEmail(em)}
+		/>
 	);
 }

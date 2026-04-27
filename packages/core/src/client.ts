@@ -1,7 +1,10 @@
-import type { components } from "./generated";
+import type { components } from "./generated.js";
 
 type PortalSession = components["schemas"]["PortalSessionResponse"];
 type Intent = components["schemas"]["Intent"];
+
+/** HTTP header name used to authenticate portal API requests. */
+const PORTAL_AUTH_HEADER = "X-Portal-Token" as const;
 
 export interface PortalClientConfig {
 	/** Base URL of the Veritas API (e.g. "" for same-origin, "https://api.example.com" for external). */
@@ -36,7 +39,7 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 	async function fetchSession(token: string): Promise<FetchSessionResult> {
 		try {
 			const res = await fetch(`${base}/api/portal/session`, {
-				headers: { "X-Portal-Token": token },
+				headers: { [PORTAL_AUTH_HEADER]: token },
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
@@ -61,7 +64,7 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					"X-Portal-Token": token,
+					[PORTAL_AUTH_HEADER]: token,
 				},
 				body: JSON.stringify({ intents }),
 			});

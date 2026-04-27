@@ -1,0 +1,35 @@
+.root {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.box {
+	position: absolute;
+	border: 2px solid var(--color-action, #253C80);
+	border-radius: var(--radius-sm, 4px);
+	background: color-mix(in srgb, var(--color-action, #253C80) 12%, transparent);
+	transition: background 120ms ease, border-color 120ms ease;
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+.boxActive {
+	border-color: var(--color-cta, #EC4D22);
+	background: color-mix(in srgb, var(--color-cta, #EC4D22) 18%, transparent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-cta, #EC4D22) 30%, transparent);
+}
+
+.label {
+	position: absolute;
+	top: -18px;
+	left: 0;
+	font-size: 11px;
+	font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+	color: var(--color-text-primary, #0f172a);
+	background: var(--color-surface, #fff);
+	padding: 1px 4px;
+	border-radius: 3px;
+	white-space: nowrap;
+	pointer-events: none;
+}

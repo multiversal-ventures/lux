@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { usePortalSession } from "./usePortalSession";
+import { usePortalSession } from "@fenero/lux-react";
 
 const SESSION_FIXTURE = {
 	session_id: "sess-1",
@@ -21,10 +21,6 @@ const SESSION_FIXTURE = {
 
 beforeEach(() => {
 	vi.stubGlobal("fetch", vi.fn());
-	Object.defineProperty(window, "location", {
-		value: { search: "", href: "http://localhost/" },
-		writable: true,
-	});
 });
 
 afterEach(() => {
@@ -32,77 +28,57 @@ afterEach(() => {
 });
 
 describe("usePortalSession", () => {
-	it("sets error when no token is present in URL", async () => {
-		const { result } = renderHook(() => usePortalSession());
+	it("sets error when null token is passed", async () => {
+		const { result } = renderHook(() => usePortalSession(null));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 		expect(result.current.error?.code).toBe("no_token");
 		expect(result.current.session).toBeNull();
 	});
 
 	it("fetches session successfully when token is provided", async () => {
-		Object.defineProperty(window, "location", {
-			value: { search: "?token=abc123", href: "http://localhost/?token=abc123" },
-			writable: true,
-		});
 		vi.mocked(fetch).mockResolvedValue({
 			ok: true,
 			json: async () => SESSION_FIXTURE,
 		} as Response);
 
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 		expect(result.current.session).toEqual(SESSION_FIXTURE);
 		expect(result.current.error).toBeNull();
 	});
 
 	it("sets error code 'expired' on 401 response", async () => {
-		Object.defineProperty(window, "location", {
-			value: { search: "?token=expired", href: "http://localhost/?token=expired" },
-			writable: true,
-		});
 		vi.mocked(fetch).mockResolvedValue({
 			ok: false,
 			status: 401,
 		} as Response);
 
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession("expired-tok"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 		expect(result.current.error?.code).toBe("expired");
 	});
 
 	it("sets error code 'server' on non-401 HTTP error", async () => {
-		Object.defineProperty(window, "location", {
-			value: { search: "?token=abc123", href: "http://localhost/?token=abc123" },
-			writable: true,
-		});
 		vi.mocked(fetch).mockResolvedValue({
 			ok: false,
 			status: 500,
 		} as Response);
 
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 		expect(result.current.error?.code).toBe("server");
 		expect(result.current.error?.message).toContain("500");
 	});
 
 	it("sets error code 'network' on network failure", async () => {
-		Object.defineProperty(window, "location", {
-			value: { search: "?token=abc123", href: "http://localhost/?token=abc123" },
-			writable: true,
-		});
 		vi.mocked(fetch).mockRejectedValue(new Error("network down"));
 
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 		expect(result.current.error?.code).toBe("network");
 	});
 
 	it("submitIntent updates session on success", async () => {
-		Object.defineProperty(window, "location", {
-			value: { search: "?token=abc123", href: "http://localhost/?token=abc123" },
-			writable: true,
-		});
 		const updatedSession = { ...SESSION_FIXTURE, case_state: "docs_submitted" };
 
 		vi.mocked(fetch)
@@ -112,7 +88,7 @@ describe("usePortalSession", () => {
 				json: async () => ({ session: updatedSession }),
 			} as Response);
 
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
 		await act(() =>
@@ -124,16 +100,11 @@ describe("usePortalSession", () => {
 	});
 
 	it("submitIntent sets server error on non-ok HTTP response", async () => {
-		Object.defineProperty(window, "location", {
-			value: { search: "?token=abc123", href: "http://localhost/?token=abc123" },
-			writable: true,
-		});
-
 		vi.mocked(fetch)
 			.mockResolvedValueOnce({ ok: true, json: async () => SESSION_FIXTURE } as Response)
 			.mockResolvedValueOnce({ ok: false, status: 409 } as Response);
 
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
 		await act(() => result.current.submitIntent([{ type: "consent", params: {} }]));
@@ -142,7 +113,7 @@ describe("usePortalSession", () => {
 	});
 
 	it("submitIntent sets not_ready error when session is null", async () => {
-		const { result } = renderHook(() => usePortalSession());
+		const { result } = renderHook(() => usePortalSession(null));
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
 		await act(() => result.current.submitIntent([{ type: "consent", params: {} }]));

@@ -68,3 +68,31 @@ export type {
 } from "./events.js";
 
 export { VeritasSession } from "./session.js";
+
+export { createOperatorClient } from "./operator-client.js";
+export type {
+	OperatorClient,
+	OperatorClientConfig,
+	OperatorClientError,
+	CaseEvent,
+	CaseEventType,
+	CaseResponse,
+	SpecResponse,
+	Result,
+	SpecAuditResponse,
+	CalculationStepResponse,
+	GenerateSpecResult,
+	DocumentResponse,
+	ExtractionResponse,
+	ExtractionSourceResponse,
+	BankingResponse,
+	BankingAccount,
+	BankingBorrowerRollup,
+	BboxResponse,
+	TransactionsResponse,
+	TransactionRegion,
+	TransactionRow,
+} from "./operator-client.js";
+
+export { normalizeQualifyResult } from "./normalize.js";
+export type { QualifyResult, NormalizedQualifyResult } from "./normalize.js";

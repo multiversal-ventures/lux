@@ -1,18 +1,22 @@
-name: Package
+name: Package & Release
 
 on:
   push:
     branches:
       - "release/*"
+    tags:
+      - "v*"
 
 concurrency:
   group: package-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  package:
-    runs-on: ubuntu-latest
+permissions:
+  contents: write
 
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -24,10 +28,28 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
 
+  package:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      - run: pnpm test
+      - name: Resolve workspace dependencies for publishing
+        run: node scripts/resolve-workspace-deps.mjs
 
       - name: Pack distributable packages
         run: |
@@ -35,9 +57,27 @@ jobs:
           pnpm --filter @fenero/lux-core pack --pack-destination ../../dist-pack
           pnpm --filter @fenero/lux-react pack --pack-destination ../../dist-pack
           pnpm --filter @fenero/lux-themes pack --pack-destination ../../dist-pack
+          echo "## Packed artifacts" >> "$GITHUB_STEP_SUMMARY"
+          ls -lh dist-pack/*.tgz | awk '{print "- `" $NF "` — " $5}' >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
           name: lux-packages-${{ github.sha }}
           path: dist-pack/*.tgz
-          retention-days: 30
+          retention-days: 90
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: lux-packages-${{ github.sha }}
+          path: dist-pack
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist-pack/*.tgz

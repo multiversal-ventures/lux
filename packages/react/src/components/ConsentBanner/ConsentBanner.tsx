@@ -45,9 +45,9 @@ export function ConsentBanner({
 			<button
 				type="button"
 				onClick={handleGrant}
-				className="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg text-sm cursor-pointer"
+				className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-950 underline underline-offset-4 decoration-amber-400 hover:decoration-amber-700 cursor-pointer transition-colors"
 			>
-				I agree &mdash; continue
+				I agree &mdash; continue &rarr;
 			</button>
 		</div>
 	);

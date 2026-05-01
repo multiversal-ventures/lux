@@ -33,6 +33,12 @@ export type ConsentState = components["schemas"]["ConsentState"];
 /** A typed intent to submit to Veritas */
 export type Intent = components["schemas"]["Intent"];
 
+/** Request body for POST /cases/{id}/portal-tokens */
+export type CreatePortalTokenRequest = components["schemas"]["CreatePortalTokenRequest"];
+
+/** Response from POST /cases/{id}/portal-tokens */
+export type CreatePortalTokenResponse = components["schemas"]["CreatePortalTokenResponse"];
+
 export * from "./auth.js";
 
 export {

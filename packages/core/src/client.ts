@@ -223,7 +223,7 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 
 	async function fetchSession(token: string): Promise<FetchSessionResult> {
 		try {
-			const res = await fetch(`${base}/api/portal/session`, {
+			const res = await fetch(`${base}/api/portal/session?token=${encodeURIComponent(token)}`, {
 				headers: { [PORTAL_AUTH_HEADER]: token },
 			});
 			if (!res.ok) {

@@ -255,11 +255,29 @@ from `generated.ts`.
 
 Hand-typed in Lux until the spec includes them (non-exhaustive):
 
-- GCS direct upload (`prepare-upload`, signed URL upload, `start`)
 - RFC 6902 `PATCH` case mutation
 - Bank statement review / AI review (`/ai/review/...`)
 - Income advisor status under `/api/...` (non-`/api/v1`)
 - AUE (`apps/dashboard/src/hooks/useAueApi.ts`) — separate base URL; stays app-level until documented.
+
+### SDK-provided upload + portal methods
+
+`@fenero/lux-core` now includes:
+
+- **Upload orchestration** (`operator-uploads.ts`): `uploadToSignedUrl`,
+  `uploadFilesDirectToGCS`, `addFilesToCase`, `uploadFilesToCase` — pure
+  async helpers that accept a `VeritasClient` (or anything with
+  `requestJson`/`uploadMultipart`). The `OperatorClient` also exposes
+  `prepareUpload`, `startCase`, `prepareAddFiles`, `startAddFiles` as
+  low-level Result-returning methods.
+- **Portal token issuance** (`operator-cases.ts`): `createPortalToken(caseId, body)`
+  — calls `POST /api/cases/{id}/portal-tokens`. Body fields (`identity_id`,
+  `role`, `ttl_hours`) are all optional on the SDK side; the Veritas schema
+  applies defaults.
+
+Consumer apps (e.g. Gunnr) that use Gunnr BFF routes (`/api/v1/case/...`)
+can call `getDefaultClient().requestJson(...)` with those paths directly.
+The SDK orchestration helpers use `/api/cases/...` (Veritas-native) by default.
 
 ### API contract & versioning
 
@@ -404,6 +422,23 @@ and TypeScript types. No standalone markdown files.
 - Keep commit messages short and descriptive.
 - Commit regularly at natural boundaries.
 - Do not add any attributes to anyone in commit messages.
+
+## Version Compatibility
+
+| `@fenero/lux-core` | Veritas API | Notes |
+|---------------------|-------------|-------|
+| 0.1.x | Current | Banking, transactions, portal tokens, upload orchestration, events/SSE, spec management |
+
+When upgrading Veritas:
+
+1. Export the new OpenAPI spec: `veritas api export --openapi -o ../lux/openapi.json`
+2. Regenerate types: `pnpm codegen` (in Lux repo root)
+3. Run `pnpm typecheck` in `packages/core` — fix any breaking changes
+4. Bump `@fenero/lux-core` version, rebuild, and update consumers
+
+When Lux adds new SDK methods for endpoints that don't exist in Veritas yet,
+document the requirement in the method's JSDoc. Consumers calling those methods
+against a Veritas instance that lacks the endpoint will receive a 404 error.
 
 ## Related Repos
 

@@ -98,7 +98,25 @@ export type {
 	TransactionsResponse,
 	TransactionRegion,
 	TransactionRow,
+	PrepareUploadFile,
+	UploadUrlInfo,
+	PrepareUploadResponse,
+	StartCaseRequest,
+	StartCaseResponse,
+	StartAddFilesFileInfo,
+	StartAddFilesResponse,
+	DirectUploadPhase,
+	DirectUploadProgress,
+	DirectUploadOptions,
+	AddFilesProgress,
 } from "./operator-client.js";
+
+export {
+	uploadToSignedUrl,
+	uploadFilesDirectToGCS,
+	addFilesToCase,
+	uploadFilesToCase,
+} from "./operator-uploads.js";
 
 export { normalizeQualifyResult } from "./normalize.js";
 export type { QualifyResult, NormalizedQualifyResult } from "./normalize.js";

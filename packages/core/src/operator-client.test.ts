@@ -208,6 +208,12 @@ describe("createOperatorClient — event streaming", () => {
 		expect(res.data?.[0].event_type).toBe("intake.file.processed");
 	});
 
+	it("getEvents: appends event_type filter when provided", async () => {
+		vi.mocked(fetch).mockResolvedValue(ok([]));
+		await client.getEvents("c-1", { eventType: "qualify.completed" });
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/events?event_type=qualify.completed");
+	});
+
 	it("streamEventsParsed: calls onEvent for each SSE data line", async () => {
 		const ssePayload = `data: ${JSON.stringify({ event_id: 1, event_type: "qualify.completed", event_data: {}, created_at: null })}\n\ndata: ${JSON.stringify({ event_id: 2, event_type: "case.system.completed", event_data: null, created_at: null })}\n\n`;
 		const encoder = new TextEncoder();

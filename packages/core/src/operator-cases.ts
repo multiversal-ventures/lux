@@ -185,9 +185,16 @@ export function createCaseMethods(
 		return { abort: () => controller.abort() };
 	}
 
-	async function getEvents(caseId: string): Promise<Result<CaseEvent[]>> {
+	async function getEvents(
+		caseId: string,
+		opts?: { eventType?: string },
+	): Promise<Result<CaseEvent[]>> {
 		try {
-			const res = await fetch(`${base}/api/cases/${caseId}/events`, { headers: authHeaders() });
+			let url = `${base}/api/cases/${caseId}/events`;
+			if (opts?.eventType) {
+				url += `?event_type=${encodeURIComponent(opts.eventType)}`;
+			}
+			const res = await fetch(url, { headers: authHeaders() });
 			return await request<CaseEvent[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };

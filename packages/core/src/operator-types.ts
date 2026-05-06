@@ -93,6 +93,85 @@ export interface GenerateSpecResult {
 	version: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload orchestration types (prepare → signed-URL PUT → start)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PrepareUploadFile {
+	filename: string;
+	size: number;
+}
+
+export interface UploadUrlInfo {
+	file_id: string;
+	filename: string;
+	gcs_path: string;
+	upload_url: string;
+	content_type: string;
+}
+
+export interface PrepareUploadResponse {
+	case_id: string;
+	upload_urls: UploadUrlInfo[];
+	expires_in_seconds: number;
+}
+
+export interface StartCaseRequest {
+	files: UploadUrlInfo[];
+	include_chunks?: boolean;
+	include_page_images?: boolean;
+	max_concurrency?: number;
+	loan_product_ids?: string[];
+	calculation_track?: string;
+}
+
+export interface StartCaseResponse {
+	case_id: string;
+	status: string;
+	workflow_id?: string;
+}
+
+export interface StartAddFilesFileInfo {
+	file_id: string;
+	gcs_path: string;
+	filename?: string;
+}
+
+export interface StartAddFilesResponse {
+	case_id: string;
+	status: string;
+	workflow_id: string;
+}
+
+export type DirectUploadPhase = "preparing" | "uploading" | "starting";
+
+export interface DirectUploadProgress {
+	phase: DirectUploadPhase;
+	totalFiles: number;
+	completedFiles: number;
+	currentFileProgress: number;
+	currentFileName?: string;
+}
+
+export interface DirectUploadOptions {
+	onProgress?: (progress: DirectUploadProgress) => void;
+	loanProductIds?: string[];
+	calculationTrack?: string;
+}
+
+export interface AddFilesProgress {
+	phase: "idle" | "preparing" | "uploading" | "starting" | "complete" | "error";
+	totalFiles: number;
+	completedFiles: number;
+	currentFileProgress: number;
+	currentFileName?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Portal token issuance — uses OpenAPI generated schemas from index.ts.
+// operator-cases.ts imports these types from generated.ts directly.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface OperatorClientConfig {
 	/** Base URL of the Veritas API. Empty string = same origin (Vite proxy). */
 	baseUrl?: string;

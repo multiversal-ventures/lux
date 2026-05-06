@@ -9,6 +9,10 @@ import type {
 	SpecAuditResponse,
 	TransactionsResponse,
 } from "./operator-types.js";
+import type { components } from "./generated.js";
+
+type CreatePortalTokenRequest = components["schemas"]["CreatePortalTokenRequest"];
+type CreatePortalTokenResponse = components["schemas"]["CreatePortalTokenResponse"];
 
 /** Stream SSE case events from an authenticated URL, calling onEvent per parsed event. */
 async function consumeSseEventStream(
@@ -249,6 +253,23 @@ export function createCaseMethods(
 		return `${base}/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`;
 	}
 
+	/** Issue a portal token for a borrower on a case. Caller supplies identity_id. */
+	async function createPortalToken(
+		caseId: string,
+		body: Partial<CreatePortalTokenRequest>,
+	): Promise<Result<CreatePortalTokenResponse>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}/portal-tokens`, {
+				method: "POST",
+				headers: authHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify(body),
+			});
+			return await request<CreatePortalTokenResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	return {
 		listCases,
 		createCase,
@@ -265,5 +286,6 @@ export function createCaseMethods(
 		getBanking,
 		listTransactions,
 		pagePngUrl,
+		createPortalToken,
 	};
 }

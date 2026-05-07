@@ -6,6 +6,24 @@ import type { components } from "./generated.js";
 // (Bearer tokens, optional Veritas-Version header, error hooks).
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface MeResponse {
+	user_id: string;
+	email: string | null;
+	display_name: string | null;
+	caller_type: string;
+	tenant_id: string | null;
+	has_tenant: boolean;
+	role: string | null;
+	permissions: string[];
+}
+
+export interface CreateTenantResponse {
+	tenant_id: string;
+	tenant_name: string;
+	role: string;
+	has_tenant: boolean;
+}
+
 export type ClientHooks = {
 	onApiError?: (info: {
 		error_type: string;
@@ -158,6 +176,17 @@ export class VeritasClient {
 			);
 		}
 		return (await response.json()) as T;
+	}
+
+	async getMe(): Promise<MeResponse> {
+		return this.requestJson<MeResponse>("/api/auth/me");
+	}
+
+	async createTenant(name: string): Promise<CreateTenantResponse> {
+		return this.requestJson<CreateTenantResponse>("/api/auth/create-tenant", {
+			method: "POST",
+			body: JSON.stringify({ name }),
+		});
 	}
 
 	/**

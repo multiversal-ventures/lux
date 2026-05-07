@@ -313,27 +313,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal-tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Portal Token
-         * @description Issue a time-limited portal token bound to an entity on a case.
-         *     Tenant/operator only.
-         */
-        post: operations["create_portal_token_api_cases__case_id__portal_tokens_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/cases/{case_id}/files": {
         parameters: {
             query?: never;
@@ -846,6 +825,70 @@ export interface paths {
         get: operations["health_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/scenarios/{scenario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario Detail
+         * @description Get detailed information about a specific scenario.
+         */
+        get: operations["get_scenario_detail_api_cases__case_id__scenarios__scenario_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Scenario
+         * @description Delete a scenario and all its refinements.
+         */
+        delete: operations["delete_scenario_api_cases__case_id__scenarios__scenario_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/scenarios/{scenario_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Scenario
+         * @description Start calculation for a scenario.
+         */
+        post: operations["start_scenario_api_cases__case_id__scenarios__scenario_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Portal Token
+         * @description Issue a portal token for an entity on a case.
+         */
+        post: operations["create_portal_token_api_cases__case_id__portal_tokens_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1460,36 +1503,6 @@ export interface components {
              */
             upload_config: components["schemas"]["UploadConfig"];
         };
-        /** CreatePortalTokenRequest */
-        CreatePortalTokenRequest: {
-            /**
-             * Identity Id
-             * Format: uuid
-             */
-            identity_id: string;
-            /**
-             * Role
-             * @default borrower
-             */
-            role: string;
-            /**
-             * Ttl Hours
-             * @default 48
-             */
-            ttl_hours: number;
-        };
-        /** CreatePortalTokenResponse */
-        CreatePortalTokenResponse: {
-            /** Token */
-            token: string;
-            /** Portal Url */
-            portal_url: string;
-            /**
-             * Expires At
-             * Format: date-time
-             */
-            expires_at: string;
-        };
         /** ProductResponse */
         ProductResponse: {
             /** Product Id */
@@ -1762,6 +1775,89 @@ export interface components {
              */
             verified: boolean;
         };
+        /** ScenarioDetailResponse */
+        ScenarioDetailResponse: {
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /** Version */
+            version: number;
+            /** Name */
+            name: string;
+            /** Is Latest */
+            is_latest: boolean;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: string;
+            /**
+             * Approach
+             * @default qualified_mortgage
+             */
+            approach: string;
+            /** Borrower Ids */
+            borrower_ids: string[];
+            /** Loan Product Ids */
+            loan_product_ids: string[];
+            /**
+             * Document Ids
+             * @default []
+             */
+            document_ids: string[];
+            /** Y1 Override */
+            y1_override?: string | null;
+            /** Y2 Override */
+            y2_override?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Rules Version */
+            rules_version: string;
+            /** Total Monthly Income */
+            total_monthly_income?: number | null;
+            /** Qualifying Income */
+            qualifying_income?: number | null;
+            /** Trend Status */
+            trend_status?: string | null;
+            /** Verifications */
+            verifications?: Record<string, never> | null;
+            /** Latest Refinement Id */
+            latest_refinement_id?: string | null;
+            /**
+             * Refinement Count
+             * @default 0
+             */
+            refinement_count: number;
+        };
+        /** StartScenarioResponse */
+        StartScenarioResponse: {
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Message */
+            message: string;
+        };
+        /** DeleteScenarioResponse */
+        DeleteScenarioResponse: {
+            /** Status */
+            status: string;
+        };
+        /** CreatePortalTokenRequest */
+        CreatePortalTokenRequest: {
+            /** Identity Id */
+            identity_id: string;
+        };
+        /** CreatePortalTokenResponse */
+        CreatePortalTokenResponse: {
+            /** Token */
+            token: string;
+            /** Portal Url */
+            portal_url: string;
+            /** Expires At */
+            expires_at: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1907,41 +2003,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FunctionCallResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_portal_token_api_cases__case_id__portal_tokens_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePortalTokenRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreatePortalTokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3202,6 +3263,137 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    get_scenario_detail_api_cases__case_id__scenarios__scenario_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_scenario_api_cases__case_id__scenarios__scenario_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_scenario_api_cases__case_id__scenarios__scenario_id__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_portal_token_api_cases__case_id__portal_tokens_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortalTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatePortalTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

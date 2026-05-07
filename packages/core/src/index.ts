@@ -51,6 +51,8 @@ export {
 export type {
 	VeritasClientConfig,
 	ClientHooks,
+	MeResponse,
+	CreateTenantResponse,
 	PortalClientConfig,
 	PortalClientError,
 	FetchSessionResult,

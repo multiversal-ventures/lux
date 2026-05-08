@@ -258,6 +258,15 @@ export class VeritasClient {
 		return this.requestJson<VeritasCaseDocument[]>(`/api/cases/${caseId}/documents`);
 	}
 
+	async getCaseExtractions(caseId: string, docId?: string): Promise<components["schemas"]["ExtractionResponse"][]> {
+		const qs = docId ? `?doc_id=${encodeURIComponent(docId)}` : '';
+		return this.requestJson<components["schemas"]["ExtractionResponse"][]>(`/api/cases/${caseId}/extractions${qs}`);
+	}
+
+	async reprocessCase(caseId: string): Promise<{ case_id: string; workflow_id: string; page_count: number; status: string }> {
+		return this.requestJson(`/api/cases/${caseId}/reprocess`, { method: "POST" });
+	}
+
 	pagePngPath(caseId: string, fileId: string, pageNumber: number): string {
 		return this.resolvePath(`/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`);
 	}

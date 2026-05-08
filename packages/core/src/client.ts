@@ -42,6 +42,21 @@ export interface VeritasCaseDocument {
 	tax_year: number | null;
 }
 
+/** Entity group returned by GET /api/cases/{case_id}/entities */
+export interface VeritasEntityGroup {
+	entity_group_id: string;
+	case_id: string;
+	entity_type: string;
+	identifier_type: string;
+	identifier_value: string;
+	label: string;
+	resolution_method: string;
+	status: string;
+	doc_ids: string[];
+	parent_entity_group_id: string | null;
+	borrower_identity_id: string | null;
+}
+
 export interface VeritasCaseEvent {
 	event_id: number;
 	event_type: string;
@@ -265,6 +280,10 @@ export class VeritasClient {
 
 	async getCaseDocuments(caseId: string): Promise<VeritasCaseDocument[]> {
 		return this.requestJson<VeritasCaseDocument[]>(`/api/cases/${caseId}/documents`);
+	}
+
+	async getCaseEntities(caseId: string): Promise<VeritasEntityGroup[]> {
+		return this.requestJson<VeritasEntityGroup[]>(`/api/cases/${caseId}/entities`);
 	}
 
 	async getCaseExtractions(caseId: string, docId?: string): Promise<components["schemas"]["ExtractionResponse"][]> {

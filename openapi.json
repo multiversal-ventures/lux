@@ -34,6 +34,53 @@
         ]
       }
     },
+    "/api/auth/create-tenant": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create Tenant",
+        "description": "Create a new tenant and enroll the authenticated user as owner.\n\nCaller must be an authenticated Firebase user with no existing tenant.\nCreates the tenant and links the caller's UID as the first member (role=owner).",
+        "operationId": "create_tenant_api_auth_create_tenant_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTenantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTenantResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/auth/tenant/join": {
       "post": {
         "tags": [
@@ -87,7 +134,7 @@
           "audit"
         ],
         "summary": "Get Case Audit",
-        "description": "Full audit trail for a case.",
+        "description": "Full audit trail for a case. Restricted to tenant/operator scope.",
         "operationId": "get_case_audit_api_cases__case_id__audit_get",
         "security": [
           {
@@ -140,7 +187,7 @@
           "audit"
         ],
         "summary": "Get Spec Audit",
-        "description": "Audit trail for a specific spec within a case.",
+        "description": "Audit trail for a specific spec within a case. Restricted to tenant/operator scope.",
         "operationId": "get_spec_audit_api_cases__case_id__audit_specs__spec_name__get",
         "security": [
           {
@@ -198,7 +245,7 @@
           "audit"
         ],
         "summary": "Get Case Function Calls",
-        "description": "All domain function calls for a case \u2014 for compliance queries.",
+        "description": "All domain function calls for a case \u2014 for compliance queries.\n\nRestricted to tenant/operator scope: portal callers should not introspect\nthe calculation audit trail.",
         "operationId": "get_case_function_calls_api_cases__case_id__audit_functions_get",
         "security": [
           {
@@ -396,7 +443,7 @@
           "tenants"
         ],
         "summary": "Create Credential",
-        "description": "Create an additional API credential for the authenticated tenant.",
+        "description": "Create an additional API credential for the authenticated tenant.\n\nRestricted to tenant/operator callers \u2014 portal/entity tokens cannot mint\ntenant credentials (would be a privilege escalation from PORTAL_PERMS).",
         "operationId": "create_credential_api_tenants_credentials_post",
         "responses": {
           "201": {
@@ -423,7 +470,7 @@
           "cases"
         ],
         "summary": "List Cases",
-        "description": "List cases for the tenant, newest first. Filter by spec_id to get cases for a policy.",
+        "description": "List cases visible to the caller, newest first.\n\n- Tenant/operator callers see every case in their tenant.\n- Portal/entity callers (PORTAL_PERMS does not include ``read:all``) only\n  see the single case their token is bound to. Without this filter, a\n  portal token would leak the existence of every sibling case in the\n  tenant \u2014 the exact failure mode ``verify_case_access`` prevents on\n  single-case routes.",
         "operationId": "list_cases_api_cases_get",
         "security": [
           {
@@ -492,7 +539,7 @@
           "cases"
         ],
         "summary": "Create Case",
-        "description": "Create a new case. Pass spec_id to associate with a policy.",
+        "description": "Create a new case. Tenant/operator only \u2014 portal callers cannot mint cases.",
         "operationId": "create_case_api_cases_post",
         "security": [
           {
@@ -546,7 +593,7 @@
           "cases"
         ],
         "summary": "Delete Case",
-        "description": "Delete a case and all its related data. Irreversible.",
+        "description": "Delete a case and all its related data. Irreversible. Tenant/operator only.",
         "operationId": "delete_case_api_cases__case_id__delete",
         "security": [
           {
@@ -612,6 +659,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reprocess": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Reprocess Case",
+        "description": "Re-run the full pipeline (classify \u2192 extract \u2192 identify \u2192 qualify) on an already-uploaded case.\n\nSkips intake \u2014 uses files and pages already in the DB and FileStore.",
+        "operationId": "reprocess_case_api_cases__case_id__reprocess_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reprocess Case Api Cases  Case Id  Reprocess Post"
                 }
               }
             }
@@ -787,12 +885,63 @@
       }
     },
     "/api/cases/{case_id}/files": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "List Files",
+        "description": "List uploaded files for a case.",
+        "operationId": "list_files_api_cases__case_id__files_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileResponse"
+                  },
+                  "title": "Response List Files Api Cases  Case Id  Files Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "files"
         ],
         "summary": "Upload Files",
-        "description": "Upload PDF files to a case and trigger the intake \u2192 extract \u2192 identify pipeline.\n\nAccepts both tenant auth and portal token auth. Entity callers\nare scope-checked to their own case.",
+        "description": "Upload PDF files to a case and trigger the intake \u2192 extract \u2192 identify pipeline.\n\nAccepts both tenant auth and portal token auth. ``authorized_case_id``\nrejects portal callers asking for a case other than the one their token\nwas minted for *before* any DB read; ``verify_case_access`` is kept as\nthe cross-tenant defense once the case row is loaded. Caller must carry\nthe ``write:files`` permission (PORTAL_PERMS / TENANT_PERMS).",
         "operationId": "upload_files_api_cases__case_id__files_post",
         "security": [
           {
@@ -847,13 +996,70 @@
         }
       }
     },
+    "/api/cases/{case_id}/files/{file_id}/download": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Download File",
+        "description": "Stream the original PDF for a file.",
+        "operationId": "download_file_api_cases__case_id__files__file_id__download_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/qualify": {
       "post": {
         "tags": [
           "files"
         ],
         "summary": "Qualify Case",
-        "description": "Trigger qualification on an already-extracted case.\n\nPass ?spec_id=<uuid> to run a specific DB-stored spec.\nWithout spec_id, runs all registered product specs.",
+        "description": "Trigger qualification on an already-extracted case.\n\nTenant/operator only \u2014 qualification is an underwriting decision, not a\nportal-user action. PORTAL_PERMS does not include any qualify capability.\n\nPass ?spec_id=<uuid> to run a specific DB-stored spec.\nWithout spec_id, runs all registered product specs.",
         "operationId": "qualify_case_api_cases__case_id__qualify_post",
         "security": [
           {
@@ -976,14 +1182,14 @@
         }
       }
     },
-    "/api/cases/{case_id}/scenarios": {
+    "/api/cases/{id}/scenarios": {
       "post": {
         "tags": [
           "scenarios"
         ],
         "summary": "Create Scenario",
-        "description": "Create a scenario for a case. Validates tenant ownership before creation.",
-        "operationId": "create_scenario_api_cases__case_id__scenarios_post",
+        "description": "Create a scenario for a case. Tenant/operator only \u2014 scenarios are an\nunderwriting-side concept; portal callers should not author them.",
+        "operationId": "create_scenario_api_cases__id__scenarios_post",
         "security": [
           {
             "HTTPBearer": []
@@ -991,13 +1197,13 @@
         ],
         "parameters": [
           {
-            "name": "case_id",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Case Id"
+              "title": "Id"
             }
           }
         ],
@@ -1040,7 +1246,7 @@
         ],
         "summary": "List Scenarios",
         "description": "List all scenarios with their latest manifests and spec results for comparison.",
-        "operationId": "list_scenarios_api_cases__case_id__scenarios_get",
+        "operationId": "list_scenarios_api_cases__id__scenarios_get",
         "security": [
           {
             "HTTPBearer": []
@@ -1048,13 +1254,13 @@
         ],
         "parameters": [
           {
-            "name": "case_id",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Case Id"
+              "title": "Id"
             }
           }
         ],
@@ -1068,7 +1274,450 @@
                   "items": {
                     "$ref": "#/components/schemas/ScenarioComparisonResponse"
                   },
-                  "title": "Response List Scenarios Api Cases  Case Id  Scenarios Get"
+                  "title": "Response List Scenarios Api Cases  Id  Scenarios Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Get Scenario",
+        "description": "Get detail for one scenario.",
+        "operationId": "get_scenario_api_cases__id__scenarios__sid__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Delete Scenario",
+        "description": "Delete one scenario.",
+        "operationId": "delete_scenario_api_cases__id__scenarios__sid__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteScenarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}/start": {
+      "post": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Start Scenario",
+        "description": "Start a scenario run.",
+        "operationId": "start_scenario_api_cases__id__scenarios__sid__start_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartScenarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}/refinements": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "List Refinements",
+        "description": "List refinements for a scenario.",
+        "operationId": "list_refinements_api_cases__id__scenarios__sid__refinements_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RefinementResponse"
+                  },
+                  "title": "Response List Refinements Api Cases  Id  Scenarios  Sid  Refinements Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Create Refinement",
+        "description": "Create a refinement (selection manifest) for a scenario.",
+        "operationId": "create_refinement_api_cases__id__scenarios__sid__refinements_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefinementRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRefinementResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Get Refinement",
+        "description": "Get refinement detail.",
+        "operationId": "get_refinement_api_cases__id__scenarios__sid__refinements__rid__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Rid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefinementResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/start": {
+      "post": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Start Refinement",
+        "description": "Start a refinement run.",
+        "operationId": "start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Rid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartRefinementResponse"
                 }
               }
             }
@@ -1092,7 +1741,7 @@
           "operators"
         ],
         "summary": "List Operators",
-        "description": "List all operators for the authenticated tenant.",
+        "description": "List all operators for the authenticated tenant.\n\nRequires tenant/operator scope: portal callers must not enumerate the\noperator directory (names + emails) for their tenant.",
         "operationId": "list_operators_api_operators_get",
         "responses": {
           "200": {
@@ -1431,7 +2080,7 @@
           "extractions"
         ],
         "summary": "List Extractions",
-        "description": "List extractions (with sources) for a case, optionally filtered by doc_id.",
+        "description": "List extractions (with sources) for a case.\n\nFilters (in priority order):\n  ?doc_id=   \u2014 single document\n  ?doc_type= \u2014 all docs of this type (optionally narrowed by ?tax_year=)\n  (none)     \u2014 all docs in the case",
         "operationId": "list_extractions_api_cases__case_id__extractions_get",
         "security": [
           {
@@ -1464,6 +2113,38 @@
                 }
               ],
               "title": "Doc Id"
+            }
+          },
+          {
+            "name": "doc_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Type"
+            }
+          },
+          {
+            "name": "tax_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tax Year"
             }
           }
         ],
@@ -1501,7 +2182,7 @@
           "banking"
         ],
         "summary": "Get Banking",
-        "description": "Return per-account banking rollups for a case, with totals.",
+        "description": "Return per-account + per-borrower banking rollups for a case.",
         "operationId": "get_banking_api_cases__case_id__banking_get",
         "security": [
           {
@@ -1527,6 +2208,114 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BankingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/banking/transactions": {
+      "get": {
+        "tags": [
+          "banking"
+        ],
+        "summary": "Get Banking Transactions",
+        "description": "Return all classified transactions for a case.\n\nReads from the parquet written after Phase 4 (classification + transfer\ndetection). Returns empty if banking has not completed or the case has\nnot been (re)processed since classified-transaction persistence was added.",
+        "operationId": "get_banking_transactions_api_cases__case_id__banking_transactions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassifiedTransactionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/documents/{doc_id}/transactions": {
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "List Transactions",
+        "description": "Return all parquet-backed transaction rows for a document,\ngrouped by the region/page that produced them.",
+        "operationId": "list_transactions_api_cases__case_id__documents__doc_id__transactions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Doc Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionsResponse"
                 }
               }
             }
@@ -1644,9 +2433,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Spec Api Specs Post"
+                  "$ref": "#/components/schemas/CreateSpecResponse"
                 }
               }
             }
@@ -2195,7 +2982,7 @@
           "ai"
         ],
         "summary": "Generate Spec",
-        "description": "Generate a Veritas spec YAML from a plain-text product description.",
+        "description": "Generate a Veritas spec YAML from a plain-text product description.\n\nRestricted to tenant/operator scope \u2014 the same gate every spec-lifecycle\nendpoint in ``api/specs.py`` (create / submit / approve / reject / retire)\nuses. AI-assisted generation is part of the same authoring surface.",
         "operationId": "generate_spec_api_ai_specs_generate_post",
         "requestBody": {
           "content": {
@@ -2242,7 +3029,7 @@
           "ai"
         ],
         "summary": "Generate Spec Stream",
-        "description": "Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.\nFinal event is a line starting with META: followed by JSON {name, domain, version}.",
+        "description": "Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.\nFinal event is a line starting with META: followed by JSON {name, domain, version}.\n\nTenant/operator only \u2014 see ``generate_spec`` for the trust-boundary rationale.",
         "operationId": "generate_spec_stream_api_ai_specs_generate_stream_post",
         "requestBody": {
           "content": {
@@ -2281,6 +3068,142 @@
         ]
       }
     },
+    "/api/samples": {
+      "get": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "List Samples",
+        "description": "List all available sample cases.",
+        "operationId": "list_samples_api_samples_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/samples/create": {
+      "post": {
+        "tags": [
+          "samples"
+        ],
+        "summary": "Create Sample Case",
+        "description": "Create a case from a pre-built sample.\n\nDownloads sample PDFs from GCS into the local file inbox, creates a\ncase record, and starts the Temporal pipeline \u2014 identical to a normal\nfile upload.",
+        "operationId": "create_sample_case_api_samples_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSampleCaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSampleCaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/integrations/lendingpad/webhook": {
+      "post": {
+        "tags": [
+          "integrations:lendingpad"
+        ],
+        "summary": "Lendingpad Webhook",
+        "operationId": "lendingpad_webhook_integrations_lendingpad_webhook_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "X-TEST",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Test"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Lendingpad Webhook Integrations Lendingpad Webhook Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -2303,233 +3226,21 @@
         }
       }
     },
-    "/api/cases/{case_id}/scenarios/{scenario_id}": {
+    "/api/health": {
       "get": {
-        "tags": [
-          "scenarios"
-        ],
-        "summary": "Get Scenario Detail",
-        "description": "Get detailed information about a specific scenario.",
-        "operationId": "get_scenario_detail_api_cases__case_id__scenarios__scenario_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "case_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Case Id"
-            }
-          },
-          {
-            "name": "scenario_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Scenario Id"
-            }
-          }
-        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScenarioDetailResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "scenarios"
-        ],
-        "summary": "Delete Scenario",
-        "description": "Delete a scenario and all its refinements.",
-        "operationId": "delete_scenario_api_cases__case_id__scenarios__scenario_id__delete",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "case_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Case Id"
-            }
-          },
-          {
-            "name": "scenario_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Scenario Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteScenarioResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cases/{case_id}/scenarios/{scenario_id}/start": {
-      "post": {
-        "tags": [
-          "scenarios"
-        ],
-        "summary": "Start Scenario",
-        "description": "Start calculation for a scenario.",
-        "operationId": "start_scenario_api_cases__case_id__scenarios__scenario_id__start_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "case_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Case Id"
-            }
-          },
-          {
-            "name": "scenario_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Scenario Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StartScenarioResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/cases/{case_id}/portal-tokens": {
-      "post": {
-        "tags": [
-          "portal"
-        ],
-        "summary": "Create Portal Token",
-        "description": "Issue a portal token for an entity on a case.",
-        "operationId": "create_portal_token_api_cases__case_id__portal_tokens_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "case_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Case Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePortalTokenRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreatePortalTokenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
                 }
               }
             }
@@ -2566,14 +3277,41 @@
             ],
             "title": "Account Id"
           },
-          "gross_deposits": {
+          "account_holder_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Holder Name"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "gross_deposits_aggressive": {
             "type": "number",
-            "title": "Gross Deposits",
+            "title": "Gross Deposits Aggressive",
             "default": 0.0
           },
-          "average_monthly": {
+          "gross_deposits_conservative": {
             "type": "number",
-            "title": "Average Monthly",
+            "title": "Gross Deposits Conservative",
+            "default": 0.0
+          },
+          "average_monthly_deposits": {
+            "type": "number",
+            "title": "Average Monthly Deposits",
             "default": 0.0
           },
           "months_covered": {
@@ -2587,17 +3325,153 @@
             ],
             "title": "Months Covered"
           },
-          "streams": {
+          "stream_count": {
+            "type": "integer",
+            "title": "Stream Count",
+            "default": 0
+          },
+          "payroll_stream_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payroll Stream Confidence"
+          },
+          "balance_reconciled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance Reconciled"
+          },
+          "coverage_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Passed"
+          },
+          "summary_matched": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Matched"
+          },
+          "source_doc_ids": {
             "items": {
-              "$ref": "#/components/schemas/BankingStream"
+              "type": "string",
+              "format": "uuid"
             },
             "type": "array",
-            "title": "Streams",
+            "title": "Source Doc Ids",
             "default": []
           }
         },
         "type": "object",
-        "title": "BankingAccount"
+        "title": "BankingAccount",
+        "description": "One per-account row pivoted from banking aggregation extractions."
+      },
+      "BankingBorrowerRollup": {
+        "properties": {
+          "borrower_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Borrower Id"
+          },
+          "borrower_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Borrower Name"
+          },
+          "account_count": {
+            "type": "integer",
+            "title": "Account Count",
+            "default": 0
+          },
+          "source_account_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Account Ids",
+            "default": []
+          },
+          "gross_deposits_aggressive": {
+            "type": "number",
+            "title": "Gross Deposits Aggressive",
+            "default": 0.0
+          },
+          "gross_deposits_conservative": {
+            "type": "number",
+            "title": "Gross Deposits Conservative",
+            "default": 0.0
+          },
+          "average_monthly_deposits": {
+            "type": "number",
+            "title": "Average Monthly Deposits",
+            "default": 0.0
+          },
+          "months_covered": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Months Covered"
+          },
+          "stream_count": {
+            "type": "integer",
+            "title": "Stream Count",
+            "default": 0
+          },
+          "payroll_stream_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payroll Stream Confidence"
+          }
+        },
+        "type": "object",
+        "title": "BankingBorrowerRollup",
+        "description": "Cross-account rollup emitted by unify_borrower_statements."
       },
       "BankingResponse": {
         "properties": {
@@ -2607,6 +3481,14 @@
             },
             "type": "array",
             "title": "Accounts",
+            "default": []
+          },
+          "borrowers": {
+            "items": {
+              "$ref": "#/components/schemas/BankingBorrowerRollup"
+            },
+            "type": "array",
+            "title": "Borrowers",
             "default": []
           },
           "total_gross_deposits": {
@@ -2622,78 +3504,6 @@
         },
         "type": "object",
         "title": "BankingResponse"
-      },
-      "BankingStream": {
-        "properties": {
-          "description_pattern": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description Pattern"
-          },
-          "classification": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Classification"
-          },
-          "frequency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Frequency"
-          },
-          "average_amount": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average Amount"
-          },
-          "occurrence_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Occurrence Count"
-          },
-          "confidence": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Confidence"
-          }
-        },
-        "type": "object",
-        "title": "BankingStream"
       },
       "BboxResponse": {
         "properties": {
@@ -2863,6 +3673,22 @@
               }
             ],
             "title": "Created At"
+          },
+          "file_count": {
+            "type": "integer",
+            "title": "File Count",
+            "default": 0
+          },
+          "primary_borrower": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Borrower"
           }
         },
         "type": "object",
@@ -2922,6 +3748,125 @@
           "title"
         ],
         "title": "ChecklistItem"
+      },
+      "ClassifiedTransaction": {
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "title": "Transaction Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "transaction_date": {
+            "type": "string",
+            "title": "Transaction Date"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "credit_debit": {
+            "type": "string",
+            "title": "Credit Debit"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification"
+          },
+          "is_transfer": {
+            "type": "boolean",
+            "title": "Is Transfer",
+            "default": false
+          },
+          "is_large_deposit": {
+            "type": "boolean",
+            "title": "Is Large Deposit",
+            "default": false
+          },
+          "source_file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File Id"
+          },
+          "source_page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page Number"
+          },
+          "running_balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Balance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_id",
+          "account_id",
+          "transaction_date",
+          "description",
+          "credit_debit",
+          "amount"
+        ],
+        "title": "ClassifiedTransaction",
+        "description": "One classified transaction row from the banking pipeline."
+      },
+      "ClassifiedTransactionsResponse": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/ClassifiedTransaction"
+            },
+            "type": "array",
+            "title": "Transactions",
+            "default": []
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "ClassifiedTransactionsResponse"
       },
       "ConsentState": {
         "properties": {
@@ -3095,6 +4040,151 @@
         ],
         "title": "CreateOperatorRequest"
       },
+      "CreateRefinementRequest": {
+        "properties": {
+          "borrower_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Borrower Ids"
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          },
+          "product_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Ids"
+          },
+          "spec_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Ids"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "CreateRefinementRequest"
+      },
+      "CreateRefinementResponse": {
+        "properties": {
+          "refinement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Refinement Id"
+          },
+          "refinement_num": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refinement Num"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refinement_id",
+          "refinement_num",
+          "status"
+        ],
+        "title": "CreateRefinementResponse"
+      },
+      "CreateSampleCaseRequest": {
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "title": "Sample Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample_id"
+        ],
+        "title": "CreateSampleCaseRequest"
+      },
+      "CreateSampleCaseResponse": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "file_count": {
+            "type": "integer",
+            "title": "File Count"
+          },
+          "sample_id": {
+            "type": "string",
+            "title": "Sample Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "state",
+          "file_count",
+          "sample_id"
+        ],
+        "title": "CreateSampleCaseResponse"
+      },
       "CreateScenarioRequest": {
         "properties": {
           "approach": {
@@ -3166,6 +4256,76 @@
         ],
         "title": "CreateSpecRequest"
       },
+      "CreateSpecResponse": {
+        "properties": {
+          "spec_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Spec Id"
+          },
+          "spec_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Spec Version Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spec_id",
+          "spec_version_id",
+          "status"
+        ],
+        "title": "CreateSpecResponse"
+      },
+      "CreateTenantRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Organization name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateTenantRequest",
+        "description": "Body for POST /auth/create-tenant \u2014 authenticated user self-registers a tenant."
+      },
+      "CreateTenantResponse": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "tenant_name": {
+            "type": "string",
+            "title": "Tenant Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "has_tenant": {
+            "type": "boolean",
+            "title": "Has Tenant",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "tenant_name",
+          "role"
+        ],
+        "title": "CreateTenantResponse"
+      },
       "CredentialResponse": {
         "properties": {
           "credential_id": {
@@ -3195,6 +4355,30 @@
           "bearer_token"
         ],
         "title": "CredentialResponse"
+      },
+      "DeleteScenarioResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "scenario_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenario Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "scenario_id",
+          "message"
+        ],
+        "title": "DeleteScenarioResponse"
       },
       "DisplayHints": {
         "properties": {
@@ -3570,6 +4754,48 @@
         },
         "type": "object",
         "title": "ExtractionSourceResponse"
+      },
+      "FileResponse": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id"
+          },
+          "original_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Filename"
+          },
+          "uploaded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded At"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileResponse"
       },
       "FunctionCallResponse": {
         "properties": {
@@ -4025,6 +5251,110 @@
         ],
         "title": "ProductResponse"
       },
+      "RefinementResponse": {
+        "properties": {
+          "refinement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Refinement Id"
+          },
+          "scenario_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenario Id"
+          },
+          "refinement_num": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refinement Num"
+          },
+          "borrower_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Borrower Ids"
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Ids"
+          },
+          "product_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Ids"
+          },
+          "spec_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Ids"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refinement_id",
+          "scenario_id",
+          "refinement_num",
+          "borrower_ids",
+          "document_ids",
+          "product_ids",
+          "spec_ids",
+          "note"
+        ],
+        "title": "RefinementResponse"
+      },
       "RegisterTenantRequest": {
         "properties": {
           "name": {
@@ -4091,6 +5421,71 @@
           "review_notes"
         ],
         "title": "RejectRequest"
+      },
+      "SampleFileInfo": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename"
+        ],
+        "title": "SampleFileInfo"
+      },
+      "SampleInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/SampleFileInfo"
+            },
+            "type": "array",
+            "title": "Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "category",
+          "files"
+        ],
+        "title": "SampleInfo"
+      },
+      "SampleListResponse": {
+        "properties": {
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/SampleInfo"
+            },
+            "type": "array",
+            "title": "Samples"
+          }
+        },
+        "type": "object",
+        "required": [
+          "samples"
+        ],
+        "title": "SampleListResponse"
       },
       "ScenarioComparisonResponse": {
         "properties": {
@@ -4187,6 +5582,75 @@
           "results"
         ],
         "title": "ScenarioComparisonResponse"
+      },
+      "ScenarioDetailResponse": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenario Id"
+          },
+          "case_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Case Id"
+          },
+          "approach": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approach"
+          },
+          "pool_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pool Version"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "case_id",
+          "approach",
+          "pool_version",
+          "status",
+          "created_at"
+        ],
+        "title": "ScenarioDetailResponse"
       },
       "SpecAuditResponse": {
         "properties": {
@@ -4517,7 +5981,7 @@
           },
           "results": {
             "items": {
-              "$ref": "#/components/schemas/TestResultResponse"
+              "$ref": "#/components/schemas/SpecTestResultResponse"
             },
             "type": "array",
             "title": "Results"
@@ -4532,6 +5996,69 @@
           "results"
         ],
         "title": "SpecTestReportResponse"
+      },
+      "SpecTestResultResponse": {
+        "properties": {
+          "spec_name": {
+            "type": "string",
+            "title": "Spec Name"
+          },
+          "case_name": {
+            "type": "string",
+            "title": "Case Name"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "expected_qualifying": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Qualifying"
+          },
+          "actual_qualifying": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Qualifying"
+          },
+          "matching_rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matching Rules"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spec_name",
+          "case_name",
+          "passed",
+          "expected_qualifying",
+          "actual_qualifying",
+          "matching_rules",
+          "errors"
+        ],
+        "title": "SpecTestResultResponse"
       },
       "SpecVersionResponse": {
         "properties": {
@@ -4637,6 +6164,52 @@
         ],
         "title": "SpecVersionResponse"
       },
+      "StartRefinementResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "workflow_id",
+          "message"
+        ],
+        "title": "StartRefinementResponse"
+      },
+      "StartScenarioResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "workflow_id",
+          "message"
+        ],
+        "title": "StartScenarioResponse"
+      },
       "SuiteResultResponse": {
         "properties": {
           "product_id": {
@@ -4681,68 +6254,121 @@
         ],
         "title": "SuiteResultResponse"
       },
-      "TestResultResponse": {
+      "TransactionRegion": {
         "properties": {
-          "spec_name": {
+          "region_id": {
             "type": "string",
-            "title": "Spec Name"
+            "format": "uuid",
+            "title": "Region Id"
           },
-          "case_name": {
-            "type": "string",
-            "title": "Case Name"
-          },
-          "passed": {
-            "type": "boolean",
-            "title": "Passed"
-          },
-          "expected_qualifying": {
+          "page_number": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Expected Qualifying"
+            "title": "Page Number"
           },
-          "actual_qualifying": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Actual Qualifying"
+          "parquet_path": {
+            "type": "string",
+            "title": "Parquet Path"
           },
-          "matching_rules": {
+          "columns": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Matching Rules"
+            "title": "Columns",
+            "default": []
           },
-          "errors": {
+          "row_count": {
+            "type": "integer",
+            "title": "Row Count",
+            "default": 0
+          },
+          "rows": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TransactionRow"
             },
             "type": "array",
-            "title": "Errors"
+            "title": "Rows",
+            "default": []
           }
         },
         "type": "object",
         "required": [
-          "spec_name",
-          "case_name",
-          "passed",
-          "expected_qualifying",
-          "actual_qualifying",
-          "matching_rules",
-          "errors"
+          "region_id",
+          "parquet_path"
         ],
-        "title": "TestResultResponse"
+        "title": "TransactionRegion",
+        "description": "A single parquet region (typically one page of a bank statement)."
+      },
+      "TransactionRow": {
+        "properties": {
+          "row_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Index"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "TransactionRow",
+        "description": "One transaction row read from a parquet region."
+      },
+      "TransactionsResponse": {
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Doc Id"
+          },
+          "source_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Filename"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionRegion"
+            },
+            "type": "array",
+            "title": "Regions",
+            "default": []
+          },
+          "total_rows": {
+            "type": "integer",
+            "title": "Total Rows",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc_id"
+        ],
+        "title": "TransactionsResponse"
       },
       "UploadConfig": {
         "properties": {
@@ -4825,244 +6451,6 @@
         },
         "type": "object",
         "title": "VerificationState"
-      },
-      "ScenarioDetailResponse": {
-        "properties": {
-          "scenario_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Scenario Id"
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "is_latest": {
-            "type": "boolean",
-            "title": "Is Latest"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          },
-          "approach": {
-            "type": "string",
-            "title": "Approach",
-            "default": "qualified_mortgage"
-          },
-          "borrower_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Borrower Ids"
-          },
-          "loan_product_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Loan Product Ids"
-          },
-          "document_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Document Ids",
-            "default": []
-          },
-          "y1_override": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Y1 Override"
-          },
-          "y2_override": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Y2 Override"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "rules_version": {
-            "type": "string",
-            "title": "Rules Version"
-          },
-          "total_monthly_income": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Monthly Income"
-          },
-          "qualifying_income": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Qualifying Income"
-          },
-          "trend_status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trend Status"
-          },
-          "verifications": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verifications"
-          },
-          "latest_refinement_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latest Refinement Id"
-          },
-          "refinement_count": {
-            "type": "integer",
-            "title": "Refinement Count",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "required": [
-          "scenario_id",
-          "version",
-          "name",
-          "is_latest",
-          "status",
-          "created_at",
-          "borrower_ids",
-          "loan_product_ids",
-          "rules_version"
-        ],
-        "title": "ScenarioDetailResponse"
-      },
-      "StartScenarioResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "workflow_id": {
-            "type": "string",
-            "title": "Workflow Id"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "workflow_id",
-          "message"
-        ],
-        "title": "StartScenarioResponse"
-      },
-      "DeleteScenarioResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "title": "DeleteScenarioResponse"
-      },
-      "CreatePortalTokenRequest": {
-        "properties": {
-          "identity_id": {
-            "type": "string",
-            "title": "Identity Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "identity_id"
-        ],
-        "title": "CreatePortalTokenRequest"
-      },
-      "CreatePortalTokenResponse": {
-        "properties": {
-          "token": {
-            "type": "string",
-            "title": "Token"
-          },
-          "portal_url": {
-            "type": "string",
-            "title": "Portal Url"
-          },
-          "expires_at": {
-            "type": "string",
-            "title": "Expires At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "token",
-          "portal_url",
-          "expires_at"
-        ],
-        "title": "CreatePortalTokenResponse"
       }
     },
     "securitySchemes": {

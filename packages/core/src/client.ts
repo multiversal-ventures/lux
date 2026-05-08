@@ -267,6 +267,18 @@ export class VeritasClient {
 		return this.requestJson(`/api/cases/${caseId}/reprocess`, { method: "POST" });
 	}
 
+	async getCaseBanking(caseId: string): Promise<import('./operator-types.js').BankingResponse> {
+		return this.requestJson(`/api/cases/${caseId}/banking`);
+	}
+
+	async getCaseBankingTransactions(caseId: string): Promise<import('./operator-types.js').ClassifiedTransactionsResponse> {
+		return this.requestJson(`/api/cases/${caseId}/banking/transactions`);
+	}
+
+	async getDocumentRegions(caseId: string, docId: string): Promise<import('./operator-types.js').TransactionsResponse> {
+		return this.requestJson(`/api/cases/${caseId}/documents/${docId}/transactions`);
+	}
+
 	pagePngPath(caseId: string, fileId: string, pageNumber: number): string {
 		return this.resolvePath(`/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`);
 	}

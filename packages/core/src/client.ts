@@ -24,6 +24,51 @@ export interface CreateTenantResponse {
 	has_tenant: boolean;
 }
 
+export interface VeritasCaseFile {
+	file_id: string;
+	original_filename: string | null;
+	uploaded_at: string | null;
+}
+
+export interface VeritasCaseEvent {
+	event_id: number;
+	event_type: string;
+	event_data: Record<string, unknown>;
+	created_at: string | null;
+}
+
+export interface VeritasCaseDetail {
+	case_id: string;
+	tenant_id: string;
+	spec_id: string | null;
+	state: string;
+	pool_version: number;
+	created_at: string | null;
+}
+
+export interface SampleFileInfo {
+	filename: string;
+}
+
+export interface SampleInfo {
+	id: string;
+	name: string;
+	description: string;
+	category: string;
+	files: SampleFileInfo[];
+}
+
+export interface SampleListResponse {
+	samples: SampleInfo[];
+}
+
+export interface CreateSampleCaseResponse {
+	case_id: string;
+	state: string;
+	file_count: number;
+	sample_id: string;
+}
+
 export type ClientHooks = {
 	onApiError?: (info: {
 		error_type: string;
@@ -186,6 +231,102 @@ export class VeritasClient {
 		return this.requestJson<CreateTenantResponse>("/api/auth/create-tenant", {
 			method: "POST",
 			body: JSON.stringify({ name }),
+		});
+	}
+
+	async getCase(caseId: string): Promise<VeritasCaseDetail> {
+		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
+	}
+
+	async getCaseFiles(caseId: string): Promise<VeritasCaseFile[]> {
+		return this.requestJson<VeritasCaseFile[]>(`/api/cases/${caseId}/files`);
+	}
+
+	async getCaseEvents(caseId: string): Promise<VeritasCaseEvent[]> {
+		return this.requestJson<VeritasCaseEvent[]>(`/api/cases/${caseId}/events`);
+	}
+
+	/**
+	 * Open an SSE stream for case events using fetch (supports Authorization header).
+	 * Returns an abort function. The stream closes automatically when the case reaches
+	 * a terminal state or the caller invokes abort.
+	 */
+	streamCaseEvents(
+		caseId: string,
+		onEvent: (event: VeritasCaseEvent) => void,
+		onError?: (err: Error) => void,
+	): () => void {
+		const controller = new AbortController();
+
+		const run = async () => {
+			let token: string | null = null;
+			try {
+				token = await this.cfg.auth.getToken();
+			} catch {
+				// no token — proceed unauthenticated (will 401 server-side)
+			}
+			const headers: Record<string, string> = {};
+			if (token) headers.Authorization = `Bearer ${token}`;
+
+			let res: Response;
+			try {
+				res = await fetch(this.resolvePath(`/api/cases/${caseId}/events/stream`), {
+					headers,
+					signal: controller.signal,
+				});
+			} catch {
+				if (!controller.signal.aborted) {
+					onError?.(new Error("Failed to connect to event stream"));
+				}
+				return;
+			}
+
+			if (!res.body) {
+				onError?.(new Error("No response body from event stream"));
+				return;
+			}
+
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split("\n");
+					buffer = lines.pop() ?? "";
+					for (const line of lines) {
+						if (!line.startsWith("data: ")) continue;
+						const raw = line.slice(6).trim();
+						if (!raw || raw === "[DONE]") continue;
+						try {
+							const event = JSON.parse(raw) as VeritasCaseEvent;
+							onEvent(event);
+						} catch {
+							/* malformed — skip */
+						}
+					}
+				}
+			} catch {
+				if (!controller.signal.aborted) {
+					onError?.(new Error("Event stream disconnected"));
+				}
+			}
+		};
+
+		void run();
+		return () => controller.abort();
+	}
+
+	async listSamples(): Promise<SampleListResponse> {
+		return this.requestJson<SampleListResponse>("/api/samples");
+	}
+
+	async createSampleCase(sampleId: string): Promise<CreateSampleCaseResponse> {
+		return this.requestJson<CreateSampleCaseResponse>("/api/samples/create", {
+			method: "POST",
+			body: JSON.stringify({ sample_id: sampleId }),
 		});
 	}
 

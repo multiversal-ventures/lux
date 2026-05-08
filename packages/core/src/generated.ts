@@ -371,6 +371,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/stages/{stage}/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Stage Excel
+         * @description Return an ``.xlsx`` for ``extraction``, ``income``, ``unified_bank_statement``, or ``credit``.
+         *
+         *     Query params mirror the legacy Gunnr ``excel-url`` contract (refinement-aware income export TBD).
+         */
+        get: operations["download_stage_excel_api_cases__case_id__stages__stage__excel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/files": {
         parameters: {
             query?: never;
@@ -1215,6 +1237,8 @@ export interface components {
             coverage_passed?: boolean | null;
             /** Summary Matched */
             summary_matched?: boolean | null;
+            /** Header Fallback */
+            header_fallback?: boolean | null;
             /**
              * Source Doc Ids
              * @default []
@@ -2972,6 +2996,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_stage_excel_api_cases__case_id__stages__stage__excel_get: {
+        parameters: {
+            query?: {
+                product?: string | null;
+                refinement_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                stage: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {

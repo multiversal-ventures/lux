@@ -272,6 +272,18 @@ export class VeritasClient {
 		return this.requestJson<components["schemas"]["ExtractionResponse"][]>(`/api/cases/${caseId}/extractions${qs}`);
 	}
 
+	async getCaseExtractionsByDocType(
+		caseId: string,
+		docType: string,
+		taxYear?: number | null,
+	): Promise<components["schemas"]["ExtractionResponse"][]> {
+		const params = new URLSearchParams({ doc_type: docType });
+		if (taxYear != null) params.set("tax_year", String(taxYear));
+		return this.requestJson<components["schemas"]["ExtractionResponse"][]>(
+			`/api/cases/${caseId}/extractions?${params.toString()}`,
+		);
+	}
+
 	async uploadCasePdfs(
 		caseId: string,
 		files: File[] | FileList,

@@ -28,6 +28,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/create-tenant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Tenant
+         * @description Create a new tenant and enroll the authenticated user as owner.
+         *
+         *     Caller must be an authenticated Firebase user with no existing tenant.
+         *     Creates the tenant and links the caller's UID as the first member (role=owner).
+         */
+        post: operations["create_tenant_api_auth_create_tenant_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/tenant/join": {
         parameters: {
             query?: never;
@@ -63,7 +86,7 @@ export interface paths {
         };
         /**
          * Get Case Audit
-         * @description Full audit trail for a case.
+         * @description Full audit trail for a case. Restricted to tenant/operator scope.
          */
         get: operations["get_case_audit_api_cases__case_id__audit_get"];
         put?: never;
@@ -83,7 +106,7 @@ export interface paths {
         };
         /**
          * Get Spec Audit
-         * @description Audit trail for a specific spec within a case.
+         * @description Audit trail for a specific spec within a case. Restricted to tenant/operator scope.
          */
         get: operations["get_spec_audit_api_cases__case_id__audit_specs__spec_name__get"];
         put?: never;
@@ -104,6 +127,9 @@ export interface paths {
         /**
          * Get Case Function Calls
          * @description All domain function calls for a case — for compliance queries.
+         *
+         *     Restricted to tenant/operator scope: portal callers should not introspect
+         *     the calculation audit trail.
          */
         get: operations["get_case_function_calls_api_cases__case_id__audit_functions_get"];
         put?: never;
@@ -197,6 +223,9 @@ export interface paths {
         /**
          * Create Credential
          * @description Create an additional API credential for the authenticated tenant.
+         *
+         *     Restricted to tenant/operator callers — portal/entity tokens cannot mint
+         *     tenant credentials (would be a privilege escalation from PORTAL_PERMS).
          */
         post: operations["create_credential_api_tenants_credentials_post"];
         delete?: never;
@@ -214,13 +243,20 @@ export interface paths {
         };
         /**
          * List Cases
-         * @description List cases for the tenant, newest first. Filter by spec_id to get cases for a policy.
+         * @description List cases visible to the caller, newest first.
+         *
+         *     - Tenant/operator callers see every case in their tenant.
+         *     - Portal/entity callers (PORTAL_PERMS does not include ``read:all``) only
+         *       see the single case their token is bound to. Without this filter, a
+         *       portal token would leak the existence of every sibling case in the
+         *       tenant — the exact failure mode ``verify_case_access`` prevents on
+         *       single-case routes.
          */
         get: operations["list_cases_api_cases_get"];
         put?: never;
         /**
          * Create Case
-         * @description Create a new case. Pass spec_id to associate with a policy.
+         * @description Create a new case. Tenant/operator only — portal callers cannot mint cases.
          */
         post: operations["create_case_api_cases_post"];
         delete?: never;
@@ -245,9 +281,31 @@ export interface paths {
         post?: never;
         /**
          * Delete Case
-         * @description Delete a case and all its related data. Irreversible.
+         * @description Delete a case and all its related data. Irreversible. Tenant/operator only.
          */
         delete: operations["delete_case_api_cases__case_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reprocess Case
+         * @description Re-run the full pipeline (classify → extract → identify → qualify) on an already-uploaded case.
+         *
+         *     Skips intake — uses files and pages already in the DB and FileStore.
+         */
+        post: operations["reprocess_case_api_cases__case_id__reprocess_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -320,16 +378,43 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Files
+         * @description List uploaded files for a case.
+         */
+        get: operations["list_files_api_cases__case_id__files_get"];
         put?: never;
         /**
          * Upload Files
          * @description Upload PDF files to a case and trigger the intake → extract → identify pipeline.
          *
-         *     Accepts both tenant auth and portal token auth. Entity callers
-         *     are scope-checked to their own case.
+         *     Accepts both tenant auth and portal token auth. ``authorized_case_id``
+         *     rejects portal callers asking for a case other than the one their token
+         *     was minted for *before* any DB read; ``verify_case_access`` is kept as
+         *     the cross-tenant defense once the case row is loaded. Caller must carry
+         *     the ``write:files`` permission (PORTAL_PERMS / TENANT_PERMS).
          */
         post: operations["upload_files_api_cases__case_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/files/{file_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download File
+         * @description Stream the original PDF for a file.
+         */
+        get: operations["download_file_api_cases__case_id__files__file_id__download_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -348,6 +433,9 @@ export interface paths {
         /**
          * Qualify Case
          * @description Trigger qualification on an already-extracted case.
+         *
+         *     Tenant/operator only — qualification is an underwriting decision, not a
+         *     portal-user action. PORTAL_PERMS does not include any qualify capability.
          *
          *     Pass ?spec_id=<uuid> to run a specific DB-stored spec.
          *     Without spec_id, runs all registered product specs.
@@ -379,7 +467,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/scenarios": {
+    "/api/cases/{id}/scenarios": {
         parameters: {
             query?: never;
             header?: never;
@@ -390,13 +478,122 @@ export interface paths {
          * List Scenarios
          * @description List all scenarios with their latest manifests and spec results for comparison.
          */
-        get: operations["list_scenarios_api_cases__case_id__scenarios_get"];
+        get: operations["list_scenarios_api_cases__id__scenarios_get"];
         put?: never;
         /**
          * Create Scenario
-         * @description Create a scenario for a case. Validates tenant ownership before creation.
+         * @description Create a scenario for a case. Tenant/operator only — scenarios are an
+         *     underwriting-side concept; portal callers should not author them.
          */
-        post: operations["create_scenario_api_cases__case_id__scenarios_post"];
+        post: operations["create_scenario_api_cases__id__scenarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario
+         * @description Get detail for one scenario.
+         */
+        get: operations["get_scenario_api_cases__id__scenarios__sid__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Scenario
+         * @description Delete one scenario.
+         */
+        delete: operations["delete_scenario_api_cases__id__scenarios__sid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Scenario
+         * @description Start a scenario run.
+         */
+        post: operations["start_scenario_api_cases__id__scenarios__sid__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Refinements
+         * @description List refinements for a scenario.
+         */
+        get: operations["list_refinements_api_cases__id__scenarios__sid__refinements_get"];
+        put?: never;
+        /**
+         * Create Refinement
+         * @description Create a refinement (selection manifest) for a scenario.
+         */
+        post: operations["create_refinement_api_cases__id__scenarios__sid__refinements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Refinement
+         * @description Get refinement detail.
+         */
+        get: operations["get_refinement_api_cases__id__scenarios__sid__refinements__rid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Refinement
+         * @description Start a refinement run.
+         */
+        post: operations["start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -413,6 +610,9 @@ export interface paths {
         /**
          * List Operators
          * @description List all operators for the authenticated tenant.
+         *
+         *     Requires tenant/operator scope: portal callers must not enumerate the
+         *     operator directory (names + emails) for their tenant.
          */
         get: operations["list_operators_api_operators_get"];
         put?: never;
@@ -542,7 +742,12 @@ export interface paths {
         };
         /**
          * List Extractions
-         * @description List extractions (with sources) for a case, optionally filtered by doc_id.
+         * @description List extractions (with sources) for a case.
+         *
+         *     Filters (in priority order):
+         *       ?doc_id=   — single document
+         *       ?doc_type= — all docs of this type (optionally narrowed by ?tax_year=)
+         *       (none)     — all docs in the case
          */
         get: operations["list_extractions_api_cases__case_id__extractions_get"];
         put?: never;
@@ -562,9 +767,54 @@ export interface paths {
         };
         /**
          * Get Banking
-         * @description Return per-account banking rollups for a case, with totals.
+         * @description Return per-account + per-borrower banking rollups for a case.
          */
         get: operations["get_banking_api_cases__case_id__banking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/banking/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Banking Transactions
+         * @description Return all classified transactions for a case.
+         *
+         *     Reads from the parquet written after Phase 4 (classification + transfer
+         *     detection). Returns empty if banking has not completed or the case has
+         *     not been (re)processed since classified-transaction persistence was added.
+         */
+        get: operations["get_banking_transactions_api_cases__case_id__banking_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/documents/{doc_id}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Transactions
+         * @description Return all parquet-backed transaction rows for a document,
+         *     grouped by the region/page that produced them.
+         */
+        get: operations["list_transactions_api_cases__case_id__documents__doc_id__transactions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -785,6 +1035,10 @@ export interface paths {
         /**
          * Generate Spec
          * @description Generate a Veritas spec YAML from a plain-text product description.
+         *
+         *     Restricted to tenant/operator scope — the same gate every spec-lifecycle
+         *     endpoint in ``api/specs.py`` (create / submit / approve / reject / retire)
+         *     uses. AI-assisted generation is part of the same authoring surface.
          */
         post: operations["generate_spec_api_ai_specs_generate_post"];
         delete?: never;
@@ -806,8 +1060,71 @@ export interface paths {
          * Generate Spec Stream
          * @description Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.
          *     Final event is a line starting with META: followed by JSON {name, domain, version}.
+         *
+         *     Tenant/operator only — see ``generate_spec`` for the trust-boundary rationale.
          */
         post: operations["generate_spec_stream_api_ai_specs_generate_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Samples
+         * @description List all available sample cases.
+         */
+        get: operations["list_samples_api_samples_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/samples/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Sample Case
+         * @description Create a case from a pre-built sample.
+         *
+         *     Downloads sample PDFs from GCS into the local file inbox, creates a
+         *     case record, and starts the Temporal pipeline — identical to a normal
+         *     file upload.
+         */
+        post: operations["create_sample_case_api_samples_create_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/lendingpad/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lendingpad Webhook */
+        post: operations["lendingpad_webhook_integrations_lendingpad_webhook_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -831,64 +1148,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/scenarios/{scenario_id}": {
+    "/api/health": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Scenario Detail
-         * @description Get detailed information about a specific scenario.
-         */
-        get: operations["get_scenario_detail_api_cases__case_id__scenarios__scenario_id__get"];
+        /** Health */
+        get: operations["health_api_health_get"];
         put?: never;
         post?: never;
-        /**
-         * Delete Scenario
-         * @description Delete a scenario and all its refinements.
-         */
-        delete: operations["delete_scenario_api_cases__case_id__scenarios__scenario_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/scenarios/{scenario_id}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Scenario
-         * @description Start calculation for a scenario.
-         */
-        post: operations["start_scenario_api_cases__case_id__scenarios__scenario_id__start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal-tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Portal Token
-         * @description Issue a portal token for an entity on a case.
-         */
-        post: operations["create_portal_token_api_cases__case_id__portal_tokens_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -904,27 +1174,96 @@ export interface components {
             /** Approved By */
             approved_by: string;
         };
-        /** BankingAccount */
+        /**
+         * BankingAccount
+         * @description One per-account row pivoted from banking aggregation extractions.
+         */
         BankingAccount: {
             /** Account Id */
             account_id?: string | null;
+            /** Account Holder Name */
+            account_holder_name?: string | null;
+            /** Currency */
+            currency?: string | null;
             /**
-             * Gross Deposits
+             * Gross Deposits Aggressive
              * @default 0
              */
-            gross_deposits: number;
+            gross_deposits_aggressive: number;
             /**
-             * Average Monthly
+             * Gross Deposits Conservative
              * @default 0
              */
-            average_monthly: number;
+            gross_deposits_conservative: number;
+            /**
+             * Average Monthly Deposits
+             * @default 0
+             */
+            average_monthly_deposits: number;
             /** Months Covered */
             months_covered?: number | null;
             /**
-             * Streams
+             * Stream Count
+             * @default 0
+             */
+            stream_count: number;
+            /** Payroll Stream Confidence */
+            payroll_stream_confidence?: number | null;
+            /** Balance Reconciled */
+            balance_reconciled?: boolean | null;
+            /** Coverage Passed */
+            coverage_passed?: boolean | null;
+            /** Summary Matched */
+            summary_matched?: boolean | null;
+            /**
+             * Source Doc Ids
              * @default []
              */
-            streams: components["schemas"]["BankingStream"][];
+            source_doc_ids: string[];
+        };
+        /**
+         * BankingBorrowerRollup
+         * @description Cross-account rollup emitted by unify_borrower_statements.
+         */
+        BankingBorrowerRollup: {
+            /** Borrower Id */
+            borrower_id?: string | null;
+            /** Borrower Name */
+            borrower_name?: string | null;
+            /**
+             * Account Count
+             * @default 0
+             */
+            account_count: number;
+            /**
+             * Source Account Ids
+             * @default []
+             */
+            source_account_ids: string[];
+            /**
+             * Gross Deposits Aggressive
+             * @default 0
+             */
+            gross_deposits_aggressive: number;
+            /**
+             * Gross Deposits Conservative
+             * @default 0
+             */
+            gross_deposits_conservative: number;
+            /**
+             * Average Monthly Deposits
+             * @default 0
+             */
+            average_monthly_deposits: number;
+            /** Months Covered */
+            months_covered?: number | null;
+            /**
+             * Stream Count
+             * @default 0
+             */
+            stream_count: number;
+            /** Payroll Stream Confidence */
+            payroll_stream_confidence?: number | null;
         };
         /** BankingResponse */
         BankingResponse: {
@@ -933,6 +1272,11 @@ export interface components {
              * @default []
              */
             accounts: components["schemas"]["BankingAccount"][];
+            /**
+             * Borrowers
+             * @default []
+             */
+            borrowers: components["schemas"]["BankingBorrowerRollup"][];
             /**
              * Total Gross Deposits
              * @default 0
@@ -943,21 +1287,6 @@ export interface components {
              * @default 0
              */
             total_average_monthly: number;
-        };
-        /** BankingStream */
-        BankingStream: {
-            /** Description Pattern */
-            description_pattern?: string | null;
-            /** Classification */
-            classification?: string | null;
-            /** Frequency */
-            frequency?: string | null;
-            /** Average Amount */
-            average_amount?: number | null;
-            /** Occurrence Count */
-            occurrence_count?: number | null;
-            /** Confidence */
-            confidence?: number | null;
         };
         /** BboxResponse */
         BboxResponse: {
@@ -1022,6 +1351,13 @@ export interface components {
             state: string;
             /** Created At */
             created_at?: string | null;
+            /**
+             * File Count
+             * @default 0
+             */
+            file_count: number;
+            /** Primary Borrower */
+            primary_borrower?: string | null;
         };
         /** ChecklistItem */
         ChecklistItem: {
@@ -1057,6 +1393,57 @@ export interface components {
              *     }
              */
             display_hints: components["schemas"]["DisplayHints"];
+        };
+        /**
+         * ClassifiedTransaction
+         * @description One classified transaction row from the banking pipeline.
+         */
+        ClassifiedTransaction: {
+            /** Transaction Id */
+            transaction_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Transaction Date */
+            transaction_date: string;
+            /** Description */
+            description: string;
+            /** Credit Debit */
+            credit_debit: string;
+            /** Amount */
+            amount: number;
+            /** Classification */
+            classification?: string | null;
+            /**
+             * Is Transfer
+             * @default false
+             */
+            is_transfer: boolean;
+            /**
+             * Is Large Deposit
+             * @default false
+             */
+            is_large_deposit: boolean;
+            /** Source File Id */
+            source_file_id?: string | null;
+            /** Source Page Number */
+            source_page_number?: number | null;
+            /** Running Balance */
+            running_balance?: number | null;
+        };
+        /** ClassifiedTransactionsResponse */
+        ClassifiedTransactionsResponse: {
+            /** Case Id */
+            case_id: string;
+            /**
+             * Transactions
+             * @default []
+             */
+            transactions: components["schemas"]["ClassifiedTransaction"][];
+            /**
+             * Total Count
+             * @default 0
+             */
+            total_count: number;
         };
         /** ConsentState */
         ConsentState: {
@@ -1138,6 +1525,47 @@ export interface components {
             /** Operator Email */
             operator_email: string;
         };
+        /** CreateRefinementRequest */
+        CreateRefinementRequest: {
+            /** Borrower Ids */
+            borrower_ids?: string[] | null;
+            /** Document Ids */
+            document_ids?: string[] | null;
+            /** Product Ids */
+            product_ids?: string[] | null;
+            /** Spec Ids */
+            spec_ids?: string[] | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** CreateRefinementResponse */
+        CreateRefinementResponse: {
+            /**
+             * Refinement Id
+             * Format: uuid
+             */
+            refinement_id: string;
+            /** Refinement Num */
+            refinement_num: number | null;
+            /** Status */
+            status: string;
+        };
+        /** CreateSampleCaseRequest */
+        CreateSampleCaseRequest: {
+            /** Sample Id */
+            sample_id: string;
+        };
+        /** CreateSampleCaseResponse */
+        CreateSampleCaseResponse: {
+            /** Case Id */
+            case_id: string;
+            /** State */
+            state: string;
+            /** File Count */
+            file_count: number;
+            /** Sample Id */
+            sample_id: string;
+        };
         /** CreateScenarioRequest */
         CreateScenarioRequest: {
             /** Approach */
@@ -1166,6 +1594,46 @@ export interface components {
             /** Description */
             description?: string | null;
         };
+        /** CreateSpecResponse */
+        CreateSpecResponse: {
+            /**
+             * Spec Id
+             * Format: uuid
+             */
+            spec_id: string;
+            /**
+             * Spec Version Id
+             * Format: uuid
+             */
+            spec_version_id: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * CreateTenantRequest
+         * @description Body for POST /auth/create-tenant — authenticated user self-registers a tenant.
+         */
+        CreateTenantRequest: {
+            /**
+             * Name
+             * @description Organization name
+             */
+            name: string;
+        };
+        /** CreateTenantResponse */
+        CreateTenantResponse: {
+            /** Tenant Id */
+            tenant_id: string;
+            /** Tenant Name */
+            tenant_name: string;
+            /** Role */
+            role: string;
+            /**
+             * Has Tenant
+             * @default true
+             */
+            has_tenant: boolean;
+        };
         /** CredentialResponse */
         CredentialResponse: {
             /**
@@ -1182,6 +1650,18 @@ export interface components {
             client_secret: string;
             /** Bearer Token */
             bearer_token: string;
+        };
+        /** DeleteScenarioResponse */
+        DeleteScenarioResponse: {
+            /** Status */
+            status: string;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /** Message */
+            message: string;
         };
         /** DisplayHints */
         DisplayHints: {
@@ -1311,6 +1791,23 @@ export interface components {
             file_id?: string | null;
             /** Source Type */
             source_type?: string | null;
+        };
+        /** FileResponse */
+        FileResponse: {
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** Original Filename */
+            original_filename?: string | null;
+            /** Uploaded At */
+            uploaded_at?: string | null;
+            /**
+             * Total Pages
+             * @default 0
+             */
+            total_pages: number;
         };
         /** FunctionCallResponse */
         FunctionCallResponse: {
@@ -1514,6 +2011,31 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
+        /** RefinementResponse */
+        RefinementResponse: {
+            /**
+             * Refinement Id
+             * Format: uuid
+             */
+            refinement_id: string;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /** Refinement Num */
+            refinement_num: number | null;
+            /** Borrower Ids */
+            borrower_ids: string[] | null;
+            /** Document Ids */
+            document_ids: string[] | null;
+            /** Product Ids */
+            product_ids: string[] | null;
+            /** Spec Ids */
+            spec_ids: string[] | null;
+            /** Note */
+            note: string | null;
+        };
         /** RegisterTenantRequest */
         RegisterTenantRequest: {
             /** Name */
@@ -1548,6 +2070,29 @@ export interface components {
             /** Review Notes */
             review_notes: string;
         };
+        /** SampleFileInfo */
+        SampleFileInfo: {
+            /** Filename */
+            filename: string;
+        };
+        /** SampleInfo */
+        SampleInfo: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Category */
+            category: string;
+            /** Files */
+            files: components["schemas"]["SampleFileInfo"][];
+        };
+        /** SampleListResponse */
+        SampleListResponse: {
+            /** Samples */
+            samples: components["schemas"]["SampleInfo"][];
+        };
         /** ScenarioComparisonResponse */
         ScenarioComparisonResponse: {
             /**
@@ -1569,6 +2114,27 @@ export interface components {
             refinement_num: number | null;
             /** Results */
             results: components["schemas"]["SpecResultResponse"][];
+        };
+        /** ScenarioDetailResponse */
+        ScenarioDetailResponse: {
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /** Approach */
+            approach: string | null;
+            /** Pool Version */
+            pool_version: number | null;
+            /** Status */
+            status: string | null;
+            /** Created At */
+            created_at: string | null;
         };
         /** SpecAuditResponse */
         SpecAuditResponse: {
@@ -1669,7 +2235,24 @@ export interface components {
             /** Passed Count */
             passed_count: number;
             /** Results */
-            results: components["schemas"]["TestResultResponse"][];
+            results: components["schemas"]["SpecTestResultResponse"][];
+        };
+        /** SpecTestResultResponse */
+        SpecTestResultResponse: {
+            /** Spec Name */
+            spec_name: string;
+            /** Case Name */
+            case_name: string;
+            /** Passed */
+            passed: boolean;
+            /** Expected Qualifying */
+            expected_qualifying: number | null;
+            /** Actual Qualifying */
+            actual_qualifying: number | null;
+            /** Matching Rules */
+            matching_rules: string[];
+            /** Errors */
+            errors: string[];
         };
         /** SpecVersionResponse */
         SpecVersionResponse: {
@@ -1697,6 +2280,24 @@ export interface components {
             /** Created At */
             created_at?: string | null;
         };
+        /** StartRefinementResponse */
+        StartRefinementResponse: {
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Message */
+            message: string;
+        };
+        /** StartScenarioResponse */
+        StartScenarioResponse: {
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Message */
+            message: string;
+        };
         /** SuiteResultResponse */
         SuiteResultResponse: {
             /** Product Id */
@@ -1712,22 +2313,67 @@ export interface components {
             /** Errors */
             errors: string[];
         };
-        /** TestResultResponse */
-        TestResultResponse: {
-            /** Spec Name */
-            spec_name: string;
-            /** Case Name */
-            case_name: string;
-            /** Passed */
-            passed: boolean;
-            /** Expected Qualifying */
-            expected_qualifying: number | null;
-            /** Actual Qualifying */
-            actual_qualifying: number | null;
-            /** Matching Rules */
-            matching_rules: string[];
-            /** Errors */
-            errors: string[];
+        /**
+         * TransactionRegion
+         * @description A single parquet region (typically one page of a bank statement).
+         */
+        TransactionRegion: {
+            /**
+             * Region Id
+             * Format: uuid
+             */
+            region_id: string;
+            /** Page Number */
+            page_number?: number | null;
+            /** Parquet Path */
+            parquet_path: string;
+            /**
+             * Columns
+             * @default []
+             */
+            columns: string[];
+            /**
+             * Row Count
+             * @default 0
+             */
+            row_count: number;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["TransactionRow"][];
+        };
+        /**
+         * TransactionRow
+         * @description One transaction row read from a parquet region.
+         */
+        TransactionRow: {
+            /** Row Index */
+            row_index?: number | null;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+        };
+        /** TransactionsResponse */
+        TransactionsResponse: {
+            /**
+             * Doc Id
+             * Format: uuid
+             */
+            doc_id: string;
+            /** Source Filename */
+            source_filename?: string | null;
+            /**
+             * Regions
+             * @default []
+             */
+            regions: components["schemas"]["TransactionRegion"][];
+            /**
+             * Total Rows
+             * @default 0
+             */
+            total_rows: number;
         };
         /** UploadConfig */
         UploadConfig: {
@@ -1775,89 +2421,6 @@ export interface components {
              */
             verified: boolean;
         };
-        /** ScenarioDetailResponse */
-        ScenarioDetailResponse: {
-            /**
-             * Scenario Id
-             * Format: uuid
-             */
-            scenario_id: string;
-            /** Version */
-            version: number;
-            /** Name */
-            name: string;
-            /** Is Latest */
-            is_latest: boolean;
-            /** Status */
-            status: string;
-            /** Created At */
-            created_at: string;
-            /**
-             * Approach
-             * @default qualified_mortgage
-             */
-            approach: string;
-            /** Borrower Ids */
-            borrower_ids: string[];
-            /** Loan Product Ids */
-            loan_product_ids: string[];
-            /**
-             * Document Ids
-             * @default []
-             */
-            document_ids: string[];
-            /** Y1 Override */
-            y1_override?: string | null;
-            /** Y2 Override */
-            y2_override?: string | null;
-            /** Note */
-            note?: string | null;
-            /** Rules Version */
-            rules_version: string;
-            /** Total Monthly Income */
-            total_monthly_income?: number | null;
-            /** Qualifying Income */
-            qualifying_income?: number | null;
-            /** Trend Status */
-            trend_status?: string | null;
-            /** Verifications */
-            verifications?: Record<string, never> | null;
-            /** Latest Refinement Id */
-            latest_refinement_id?: string | null;
-            /**
-             * Refinement Count
-             * @default 0
-             */
-            refinement_count: number;
-        };
-        /** StartScenarioResponse */
-        StartScenarioResponse: {
-            /** Status */
-            status: string;
-            /** Workflow Id */
-            workflow_id: string;
-            /** Message */
-            message: string;
-        };
-        /** DeleteScenarioResponse */
-        DeleteScenarioResponse: {
-            /** Status */
-            status: string;
-        };
-        /** CreatePortalTokenRequest */
-        CreatePortalTokenRequest: {
-            /** Identity Id */
-            identity_id: string;
-        };
-        /** CreatePortalTokenResponse */
-        CreatePortalTokenResponse: {
-            /** Token */
-            token: string;
-            /** Portal Url */
-            portal_url: string;
-            /** Expires At */
-            expires_at: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -1885,6 +2448,39 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    create_tenant_api_auth_create_tenant_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTenantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateTenantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2261,6 +2857,39 @@ export interface operations {
             };
         };
     };
+    reprocess_case_api_cases__case_id__reprocess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_entities_api_cases__case_id__entities_get: {
         parameters: {
             query?: never;
@@ -2355,6 +2984,37 @@ export interface operations {
             };
         };
     };
+    list_files_api_cases__case_id__files_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     upload_files_api_cases__case_id__files_post: {
         parameters: {
             query?: never;
@@ -2379,6 +3039,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_file_api_cases__case_id__files__file_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2458,12 +3150,12 @@ export interface operations {
             };
         };
     };
-    list_scenarios_api_cases__case_id__scenarios_get: {
+    list_scenarios_api_cases__id__scenarios_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                case_id: string;
+                id: string;
             };
             cookie?: never;
         };
@@ -2489,12 +3181,12 @@ export interface operations {
             };
         };
     };
-    create_scenario_api_cases__case_id__scenarios_post: {
+    create_scenario_api_cases__id__scenarios_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                case_id: string;
+                id: string;
             };
             cookie?: never;
         };
@@ -2511,6 +3203,236 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_api_cases__id__scenarios__sid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_scenario_api_cases__id__scenarios__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_scenario_api_cases__id__scenarios__sid__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_refinements_api_cases__id__scenarios__sid__refinements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefinementResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_refinement_api_cases__id__scenarios__sid__refinements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRefinementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateRefinementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_refinement_api_cases__id__scenarios__sid__refinements__rid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefinementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartRefinementResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2740,6 +3662,8 @@ export interface operations {
         parameters: {
             query?: {
                 doc_id?: string | null;
+                doc_type?: string | null;
+                tax_year?: number | null;
             };
             header?: never;
             path: {
@@ -2787,6 +3711,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_banking_transactions_api_cases__case_id__banking_transactions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassifiedTransactionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_cases__case_id__documents__doc_id__transactions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2851,9 +3838,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CreateSpecResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3245,6 +4230,93 @@ export interface operations {
             };
         };
     };
+    list_samples_api_samples_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleListResponse"];
+                };
+            };
+        };
+    };
+    create_sample_case_api_samples_create_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSampleCaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSampleCaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lendingpad_webhook_integrations_lendingpad_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-TEST"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_health_get: {
         parameters: {
             query?: never;
@@ -3267,14 +4339,11 @@ export interface operations {
             };
         };
     };
-    get_scenario_detail_api_cases__case_id__scenarios__scenario_id__get: {
+    health_api_health_get: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                case_id: string;
-                scenario_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3285,115 +4354,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScenarioDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_scenario_api_cases__case_id__scenarios__scenario_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                scenario_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteScenarioResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_scenario_api_cases__case_id__scenarios__scenario_id__start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                scenario_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StartScenarioResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_portal_token_api_cases__case_id__portal_tokens_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePortalTokenRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreatePortalTokenResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
         };

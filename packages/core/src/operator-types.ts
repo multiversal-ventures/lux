@@ -150,6 +150,7 @@ export interface StartCaseResponse {
 	case_id: string;
 	status: string;
 	workflow_id?: string;
+	file_count?: number;
 }
 
 export interface StartAddFilesFileInfo {

@@ -56,6 +56,8 @@ export interface VeritasCaseDetail {
 	state: string;
 	pool_version: number;
 	created_at: string | null;
+	file_count?: number;
+	primary_borrower?: string | null;
 }
 
 export interface SampleFileInfo {
@@ -246,6 +248,13 @@ export class VeritasClient {
 		});
 	}
 
+	async createCase(body?: { spec_id?: string | null }): Promise<{ case_id: string; spec_id: string | null }> {
+		return this.requestJson(`/api/cases`, {
+			method: "POST",
+			body: JSON.stringify(body?.spec_id ? { spec_id: body.spec_id } : {}),
+		});
+	}
+
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {
 		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
 	}
@@ -261,6 +270,17 @@ export class VeritasClient {
 	async getCaseExtractions(caseId: string, docId?: string): Promise<components["schemas"]["ExtractionResponse"][]> {
 		const qs = docId ? `?doc_id=${encodeURIComponent(docId)}` : '';
 		return this.requestJson<components["schemas"]["ExtractionResponse"][]>(`/api/cases/${caseId}/extractions${qs}`);
+	}
+
+	async uploadCasePdfs(
+		caseId: string,
+		files: File[] | FileList,
+	): Promise<{ case_id: string; workflow_id: string; files_queued: number; status: string }> {
+		const form = new FormData();
+		for (const f of Array.from(files)) {
+			form.append("files", f, f.name);
+		}
+		return this.uploadMultipart(`/api/cases/${caseId}/files`, form);
 	}
 
 	async reprocessCase(caseId: string): Promise<{ case_id: string; workflow_id: string; page_count: number; status: string }> {

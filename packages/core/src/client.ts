@@ -344,6 +344,71 @@ export class VeritasClient {
 		return res.blob();
 	}
 
+	/** Authenticated GET returning a Blob plus filename from Content-Disposition. */
+	async fetchAuthorizedBinary(path: string): Promise<{ blob: Blob; filename: string }> {
+		const token = await this.cfg.auth.getToken();
+		const headers: Record<string, string> = {};
+		if (token) headers.Authorization = `Bearer ${token}`;
+		const url = this.resolvePath(path);
+		const res = await fetch(url, { headers });
+
+		if (!res.ok) {
+			const text = await res.text();
+			let errorData: unknown;
+			try {
+				errorData = text ? JSON.parse(text) : {};
+			} catch {
+				errorData = text || {};
+			}
+			const ed = errorData as Record<string, unknown>;
+			const detail = ed?.detail;
+			let errorMessage: string;
+			if (typeof detail === "object" && detail !== null && "message" in detail) {
+				errorMessage = String((detail as { message?: unknown }).message ?? "Error");
+			} else if (typeof detail === "string") {
+				errorMessage = detail;
+			} else if (typeof ed?.message === "string") {
+				errorMessage = ed.message;
+			} else {
+				errorMessage = `API Error: ${res.status}`;
+			}
+			const structured = typeof detail === "object" && detail !== null ? detail : errorData;
+			const error = new APIError(errorMessage, res.status, structured);
+			this.cfg.hooks?.onApiError?.({
+				error_type: "server",
+				error_message: error.message,
+				error_code: String(res.status),
+				page_url:
+					typeof globalThis !== "undefined" && "location" in globalThis
+						? globalThis.location.href
+						: undefined,
+			});
+			throw error;
+		}
+
+		const cd = res.headers.get("Content-Disposition");
+		let filename = "export.xlsx";
+		if (cd) {
+			const utf8Star = cd.match(/filename\*=UTF-8''([^;\s]+)/i);
+			const quoted = cd.match(/filename="([^"]+)"/i);
+			const bare = cd.match(/filename=([^;\s]+)/i);
+			if (utf8Star?.[1]) {
+				try {
+					filename = decodeURIComponent(utf8Star[1].trim());
+				} catch {
+					filename = utf8Star[1].trim();
+				}
+			} else if (quoted?.[1]) {
+				filename = quoted[1].trim();
+			} else if (bare?.[1]) {
+				filename = bare[1].replace(/^"+|"+$/g, "").trim();
+			}
+		}
+
+		const blob = await res.blob();
+		return { blob, filename };
+	}
+
 	async getCaseEvents(caseId: string): Promise<VeritasCaseEvent[]> {
 		return this.requestJson<VeritasCaseEvent[]>(`/api/cases/${caseId}/events`);
 	}

@@ -25,6 +25,7 @@ export interface BankingAccount {
 	balance_reconciled: boolean | null;
 	coverage_passed: boolean | null;
 	summary_matched: boolean | null;
+	header_fallback: boolean | null;
 	source_doc_ids: string[];
 }
 

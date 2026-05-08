@@ -884,6 +884,94 @@
         }
       }
     },
+    "/api/cases/{case_id}/stages/{stage}/excel": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Download Stage Excel",
+        "description": "Return an ``.xlsx`` for ``extraction``, ``income``, ``unified_bank_statement``, or ``credit``.\n\nQuery params mirror the legacy Gunnr ``excel-url`` contract (refinement-aware income export TBD).",
+        "operationId": "download_stage_excel_api_cases__case_id__stages__stage__excel_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stage"
+            }
+          },
+          {
+            "name": "product",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product"
+            }
+          },
+          {
+            "name": "refinement_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Refinement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/files": {
       "get": {
         "tags": [
@@ -3373,6 +3461,17 @@
               }
             ],
             "title": "Summary Matched"
+          },
+          "header_fallback": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Header Fallback"
           },
           "source_doc_ids": {
             "items": {

@@ -48,6 +48,27 @@ export interface BankingResponse {
 	total_average_monthly: number;
 }
 
+export interface ClassifiedTransaction {
+	transaction_id: string;
+	account_id: string;
+	transaction_date: string;
+	description: string;
+	credit_debit: "CR" | "DR";
+	amount: number;
+	classification: string | null;
+	is_transfer: boolean;
+	is_large_deposit: boolean;
+	source_file_id: string | null;
+	source_page_number: number | null;
+	running_balance: number | null;
+}
+
+export interface ClassifiedTransactionsResponse {
+	case_id: string;
+	transactions: ClassifiedTransaction[];
+	total_count: number;
+}
+
 export interface TransactionRow {
 	row_index: number | null;
 	data: Record<string, unknown>;

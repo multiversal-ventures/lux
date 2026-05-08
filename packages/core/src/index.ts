@@ -56,6 +56,7 @@ export type {
 	VeritasCaseDetail,
 	VeritasCaseEvent,
 	VeritasCaseFile,
+	VeritasCaseDocument,
 	SampleFileInfo,
 	SampleInfo,
 	SampleListResponse,

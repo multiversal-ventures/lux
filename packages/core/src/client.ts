@@ -28,6 +28,18 @@ export interface VeritasCaseFile {
 	file_id: string;
 	original_filename: string | null;
 	uploaded_at: string | null;
+	total_pages: number;
+}
+
+export interface VeritasCaseDocument {
+	doc_id: string;
+	doc_type: string | null;
+	original_filename: string | null;
+	file_id: string;
+	page_numbers: number[] | null;
+	effective_period_start: string | null;
+	effective_period_end: string | null;
+	tax_year: number | null;
 }
 
 export interface VeritasCaseEvent {
@@ -240,6 +252,24 @@ export class VeritasClient {
 
 	async getCaseFiles(caseId: string): Promise<VeritasCaseFile[]> {
 		return this.requestJson<VeritasCaseFile[]>(`/api/cases/${caseId}/files`);
+	}
+
+	async getCaseDocuments(caseId: string): Promise<VeritasCaseDocument[]> {
+		return this.requestJson<VeritasCaseDocument[]>(`/api/cases/${caseId}/documents`);
+	}
+
+	pagePngPath(caseId: string, fileId: string, pageNumber: number): string {
+		return this.resolvePath(`/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`);
+	}
+
+	async fetchBlob(path: string): Promise<Blob> {
+		const token = await this.cfg.auth.getToken();
+		const headers: Record<string, string> = {};
+		if (token) headers.Authorization = `Bearer ${token}`;
+		const url = this.resolvePath(path);
+		const res = await fetch(url, { headers });
+		if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+		return res.blob();
 	}
 
 	async getCaseEvents(caseId: string): Promise<VeritasCaseEvent[]> {

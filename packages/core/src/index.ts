@@ -33,11 +33,11 @@ export type ConsentState = components["schemas"]["ConsentState"];
 /** A typed intent to submit to Veritas */
 export type Intent = components["schemas"]["Intent"];
 
-/** Request body for POST /cases/{id}/portal-tokens */
-export type CreatePortalTokenRequest = components["schemas"]["CreatePortalTokenRequest"];
+/** Request body for POST /cases/{id}/portal-tokens — not yet in OpenAPI spec */
+export type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
 
-/** Response from POST /cases/{id}/portal-tokens */
-export type CreatePortalTokenResponse = components["schemas"]["CreatePortalTokenResponse"];
+/** Response from POST /cases/{id}/portal-tokens — not yet in OpenAPI spec */
+export type CreatePortalTokenResponse = { token: string; expires_at: string };
 
 export * from "./auth.js";
 

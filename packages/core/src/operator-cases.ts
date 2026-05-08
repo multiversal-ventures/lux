@@ -11,8 +11,9 @@ import type {
 } from "./operator-types.js";
 import type { components } from "./generated.js";
 
-type CreatePortalTokenRequest = components["schemas"]["CreatePortalTokenRequest"];
-type CreatePortalTokenResponse = components["schemas"]["CreatePortalTokenResponse"];
+// Defined inline — not yet in the OpenAPI spec.
+type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
+type CreatePortalTokenResponse = { token: string; expires_at: string };
 
 /** Stream SSE case events from an authenticated URL, calling onEvent per parsed event. */
 async function consumeSseEventStream(

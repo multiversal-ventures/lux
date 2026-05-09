@@ -34,7 +34,7 @@ export function ScenarioSidebar({
         const scenarioId = String(s.scenario_id);
         const isActive = scenarioId === activeScenarioId;
         const isExpanded = expandedId === scenarioId;
-        const income = null; // rendering_hints not on ScenarioComparisonResponse; use product_specs total if needed
+        // income intentionally omitted — rendering_hints not on ScenarioComparisonResponse
         const approachLabel = APPROACH_LABELS[(s.approach ?? "")] ?? s.approach ?? "";
         const refinements: RefinementResponse[] = s.refinements ?? [];
 
@@ -62,11 +62,6 @@ export function ScenarioSidebar({
               </div>
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.125rem" }}>
                 <span style={{ fontSize: "0.75rem", color: "#64748b" }}>{approachLabel}</span>
-                {income != null && (
-                  <span style={{ fontSize: "0.75rem", color: "#057a55", fontWeight: 600 }}>
-                    ${income.toLocaleString("en-US", { maximumFractionDigits: 0 })}/mo
-                  </span>
-                )}
               </div>
             </button>
 

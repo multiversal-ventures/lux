@@ -21,9 +21,13 @@ export function useScenarioAdvice(caseId: string, scenarioId: string): UseScenar
     setIsLoading(true);
     setError(null);
     try {
-      const result = await client.getCaseScenarioAdvice(caseId, scenarioId);
-      setItems(result.items ?? []);
-      setNarrative(result.narrative || null);
+      const { data, error } = await client.getCaseScenarioAdvice(caseId, scenarioId);
+      if (error) {
+        setError(new Error(error.message));
+      } else {
+        setItems(data?.items ?? []);
+        setNarrative(data?.narrative || null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

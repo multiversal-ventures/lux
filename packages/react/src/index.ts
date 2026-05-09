@@ -62,3 +62,35 @@ export { Checklist } from "./components/Checklist/index.js";
 export type { ChecklistProps } from "./components/Checklist/index.js";
 export { ConsentBanner } from "./components/ConsentBanner/index.js";
 export type { ConsentBannerProps } from "./components/ConsentBanner/index.js";
+
+// Scenario compound component system
+export {
+  CaseScenarioProvider,
+  ScenarioProvider,
+  useCaseScenarioContext,
+  useScenarioContext,
+  ScenarioRenderer,
+  ScenarioHeader,
+  ScenarioTabs,
+  ScenarioTabPanel,
+  ScenarioCalcLogs,
+  ScenarioRefs,
+  ScenarioAdvice,
+  ScenarioSidebar,
+  ScenarioComparison,
+  useScenarioAdvice,
+} from "./components/Scenario/index.js";
+export type {
+  CaseScenarioProviderProps,
+  ScenarioProviderProps,
+  ScenarioRendererProps,
+  ScenarioHeaderProps,
+  ScenarioTabsProps,
+  ScenarioTabPanelProps,
+  ScenarioCalcLogsProps,
+  ScenarioRefsProps,
+  ScenarioAdviceProps,
+  ScenarioSidebarProps,
+  ScenarioComparisonProps,
+  UseScenarioAdviceReturn,
+} from "./components/Scenario/index.js";

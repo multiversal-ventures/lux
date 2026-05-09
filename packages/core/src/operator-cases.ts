@@ -278,6 +278,22 @@ export function createCaseMethods(
 		}
 	}
 
+	/** Fetch AI-generated advice items for a scenario. */
+	async function getCaseScenarioAdvice(
+		caseId: string,
+		scenarioId: string,
+	): Promise<Result<components["schemas"]["ScenarioAdviceResponse"]>> {
+		try {
+			const res = await fetch(
+				`${base}/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/advice`,
+				{ headers: authHeaders() },
+			);
+			return await request<components["schemas"]["ScenarioAdviceResponse"]>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	return {
 		listCases,
 		createCase,
@@ -295,5 +311,6 @@ export function createCaseMethods(
 		listTransactions,
 		pagePngUrl,
 		createPortalToken,
+		getCaseScenarioAdvice,
 	};
 }

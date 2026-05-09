@@ -23,3 +23,5 @@ export { ScenarioSidebar } from "./ScenarioSidebar.js";
 export type { ScenarioSidebarProps } from "./ScenarioSidebar.js";
 export { ScenarioComparison } from "./ScenarioComparison.js";
 export type { ScenarioComparisonProps } from "./ScenarioComparison.js";
+export { ScenarioRenderer } from "./ScenarioRenderer.js";
+export type { ScenarioRendererProps } from "./ScenarioRenderer.js";

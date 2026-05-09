@@ -517,6 +517,15 @@ export class VeritasClient {
 		return { ...raw, status: normalizeVeritasStatus(raw.status) };
 	}
 
+	async getCaseScenarioSummary(
+		caseId: string,
+		scenarioId: string,
+	): Promise<components["schemas"]["ScenarioSummaryResponse"]> {
+		return this.requestJson<components["schemas"]["ScenarioSummaryResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/summary`,
+		);
+	}
+
 	async createCaseScenario(
 		caseId: string,
 		body: components["schemas"]["CreateScenarioRequest"],
@@ -586,6 +595,26 @@ export class VeritasClient {
 		return this.requestJson<components["schemas"]["StartRefinementResponse"]>(
 			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements/${encodeURIComponent(refinementId)}/start`,
 			{ method: "POST" },
+		);
+	}
+
+	// ─── Audit ──────────────────────────────────────────────────────────────────
+
+	async getAudit(caseId: string): Promise<components["schemas"]["SpecAuditResponse"][]> {
+		return this.requestJson<components["schemas"]["SpecAuditResponse"][]>(
+			`/api/cases/${encodeURIComponent(caseId)}/audit`,
+		);
+	}
+
+	async getSpecAudit(caseId: string, specName: string): Promise<components["schemas"]["SpecAuditResponse"]> {
+		return this.requestJson<components["schemas"]["SpecAuditResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/audit/specs/${encodeURIComponent(specName)}`,
+		);
+	}
+
+	async getCaseScenarioAdvice(caseId: string, scenarioId: string): Promise<components["schemas"]["ScenarioAdviceResponse"]> {
+		return this.requestJson<components["schemas"]["ScenarioAdviceResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/advice`,
 		);
 	}
 

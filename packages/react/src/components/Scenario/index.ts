@@ -15,3 +15,7 @@ export { ScenarioCalcLogs } from "./ScenarioCalcLogs.js";
 export type { ScenarioCalcLogsProps } from "./ScenarioCalcLogs.js";
 export { ScenarioRefs } from "./ScenarioRefs.js";
 export type { ScenarioRefsProps } from "./ScenarioRefs.js";
+export { ScenarioAdvice } from "./ScenarioAdvice.js";
+export type { ScenarioAdviceProps } from "./ScenarioAdvice.js";
+export { useScenarioAdvice } from "./useScenarioAdvice.js";
+export type { UseScenarioAdviceReturn } from "./useScenarioAdvice.js";

@@ -1,5 +1,6 @@
 import type { AuthProvider } from "./auth.js";
 import type { components } from "./generated.js";
+import { normalizeVeritasStatus, normalizeRefinement, type NormalizedRefinement } from "./normalize.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VeritasClient — typed HTTP client for Veritas / dashboard-style apps
@@ -495,6 +496,97 @@ export class VeritasClient {
 			method: "POST",
 			body: JSON.stringify({ sample_id: sampleId }),
 		});
+	}
+
+	// ─── Scenarios ─────────────────────────────────────────────────────────────
+
+	async getCaseScenarios(caseId: string): Promise<components["schemas"]["ScenarioComparisonResponse"][]> {
+		const rows = await this.requestJson<components["schemas"]["ScenarioComparisonResponse"][]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios`,
+		);
+		return (rows ?? []).map((s) => ({ ...s, status: normalizeVeritasStatus(s.status) }));
+	}
+
+	async getCaseScenario(
+		caseId: string,
+		scenarioId: string,
+	): Promise<components["schemas"]["ScenarioDetailResponse"]> {
+		const raw = await this.requestJson<components["schemas"]["ScenarioDetailResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}`,
+		);
+		return { ...raw, status: normalizeVeritasStatus(raw.status) };
+	}
+
+	async createCaseScenario(
+		caseId: string,
+		body: components["schemas"]["CreateScenarioRequest"],
+	): Promise<components["schemas"]["CreateScenarioResponse"]> {
+		return this.requestJson<components["schemas"]["CreateScenarioResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	async startCaseScenario(
+		caseId: string,
+		scenarioId: string,
+	): Promise<components["schemas"]["StartScenarioResponse"]> {
+		return this.requestJson<components["schemas"]["StartScenarioResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/start`,
+			{ method: "POST" },
+		);
+	}
+
+	async deleteCaseScenario(
+		caseId: string,
+		scenarioId: string,
+	): Promise<components["schemas"]["DeleteScenarioResponse"]> {
+		return this.requestJson<components["schemas"]["DeleteScenarioResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}`,
+			{ method: "DELETE" },
+		);
+	}
+
+	// ─── Refinements ────────────────────────────────────────────────────────────
+
+	async getCaseScenarioRefinements(caseId: string, scenarioId: string): Promise<NormalizedRefinement[]> {
+		const rows = await this.requestJson<components["schemas"]["RefinementResponse"][]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements`,
+		);
+		return (rows ?? []).map(normalizeRefinement);
+	}
+
+	async getCaseScenarioRefinement(
+		caseId: string,
+		scenarioId: string,
+		refinementId: string,
+	): Promise<NormalizedRefinement> {
+		const raw = await this.requestJson<components["schemas"]["RefinementResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements/${encodeURIComponent(refinementId)}`,
+		);
+		return normalizeRefinement(raw);
+	}
+
+	async createCaseScenarioRefinement(
+		caseId: string,
+		scenarioId: string,
+		body: components["schemas"]["CreateRefinementRequest"],
+	): Promise<components["schemas"]["CreateRefinementResponse"]> {
+		return this.requestJson<components["schemas"]["CreateRefinementResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	async startCaseScenarioRefinement(
+		caseId: string,
+		scenarioId: string,
+		refinementId: string,
+	): Promise<components["schemas"]["StartRefinementResponse"]> {
+		return this.requestJson<components["schemas"]["StartRefinementResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements/${encodeURIComponent(refinementId)}/start`,
+			{ method: "POST" },
+		);
 	}
 
 	/**

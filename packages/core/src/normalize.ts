@@ -46,6 +46,56 @@ export interface NormalizedQualifyResult {
 }
 
 /**
+ * Normalize Veritas entity lifecycle status values to standard UI states.
+ * Veritas uses "active" for scenarios/refinements that have completed a run.
+ */
+export function normalizeVeritasStatus(raw: string | null | undefined): string {
+	if (!raw) return "unknown";
+	return raw === "active" ? "completed" : raw;
+}
+
+// ─── Refinement normalization ─────────────────────────────────────────────────
+
+/** Refinement with all ID arrays guaranteed to be string[], never null/encoded. */
+export interface NormalizedRefinement {
+	refinement_id: string;
+	scenario_id: string;
+	refinement_num: number | null;
+	borrower_ids: string[];
+	document_ids: string[];
+	product_ids: string[];
+	spec_ids: string[];
+	note: string | null;
+}
+
+/**
+ * Normalize a raw RefinementResponse from the Veritas API.
+ * Applies parseStringArray to all ID arrays (handles Python-list encoded strings)
+ * and ensures nulls become empty arrays.
+ */
+export function normalizeRefinement(r: {
+	refinement_id: string;
+	scenario_id: string;
+	refinement_num?: number | null;
+	borrower_ids?: string[] | null;
+	document_ids?: string[] | null;
+	product_ids?: string[] | null;
+	spec_ids?: string[] | null;
+	note?: string | null;
+}): NormalizedRefinement {
+	return {
+		refinement_id: r.refinement_id,
+		scenario_id: r.scenario_id,
+		refinement_num: r.refinement_num ?? null,
+		borrower_ids: parseStringArray(r.borrower_ids),
+		document_ids: parseStringArray(r.document_ids),
+		product_ids: parseStringArray(r.product_ids),
+		spec_ids: parseStringArray(r.spec_ids),
+		note: r.note ?? null,
+	};
+}
+
+/**
  * Parse a qualify.completed event's products[] into { primary, all }.
  *
  * Selection priority for primary:

@@ -129,5 +129,5 @@ export {
 	uploadFilesToCase,
 } from "./operator-uploads.js";
 
-export { normalizeQualifyResult, parseStringArray } from "./normalize.js";
-export type { QualifyResult, NormalizedQualifyResult } from "./normalize.js";
+export { normalizeQualifyResult, parseStringArray, normalizeVeritasStatus, normalizeRefinement } from "./normalize.js";
+export type { QualifyResult, NormalizedQualifyResult, NormalizedRefinement } from "./normalize.js";

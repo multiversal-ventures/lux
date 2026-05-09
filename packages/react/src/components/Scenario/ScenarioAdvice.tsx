@@ -9,7 +9,7 @@ const SEVERITY_ICONS: Record<string, string> = {
 };
 
 export interface ScenarioAdviceProps {
-  onAction: (code: string, action: string) => void;
+  onAction?: (code: string, action: string) => void;
   className?: string;
 }
 
@@ -30,7 +30,7 @@ export function ScenarioAdvice({ onAction, className }: ScenarioAdviceProps) {
           <span>{SEVERITY_ICONS[item.severity] ?? "ℹ️"}</span>
           <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: "0.875rem" }}>{item.message}</p>
-            {item.action && item.action_label && (
+            {item.action && item.action_label && onAction && (
               <button
                 onClick={() => onAction(item.code, item.action!)}
                 style={{ marginTop: "0.375rem", fontSize: "0.75rem", padding: "0.25rem 0.625rem", background: "#1d4ed8", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer" }}

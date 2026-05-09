@@ -1386,7 +1386,7 @@
           "scenarios"
         ],
         "summary": "Get Scenario",
-        "description": "Get detail for one scenario.",
+        "description": "Get detail for one scenario, including server-side rendering hints.",
         "operationId": "get_scenario_api_cases__id__scenarios__sid__get",
         "security": [
           {
@@ -1538,6 +1538,124 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StartScenarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}/summary": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Get Scenario Summary",
+        "description": "Generate an LLM-powered narrative summary for a scenario.\n\nBuilds context from the scenario's approach, latest refinement selections,\nentity labels, and document types, then calls the AI provider.\nFalls back to a structured template if AI is unavailable.",
+        "operationId": "get_scenario_summary_api_cases__id__scenarios__sid__summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{id}/scenarios/{sid}/advice": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Get Scenario Advice",
+        "description": "Rule-based advice items + LLM narrative. Falls back to items-only if AI unavailable.",
+        "operationId": "get_scenario_advice_api_cases__id__scenarios__sid__advice_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAdviceResponse"
                 }
               }
             }
@@ -5350,6 +5468,86 @@
         ],
         "title": "ProductResponse"
       },
+      "ProductSpecGroup": {
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "title": "Product Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "agency": {
+            "type": "string",
+            "title": "Agency"
+          },
+          "spec_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Spec Names"
+          },
+          "total_monthly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Monthly"
+          }
+        },
+        "type": "object",
+        "required": [
+          "product_id",
+          "display_name",
+          "agency",
+          "spec_names"
+        ],
+        "title": "ProductSpecGroup"
+      },
+      "RefinementError": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ],
+            "title": "Severity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "severity"
+        ],
+        "title": "RefinementError"
+      },
       "RefinementResponse": {
         "properties": {
           "refinement_id": {
@@ -5439,6 +5637,61 @@
               }
             ],
             "title": "Note"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RefinementError"
+            },
+            "type": "array",
+            "title": "Errors",
+            "default": []
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "total_monthly_income": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Monthly Income"
+          },
+          "loan_product_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loan Product Ids"
           }
         },
         "type": "object",
@@ -5521,6 +5774,88 @@
         ],
         "title": "RejectRequest"
       },
+      "RenderingHints": {
+        "properties": {
+          "is_non_qm": {
+            "type": "boolean",
+            "title": "Is Non Qm"
+          },
+          "show_product_tabs": {
+            "type": "boolean",
+            "title": "Show Product Tabs"
+          },
+          "effective_product_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Effective Product Ids"
+          },
+          "effective_borrower_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Effective Borrower Ids"
+          },
+          "effective_document_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Effective Document Ids"
+          },
+          "best_qualifying_income": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Qualifying Income"
+          },
+          "approach_type": {
+            "type": "string",
+            "enum": [
+              "qm_standard",
+              "non_qm_bank_statement",
+              "non_qm_1099",
+              "dscr"
+            ],
+            "title": "Approach Type"
+          },
+          "product_specs": {
+            "items": {
+              "$ref": "#/components/schemas/ProductSpecGroup"
+            },
+            "type": "array",
+            "title": "Product Specs",
+            "default": []
+          },
+          "advice": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioAdviceItem"
+            },
+            "type": "array",
+            "title": "Advice",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_non_qm",
+          "show_product_tabs",
+          "effective_product_ids",
+          "effective_borrower_ids",
+          "effective_document_ids",
+          "best_qualifying_income",
+          "approach_type"
+        ],
+        "title": "RenderingHints",
+        "description": "UI rendering decisions resolved server-side from scenario + manifest data.\n\nComputed once by Veritas so every consumer (React, Vue, agents) gets\nidentical behavior without re-implementing detection logic locally."
+      },
       "SampleFileInfo": {
         "properties": {
           "filename": {
@@ -5585,6 +5920,88 @@
           "samples"
         ],
         "title": "SampleListResponse"
+      },
+      "ScenarioAdviceItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "action_required",
+              "warning",
+              "info"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "action_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Label"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "ScenarioAdviceItem"
+      },
+      "ScenarioAdviceResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioAdviceItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "narrative": {
+            "type": "string",
+            "title": "Narrative"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "narrative"
+        ],
+        "title": "ScenarioAdviceResponse"
       },
       "ScenarioComparisonResponse": {
         "properties": {
@@ -5667,6 +6084,22 @@
             },
             "type": "array",
             "title": "Results"
+          },
+          "product_specs": {
+            "items": {
+              "$ref": "#/components/schemas/ProductSpecGroup"
+            },
+            "type": "array",
+            "title": "Product Specs",
+            "default": []
+          },
+          "refinements": {
+            "items": {
+              "$ref": "#/components/schemas/RefinementResponse"
+            },
+            "type": "array",
+            "title": "Refinements",
+            "default": []
           }
         },
         "type": "object",
@@ -5738,6 +6171,16 @@
               }
             ],
             "title": "Created At"
+          },
+          "rendering_hints": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenderingHints"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5750,6 +6193,19 @@
           "created_at"
         ],
         "title": "ScenarioDetailResponse"
+      },
+      "ScenarioSummaryResponse": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary"
+        ],
+        "title": "ScenarioSummaryResponse"
       },
       "SpecAuditResponse": {
         "properties": {

@@ -129,5 +129,20 @@ export {
 	uploadFilesToCase,
 } from "./operator-uploads.js";
 
-export { normalizeQualifyResult, parseStringArray, normalizeVeritasStatus, normalizeRefinement } from "./normalize.js";
+export {
+	normalizeQualifyResult,
+	parseStringArray,
+	normalizeVeritasStatus,
+	normalizeRefinement,
+	isNonQmBankStatementByProducts,
+	NON_QM_BANK_STATEMENT_PRODUCT_IDS,
+} from "./normalize.js";
 export type { QualifyResult, NormalizedQualifyResult, NormalizedRefinement } from "./normalize.js";
+
+/** Server-resolved rendering decisions for a scenario. */
+export type VeritasRenderingHints = import("./generated.js").components["schemas"]["RenderingHints"];
+
+export type VeritasProductSpecGroup = components["schemas"]["ProductSpecGroup"];
+export type VeritasScenarioAdviceItem = components["schemas"]["ScenarioAdviceItem"];
+export type VeritasScenarioAdviceResponse = components["schemas"]["ScenarioAdviceResponse"];
+export type VeritasRefinementError = components["schemas"]["RefinementError"];

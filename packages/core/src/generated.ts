@@ -523,7 +523,7 @@ export interface paths {
         };
         /**
          * Get Scenario
-         * @description Get detail for one scenario.
+         * @description Get detail for one scenario, including server-side rendering hints.
          */
         get: operations["get_scenario_api_cases__id__scenarios__sid__get"];
         put?: never;
@@ -552,6 +552,50 @@ export interface paths {
          * @description Start a scenario run.
          */
         post: operations["start_scenario_api_cases__id__scenarios__sid__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario Summary
+         * @description Generate an LLM-powered narrative summary for a scenario.
+         *
+         *     Builds context from the scenario's approach, latest refinement selections,
+         *     entity labels, and document types, then calls the AI provider.
+         *     Falls back to a structured template if AI is unavailable.
+         */
+        get: operations["get_scenario_summary_api_cases__id__scenarios__sid__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/advice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario Advice
+         * @description Rule-based advice items + LLM narrative. Falls back to items-only if AI unavailable.
+         */
+        get: operations["get_scenario_advice_api_cases__id__scenarios__sid__advice_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2035,6 +2079,33 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
+        /** ProductSpecGroup */
+        ProductSpecGroup: {
+            /** Product Id */
+            product_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Agency */
+            agency: string;
+            /** Spec Names */
+            spec_names: string[];
+            /** Total Monthly */
+            total_monthly?: number | null;
+        };
+        /** RefinementError */
+        RefinementError: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Domain */
+            domain?: string | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning";
+        };
         /** RefinementResponse */
         RefinementResponse: {
             /**
@@ -2059,6 +2130,19 @@ export interface components {
             spec_ids: string[] | null;
             /** Note */
             note: string | null;
+            /** Status */
+            status?: string | null;
+            /**
+             * Errors
+             * @default []
+             */
+            errors: components["schemas"]["RefinementError"][];
+            /** Name */
+            name?: string | null;
+            /** Total Monthly Income */
+            total_monthly_income?: number | null;
+            /** Loan Product Ids */
+            loan_product_ids?: string[] | null;
         };
         /** RegisterTenantRequest */
         RegisterTenantRequest: {
@@ -2094,6 +2178,42 @@ export interface components {
             /** Review Notes */
             review_notes: string;
         };
+        /**
+         * RenderingHints
+         * @description UI rendering decisions resolved server-side from scenario + manifest data.
+         *
+         *     Computed once by Veritas so every consumer (React, Vue, agents) gets
+         *     identical behavior without re-implementing detection logic locally.
+         */
+        RenderingHints: {
+            /** Is Non Qm */
+            is_non_qm: boolean;
+            /** Show Product Tabs */
+            show_product_tabs: boolean;
+            /** Effective Product Ids */
+            effective_product_ids: string[];
+            /** Effective Borrower Ids */
+            effective_borrower_ids: string[];
+            /** Effective Document Ids */
+            effective_document_ids: string[];
+            /** Best Qualifying Income */
+            best_qualifying_income: number | null;
+            /**
+             * Approach Type
+             * @enum {string}
+             */
+            approach_type: "qm_standard" | "non_qm_bank_statement" | "non_qm_1099" | "dscr";
+            /**
+             * Product Specs
+             * @default []
+             */
+            product_specs: components["schemas"]["ProductSpecGroup"][];
+            /**
+             * Advice
+             * @default []
+             */
+            advice: components["schemas"]["ScenarioAdviceItem"][];
+        };
         /** SampleFileInfo */
         SampleFileInfo: {
             /** Filename */
@@ -2117,6 +2237,31 @@ export interface components {
             /** Samples */
             samples: components["schemas"]["SampleInfo"][];
         };
+        /** ScenarioAdviceItem */
+        ScenarioAdviceItem: {
+            /** Code */
+            code: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "action_required" | "warning" | "info";
+            /** Message */
+            message: string;
+            /** Action */
+            action?: string | null;
+            /** Action Label */
+            action_label?: string | null;
+            /** Detail */
+            detail?: string | null;
+        };
+        /** ScenarioAdviceResponse */
+        ScenarioAdviceResponse: {
+            /** Items */
+            items: components["schemas"]["ScenarioAdviceItem"][];
+            /** Narrative */
+            narrative: string;
+        };
         /** ScenarioComparisonResponse */
         ScenarioComparisonResponse: {
             /**
@@ -2138,6 +2283,16 @@ export interface components {
             refinement_num: number | null;
             /** Results */
             results: components["schemas"]["SpecResultResponse"][];
+            /**
+             * Product Specs
+             * @default []
+             */
+            product_specs: components["schemas"]["ProductSpecGroup"][];
+            /**
+             * Refinements
+             * @default []
+             */
+            refinements: components["schemas"]["RefinementResponse"][];
         };
         /** ScenarioDetailResponse */
         ScenarioDetailResponse: {
@@ -2159,6 +2314,12 @@ export interface components {
             status: string | null;
             /** Created At */
             created_at: string | null;
+            rendering_hints?: components["schemas"]["RenderingHints"] | null;
+        };
+        /** ScenarioSummaryResponse */
+        ScenarioSummaryResponse: {
+            /** Summary */
+            summary: string;
         };
         /** SpecAuditResponse */
         SpecAuditResponse: {
@@ -3358,6 +3519,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StartScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_summary_api_cases__id__scenarios__sid__summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_advice_api_cases__id__scenarios__sid__advice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAdviceResponse"];
                 };
             };
             /** @description Validation Error */

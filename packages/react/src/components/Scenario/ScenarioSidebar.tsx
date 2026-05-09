@@ -34,9 +34,9 @@ export function ScenarioSidebar({
         const scenarioId = String(s.scenario_id);
         const isActive = scenarioId === activeScenarioId;
         const isExpanded = expandedId === scenarioId;
-        const income = (s as any).rendering_hints?.best_qualifying_income ?? null;
+        const income = null; // rendering_hints not on ScenarioComparisonResponse; use product_specs total if needed
         const approachLabel = APPROACH_LABELS[(s.approach ?? "")] ?? s.approach ?? "";
-        const refinements: RefinementResponse[] = (s as any).refinements ?? [];
+        const refinements: RefinementResponse[] = s.refinements ?? [];
 
         return (
           <div key={scenarioId}>
@@ -54,7 +54,7 @@ export function ScenarioSidebar({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
-                  {"name" in s ? String((s as Record<string, unknown>).name) : approachLabel}
+                  {approachLabel}
                 </span>
                 <span style={{ fontSize: "0.75rem", color: s.status === "completed" ? "#057a55" : "#92400e" }}>
                   {s.status === "completed" ? "✓" : "…"}
@@ -77,11 +77,11 @@ export function ScenarioSidebar({
                     key={r.refinement_id}
                     style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.25rem 0.5rem", fontSize: "0.75rem", color: "#475569" }}
                   >
-                    <span style={{ color: (r as any).status === "completed" ? "#057a55" : "#94a3b8" }}>
-                      {(r as any).status === "completed" ? "✓" : "○"}
+                    <span style={{ color: r.status === "completed" ? "#057a55" : "#94a3b8" }}>
+                      {r.status === "completed" ? "✓" : "○"}
                     </span>
                     <span>Run #{r.refinement_num}</span>
-                    {(r as any).name && <span style={{ color: "#94a3b8" }}>— {(r as any).name}</span>}
+                    {r.name && <span style={{ color: "#94a3b8" }}>— {r.name}</span>}
                   </div>
                 ))}
               </div>

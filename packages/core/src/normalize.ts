@@ -4,6 +4,36 @@
  * React, Vue, vanilla JS, an agent harness — gets the same result.
  */
 
+function parsePythonList(s: string): string[] {
+	const trimmed = s.trim();
+	if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
+	const inner = trimmed.slice(1, -1);
+	const matches =
+		Array.from(inner.matchAll(/'([^']*)'/g), (m) => m[1]) ??
+		Array.from(inner.matchAll(/"([^"]*)"/g), (m) => m[1]);
+	return matches.length > 0 ? matches : [];
+}
+
+/**
+ * Normalize a string array that may have been serialized as a Python list.
+ *
+ * Veritas can return product_ids as `["['fannie_mae', 'fha']"]` (a JSON
+ * array containing one Python-list string) instead of `["fannie_mae", "fha"]`.
+ * This unwraps that encoding transparently.
+ */
+export function parseStringArray(value: string[] | null | undefined): string[] {
+	if (value == null) return [];
+	if (
+		value.length === 1 &&
+		typeof value[0] === "string" &&
+		value[0].trimStart().startsWith("[")
+	) {
+		const parsed = parsePythonList(value[0]);
+		if (parsed.length > 0) return parsed;
+	}
+	return value;
+}
+
 export interface QualifyResult {
 	product: string;
 	specs_run: number;

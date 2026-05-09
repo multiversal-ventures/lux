@@ -11,3 +11,7 @@ export { ScenarioTabs } from "./ScenarioTabs.js";
 export type { ScenarioTabsProps } from "./ScenarioTabs.js";
 export { ScenarioTabPanel } from "./ScenarioTabPanel.js";
 export type { ScenarioTabPanelProps } from "./ScenarioTabPanel.js";
+export { ScenarioCalcLogs } from "./ScenarioCalcLogs.js";
+export type { ScenarioCalcLogsProps } from "./ScenarioCalcLogs.js";
+export { ScenarioRefs } from "./ScenarioRefs.js";
+export type { ScenarioRefsProps } from "./ScenarioRefs.js";

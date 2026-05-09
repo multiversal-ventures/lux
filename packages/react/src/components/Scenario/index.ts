@@ -19,3 +19,7 @@ export { ScenarioAdvice } from "./ScenarioAdvice.js";
 export type { ScenarioAdviceProps } from "./ScenarioAdvice.js";
 export { useScenarioAdvice } from "./useScenarioAdvice.js";
 export type { UseScenarioAdviceReturn } from "./useScenarioAdvice.js";
+export { ScenarioSidebar } from "./ScenarioSidebar.js";
+export type { ScenarioSidebarProps } from "./ScenarioSidebar.js";
+export { ScenarioComparison } from "./ScenarioComparison.js";
+export type { ScenarioComparisonProps } from "./ScenarioComparison.js";

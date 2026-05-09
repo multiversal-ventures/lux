@@ -55,7 +55,7 @@ export function ScenarioRenderer({
           <ScenarioHeader />
           <ScenarioTabs />
           <ScenarioTabPanel>
-            <ScenarioAdvice onAction={onAction ?? (() => {})} />
+            <ScenarioAdvice onAction={onAction} />
             <ScenarioCalcLogs />
             <ScenarioRefs onRefClick={onRefClick} />
             {children}

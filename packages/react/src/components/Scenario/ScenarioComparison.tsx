@@ -23,7 +23,7 @@ export function ScenarioComparison({ onScenarioClick, className }: ScenarioCompa
   type Row = { specName: string; humanized: string; amount: number | null; scenarioId: string };
   const rows: Row[] = [];
   for (const s of scenarios) {
-    const productSpecs: ProductSpecGroup[] = (s as any).product_specs ?? [];
+    const productSpecs: ProductSpecGroup[] = s.product_specs ?? [];
     for (const r of s.results ?? []) {
       rows.push({
         specName: r.spec_name ?? "",

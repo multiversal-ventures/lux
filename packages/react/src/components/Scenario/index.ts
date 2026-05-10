@@ -25,3 +25,5 @@ export { ScenarioComparison } from "./ScenarioComparison.js";
 export type { ScenarioComparisonProps } from "./ScenarioComparison.js";
 export { ScenarioRenderer } from "./ScenarioRenderer.js";
 export type { ScenarioRendererProps } from "./ScenarioRenderer.js";
+export { ScenarioIdentities } from "./ScenarioIdentities.js";
+export type { ScenarioIdentitiesProps } from "./ScenarioIdentities.js";

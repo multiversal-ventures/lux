@@ -1743,6 +1743,18 @@ export interface components {
             /** Label */
             label?: string | null;
         };
+        /** DocumentInfo */
+        DocumentInfo: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Doc Type */
+            doc_type: string | null;
+            /** Filename */
+            filename: string | null;
+        };
         /** DocumentResponse */
         DocumentResponse: {
             /**
@@ -1914,6 +1926,20 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IdentityInfo */
+        IdentityInfo: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string | null;
+            /** Role */
+            role: string | null;
+            /** Entity Type */
+            entity_type: string | null;
         };
         /** Intent */
         Intent: {
@@ -2120,14 +2146,26 @@ export interface components {
             scenario_id: string;
             /** Refinement Num */
             refinement_num: number | null;
-            /** Borrower Ids */
-            borrower_ids: string[] | null;
-            /** Document Ids */
-            document_ids: string[] | null;
-            /** Product Ids */
-            product_ids: string[] | null;
-            /** Spec Ids */
-            spec_ids: string[] | null;
+            /**
+             * Identities
+             * @default []
+             */
+            identities: components["schemas"]["IdentityInfo"][];
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["DocumentInfo"][];
+            /**
+             * Product Ids
+             * @default []
+             */
+            product_ids: string[];
+            /**
+             * Specs Run
+             * @default []
+             */
+            specs_run: string[];
             /** Note */
             note: string | null;
             /** Status */

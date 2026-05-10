@@ -5210,6 +5210,23 @@
           "status": {
             "type": "string",
             "title": "Status"
+          },
+          "borrower_class": {
+            "type": "string",
+            "enum": [
+              "borrower",
+              "business_entity",
+              "employer",
+              "property",
+              "other"
+            ],
+            "title": "Borrower Class",
+            "default": "other"
+          },
+          "needs_review": {
+            "type": "boolean",
+            "title": "Needs Review",
+            "default": false
           }
         },
         "type": "object",

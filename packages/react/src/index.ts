@@ -78,6 +78,7 @@ export {
   ScenarioAdvice,
   ScenarioSidebar,
   ScenarioComparison,
+  ScenarioIdentities,
   useScenarioAdvice,
 } from "./components/Scenario/index.js";
 export type {
@@ -92,5 +93,6 @@ export type {
   ScenarioAdviceProps,
   ScenarioSidebarProps,
   ScenarioComparisonProps,
+  ScenarioIdentitiesProps,
   UseScenarioAdviceReturn,
 } from "./components/Scenario/index.js";

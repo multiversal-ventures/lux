@@ -1944,6 +1944,17 @@ export interface components {
             entity_type: string | null;
             /** Status */
             status: string;
+            /**
+             * Borrower Class
+             * @default other
+             * @enum {string}
+             */
+            borrower_class: "borrower" | "business_entity" | "employer" | "property" | "other";
+            /**
+             * Needs Review
+             * @default false
+             */
+            needs_review: boolean;
         };
         /** Intent */
         Intent: {

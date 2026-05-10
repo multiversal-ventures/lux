@@ -1752,6 +1752,8 @@ export interface components {
             id: string;
             /** Doc Type */
             doc_type: string | null;
+            /** Display Type */
+            display_type: string | null;
             /** Filename */
             filename: string | null;
         };
@@ -1940,6 +1942,8 @@ export interface components {
             role: string | null;
             /** Entity Type */
             entity_type: string | null;
+            /** Status */
+            status: string;
         };
         /** Intent */
         Intent: {

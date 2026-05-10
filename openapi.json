@@ -4630,6 +4630,44 @@
         "type": "object",
         "title": "DisplayHints"
       },
+      "DocumentInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Type"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "doc_type",
+          "filename"
+        ],
+        "title": "DocumentInfo"
+      },
       "DocumentResponse": {
         "properties": {
           "doc_id": {
@@ -5117,6 +5155,56 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "IdentityInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "role",
+          "entity_type"
+        ],
+        "title": "IdentityInfo"
+      },
       "Intent": {
         "properties": {
           "type": {
@@ -5571,61 +5659,37 @@
             ],
             "title": "Refinement Num"
           },
-          "borrower_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Borrower Ids"
+          "identities": {
+            "items": {
+              "$ref": "#/components/schemas/IdentityInfo"
+            },
+            "type": "array",
+            "title": "Identities",
+            "default": []
           },
-          "document_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Document Ids"
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentInfo"
+            },
+            "type": "array",
+            "title": "Documents",
+            "default": []
           },
           "product_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Product Ids"
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Product Ids",
+            "default": []
           },
-          "spec_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Spec Ids"
+          "specs_run": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Specs Run",
+            "default": []
           },
           "note": {
             "anyOf": [
@@ -5699,10 +5763,6 @@
           "refinement_id",
           "scenario_id",
           "refinement_num",
-          "borrower_ids",
-          "document_ids",
-          "product_ids",
-          "spec_ids",
           "note"
         ],
         "title": "RefinementResponse"

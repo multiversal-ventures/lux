@@ -4648,6 +4648,17 @@
             ],
             "title": "Doc Type"
           },
+          "display_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Type"
+          },
           "filename": {
             "anyOf": [
               {
@@ -4664,6 +4675,7 @@
         "required": [
           "id",
           "doc_type",
+          "display_type",
           "filename"
         ],
         "title": "DocumentInfo"
@@ -5194,6 +5206,10 @@
               }
             ],
             "title": "Entity Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
           }
         },
         "type": "object",
@@ -5201,7 +5217,8 @@
           "id",
           "name",
           "role",
-          "entity_type"
+          "entity_type",
+          "status"
         ],
         "title": "IdentityInfo"
       },

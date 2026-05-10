@@ -4,6 +4,25 @@
  * React, Vue, vanilla JS, an agent harness — gets the same result.
  */
 
+/**
+ * Product IDs that indicate a Non-QM bank statement scenario.
+ * Mirrors the detection set from the AEU worker:
+ *   bank_statement_products = {"bank_statement", "non_qm", "non_qm_bank_statement"}
+ */
+export const NON_QM_BANK_STATEMENT_PRODUCT_IDS = new Set([
+	"bank_statement",
+	"non_qm",
+	"non_qm_bank_statement",
+]);
+
+/**
+ * Returns true if any product ID in the array indicates a Non-QM
+ * bank statement scenario. Use when `approach` may be null (e.g. CLI runs).
+ */
+export function isNonQmBankStatementByProducts(productIds: string[]): boolean {
+	return productIds.some((id) => NON_QM_BANK_STATEMENT_PRODUCT_IDS.has(id));
+}
+
 function parsePythonList(s: string): string[] {
 	const trimmed = s.trim();
 	if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
@@ -66,6 +85,7 @@ export interface NormalizedRefinement {
 	product_ids: string[];
 	spec_ids: string[];
 	note: string | null;
+	identities: import("./generated.js").components["schemas"]["IdentityInfo"][];
 }
 
 /**
@@ -82,6 +102,7 @@ export function normalizeRefinement(r: {
 	product_ids?: string[] | null;
 	spec_ids?: string[] | null;
 	note?: string | null;
+	identities?: import("./generated.js").components["schemas"]["IdentityInfo"][] | null;
 }): NormalizedRefinement {
 	return {
 		refinement_id: r.refinement_id,
@@ -92,6 +113,7 @@ export function normalizeRefinement(r: {
 		product_ids: parseStringArray(r.product_ids),
 		spec_ids: parseStringArray(r.spec_ids),
 		note: r.note ?? null,
+		identities: r.identities ?? [],
 	};
 }
 

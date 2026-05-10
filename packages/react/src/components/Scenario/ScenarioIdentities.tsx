@@ -83,7 +83,10 @@ export function ScenarioIdentities({ className }: ScenarioIdentitiesProps) {
     .filter((i) => i.borrower_class === "borrower")
     .sort((a, b) => getRoleOrder(a.role) - getRoleOrder(b.role));
 
-  const entities = identities.filter((i) => i.borrower_class === "business_entity");
+  // Employers are companies — group with business entities for display.
+  const entities = identities.filter(
+    (i) => i.borrower_class === "business_entity" || i.borrower_class === "employer",
+  );
 
   if (borrowers.length === 0 && entities.length === 0) return null;
 

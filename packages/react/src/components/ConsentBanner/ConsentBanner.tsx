@@ -34,16 +34,20 @@ export function ConsentBanner({
 		<div
 			className={`bg-amber-50 border border-amber-200 rounded-xl p-6${className ? ` ${className}` : ""}`}
 		>
-			<h3 className="font-semibold text-amber-900 mb-2">Permission needed</h3>
-			<p className="text-sm text-amber-800 mb-4">
-				We need your permission to process documents for your loan application.
+			<h3 className="font-semibold text-amber-900 mb-2">Before we begin</h3>
+			<p className="text-sm text-amber-800 mb-1">
+				To move your loan application forward, we need your consent to
+				electronically process and share the documents you provide.
+			</p>
+			<p className="text-sm text-amber-700 mb-4">
+				You can revoke this permission at any time by contacting your loan officer.
 			</p>
 			<button
 				type="button"
 				onClick={handleGrant}
-				className="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg text-sm cursor-pointer"
+				className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:text-amber-950 underline underline-offset-4 decoration-amber-400 hover:decoration-amber-700 cursor-pointer transition-colors"
 			>
-				Grant permission
+				I agree &mdash; continue &rarr;
 			</button>
 		</div>
 	);

@@ -326,6 +326,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Portal Token
+         * @description Issue a time-limited portal token bound to an entity on a case.
+         *     Tenant/operator only.
+         */
+        post: operations["create_portal_token_api_cases__case_id__portal_tokens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/files": {
         parameters: {
             query?: never;
@@ -1708,6 +1729,36 @@ export interface components {
              */
             upload_config: components["schemas"]["UploadConfig"];
         };
+        /** CreatePortalTokenRequest */
+        CreatePortalTokenRequest: {
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            /**
+             * Role
+             * @default borrower
+             */
+            role: string;
+            /**
+             * Ttl Hours
+             * @default 48
+             */
+            ttl_hours: number;
+        };
+        /** CreatePortalTokenResponse */
+        CreatePortalTokenResponse: {
+            /** Token */
+            token: string;
+            /** Portal Url */
+            portal_url: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
         /** ProductResponse */
         ProductResponse: {
             /** Product Id */
@@ -2251,6 +2302,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FunctionCallResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_portal_token_api_cases__case_id__portal_tokens_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortalTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatePortalTokenResponse"];
                 };
             };
             /** @description Validation Error */

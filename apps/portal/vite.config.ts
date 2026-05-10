@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => {
 				"/api": {
 					target: apiTarget,
 					changeOrigin: true,
-					rewrite: (path) => path.replace(/^\/api/, ""),
 					configure: (proxy) => {
 						proxy.on("proxyReq", (proxyReq) => {
 							// Tenant credential as primary auth

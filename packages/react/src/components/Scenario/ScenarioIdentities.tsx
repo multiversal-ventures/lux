@@ -71,13 +71,15 @@ function IdentityTableRow({ identity }: { identity: IdentityInfo }) {
 
 export interface ScenarioIdentitiesProps {
   className?: string;
+  /** Direct identities override — when provided, bypasses the refinements context. */
+  identities?: IdentityInfo[];
 }
 
-export function ScenarioIdentities({ className }: ScenarioIdentitiesProps) {
+export function ScenarioIdentities({ className, identities: identitiesProp }: ScenarioIdentitiesProps) {
   const { refinements } = useScenarioContext();
 
   const latest = getLatestRefinement(refinements);
-  const identities: IdentityInfo[] = latest?.identities ?? [];
+  const identities: IdentityInfo[] = identitiesProp ?? latest?.identities ?? [];
 
   const borrowers = identities
     .filter((i) => i.borrower_class === "borrower")

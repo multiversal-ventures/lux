@@ -34,7 +34,7 @@ export function ScenarioRenderer({
   scenarioId,
   scenario,
   scenarios = [],
-  audit = [],
+  audit,
   refinements = [],
   onRefClick,
   onAction,
@@ -48,7 +48,7 @@ export function ScenarioRenderer({
       <ScenarioProvider
         scenarioId={scenarioId}
         scenario={scenario}
-        audit={audit}
+        {...(audit !== undefined ? { audit } : {})}
         refinements={refinements}
       >
         <div className={className}>

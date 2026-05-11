@@ -1,7 +1,21 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { describe, it, expect, beforeEach } from "vitest";
+import type { ReactNode } from "react";
 import { ScenarioCalcLogs } from "./ScenarioCalcLogs";
 import { CaseScenarioProvider, ScenarioProvider } from "./ScenarioProvider";
+
+const queryClient = new QueryClient({
+	defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+});
+
+function RQ({ children }: { children: ReactNode }) {
+	return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+beforeEach(() => {
+	queryClient.clear();
+});
 
 const audit = [
   {
@@ -49,20 +63,40 @@ describe("ScenarioCalcLogs", () => {
         <ScenarioProvider scenarioId="s1" scenario={scenario as any} audit={audit as any} initialProductId="fannie_mae">
           <ScenarioCalcLogs />
         </ScenarioProvider>
-      </CaseScenarioProvider>
+      </CaseScenarioProvider>,
+      { wrapper: RQ },
     );
     expect(screen.getByText("fnma_w2_wages_income")).toBeTruthy();
     expect(screen.queryByText("freddie_mac_employment")).toBeNull();
   });
 
-  it("renders empty state when no specs match", () => {
+  it("renders 'unavailable' message when audit is empty", () => {
     render(
       <CaseScenarioProvider caseId="c1">
         <ScenarioProvider scenarioId="s1" scenario={scenario as any} audit={[]} initialProductId="fannie_mae">
           <ScenarioCalcLogs />
         </ScenarioProvider>
-      </CaseScenarioProvider>
+      </CaseScenarioProvider>,
+      { wrapper: RQ },
     );
-    expect(screen.getByText(/no calculation/i)).toBeTruthy();
+    expect(screen.getByText(/audit is still loading or unavailable/i)).toBeTruthy();
+  });
+
+  it("renders agency-specific empty state when audit has rows but none match the agency", () => {
+    const offAgencyAudit = [{ ...audit[1], spec_name: "fha_w2_income" }];
+    render(
+      <CaseScenarioProvider caseId="c1">
+        <ScenarioProvider
+          scenarioId="s1"
+          scenario={scenario as any}
+          audit={offAgencyAudit as any}
+          initialProductId="fannie_mae"
+        >
+          <ScenarioCalcLogs />
+        </ScenarioProvider>
+      </CaseScenarioProvider>,
+      { wrapper: RQ },
+    );
+    expect(screen.getByText(/no calculation logs for fnma/i)).toBeTruthy();
   });
 });

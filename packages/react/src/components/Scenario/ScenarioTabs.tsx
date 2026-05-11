@@ -14,9 +14,15 @@ export interface ScenarioTabsProps {
   className?: string;
   /** Additional tabs rendered after the product tabs. */
   extraTabs?: ScenarioTabExtra[];
+  /**
+   * When the host routes tabs by URL (e.g. React Router), wire navigation here.
+   * Receives `"summary"` for the Summary tab or a `product_id` for product tabs.
+   * Extra tabs call their own `onClick` only.
+   */
+  onTabNavigate?: (tabId: string) => void;
 }
 
-export function ScenarioTabs({ className, extraTabs = [] }: ScenarioTabsProps) {
+export function ScenarioTabs({ className, extraTabs = [], onTabNavigate }: ScenarioTabsProps) {
   const { scenario, activeProductId, setActiveProductId } = useScenarioContext();
   const hints = scenario.rendering_hints;
   const approachType = hints?.approach_type ?? "qm_standard";
@@ -28,7 +34,10 @@ export function ScenarioTabs({ className, extraTabs = [] }: ScenarioTabsProps) {
     <div className={[styles.tabs, className].filter(Boolean).join(" ")}>
       <button
         className={[styles.tab, activeProd === SUMMARY_TAB ? styles.tabActive : ""].join(" ")}
-        onClick={() => setActiveProductId(SUMMARY_TAB)}
+        onClick={() => {
+          setActiveProductId(null);
+          onTabNavigate?.(SUMMARY_TAB);
+        }}
       >
         Summary
       </button>
@@ -36,7 +45,10 @@ export function ScenarioTabs({ className, extraTabs = [] }: ScenarioTabsProps) {
         <button
           key={p.product_id}
           className={[styles.tab, activeProd === p.product_id ? styles.tabActive : ""].join(" ")}
-          onClick={() => setActiveProductId(p.product_id)}
+          onClick={() => {
+            setActiveProductId(p.product_id);
+            onTabNavigate?.(p.product_id);
+          }}
         >
           {p.display_name}
         </button>

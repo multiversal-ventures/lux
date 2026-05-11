@@ -69,6 +69,7 @@ export {
   ScenarioProvider,
   useCaseScenarioContext,
   useScenarioContext,
+  caseScenariosQueryKey,
   ScenarioRenderer,
   ScenarioHeader,
   ScenarioTabs,
@@ -80,10 +81,31 @@ export {
   ScenarioComparison,
   ScenarioIdentities,
   ScenarioResults,
+  ScenarioSummaryText,
   AGENCY_LABELS,
   KNOWN_AGENCIES,
   useScenarioAdvice,
+  useScenarioSummary,
+  useScenarioProductIncome,
+  PRODUCT_ID_TO_AGENCY,
+  formatScenarioSummary,
 } from "./components/Scenario/index.js";
+export {
+  ReportRenderer,
+  ReportSheet,
+  ReportSheetTabs,
+  useReportWorkbook,
+  reportWorkbookQueryKey,
+} from "./components/Reports/index.js";
+export type {
+  ReportRendererProps,
+  ReportSheetProps,
+  ReportSheetTabsProps,
+  UseReportWorkbookOptions,
+  UseReportWorkbookResult,
+  ReportGenerateResponse,
+} from "./components/Reports/index.js";
+
 export type {
   CaseScenarioProviderProps,
   ScenarioProviderProps,
@@ -99,5 +121,10 @@ export type {
   ScenarioComparisonProps,
   ScenarioIdentitiesProps,
   ScenarioResultsProps,
+  ScenarioSummaryTextProps,
   UseScenarioAdviceReturn,
+  UseScenarioSummaryResult,
+  UseScenarioProductIncomeResult,
+  FormatScenarioSummaryOptions,
+  HasSummaryResult,
 } from "./components/Scenario/index.js";

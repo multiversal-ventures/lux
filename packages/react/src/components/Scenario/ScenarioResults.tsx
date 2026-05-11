@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useScenarioContext, useCaseScenarioContext } from "./ScenarioProvider.js";
 import type { components } from "@fenero/lux-core";
 
@@ -126,9 +126,19 @@ export interface ScenarioResultsProps {
   results?: SpecResultResponse[];
   /** When set, shows only results for this agency (e.g. "fnma", "fha"). Shows all when omitted. */
   agency?: string;
+  /**
+   * Icon shown before the “Income Results” title (host typically passes Lucide `<BarChart3 />` etc.).
+   * When omitted, no leading icon is rendered.
+   */
+  titleIcon?: ReactNode;
 }
 
-export function ScenarioResults({ className, results: resultsProp, agency: agencyFilter }: ScenarioResultsProps) {
+export function ScenarioResults({
+  className,
+  results: resultsProp,
+  agency: agencyFilter,
+  titleIcon,
+}: ScenarioResultsProps) {
   const { scenarioId } = useScenarioContext();
   const { scenarios } = useCaseScenarioContext();
 
@@ -154,7 +164,19 @@ export function ScenarioResults({ className, results: resultsProp, agency: agenc
   return (
     <div className={className}>
       <div style={{ padding: "0.5rem 0.75rem", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{ fontSize: "0.875rem", color: "#64748b" }}>📊</span>
+        {titleIcon != null && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#64748b",
+              flexShrink: 0,
+            }}
+          >
+            {titleIcon}
+          </span>
+        )}
         <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>{agencyLabel} — Income Results</h3>
         <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#64748b" }}>
           {results.length} spec{results.length !== 1 ? "s" : ""}{eligibleCount > 0 && `, ${eligibleCount} eligible`}

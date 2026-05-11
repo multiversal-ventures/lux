@@ -507,6 +507,65 @@ export class VeritasClient {
 		return (rows ?? []).map((s) => ({ ...s, status: normalizeVeritasStatus(s.status) }));
 	}
 
+	// ─── Reports (generated .xlsx) ─────────────────────────────────────────────
+
+	/** GET /api/cases/{case_id}/reports — optional scenario_id scopes last_* metadata. */
+	async listReports(
+		caseId: string,
+		opts?: { scenarioId?: string },
+	): Promise<components["schemas"]["ReportListItem"][]> {
+		const qs =
+			opts?.scenarioId != null && opts.scenarioId !== ""
+				? `?scenario_id=${encodeURIComponent(opts.scenarioId)}`
+				: "";
+		return this.requestJson<components["schemas"]["ReportListItem"][]>(
+			`/api/cases/${encodeURIComponent(caseId)}/reports${qs}`,
+		);
+	}
+
+	/** POST /api/cases/{case_id}/reports/{report_name} — 201 with metadata; body optional. */
+	async generateReport(
+		caseId: string,
+		reportName: string,
+		body?: components["schemas"]["ReportGenerateRequest"] | null,
+	): Promise<components["schemas"]["ReportGenerateResponse"]> {
+		const path = `/api/cases/${encodeURIComponent(caseId)}/reports/${encodeURIComponent(reportName)}`;
+		return this.requestJson<components["schemas"]["ReportGenerateResponse"]>(path, {
+			method: "POST",
+			body: JSON.stringify(body ?? {}),
+		});
+	}
+
+	/** GET /api/cases/{case_id}/reports/{report_name}/latest — requires scenario_id. */
+	async getLatestReport(
+		caseId: string,
+		reportName: string,
+		opts: { scenarioId: string; tenantSlug?: string | null },
+	): Promise<components["schemas"]["ReportGenerateResponse"]> {
+		const params = new URLSearchParams({ scenario_id: opts.scenarioId });
+		if (opts.tenantSlug) params.set("tenant_slug", opts.tenantSlug);
+		return this.requestJson<components["schemas"]["ReportGenerateResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/reports/${encodeURIComponent(reportName)}/latest?${params.toString()}`,
+		);
+	}
+
+	/** GET binary .xlsx for a persisted report row (report_id from generate or latest). */
+	async downloadReport(
+		caseId: string,
+		reportName: string,
+		reportId: string,
+	): Promise<{ blob: Blob; filename: string }> {
+		const path = `/api/cases/${encodeURIComponent(caseId)}/reports/${encodeURIComponent(reportName)}/download?report_id=${encodeURIComponent(reportId)}`;
+		return this.fetchAuthorizedBinary(path);
+	}
+
+	/** GET /api/cases/{case_id}/audit — full calculation audit (specs, steps, function_calls). */
+	async getCaseAudit(caseId: string): Promise<components["schemas"]["SpecAuditResponse"][]> {
+		return this.requestJson<components["schemas"]["SpecAuditResponse"][]>(
+			`/api/cases/${encodeURIComponent(caseId)}/audit`,
+		);
+	}
+
 	async getCaseScenario(
 		caseId: string,
 		scenarioId: string,

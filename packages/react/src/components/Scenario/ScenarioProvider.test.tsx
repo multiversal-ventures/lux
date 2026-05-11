@@ -1,6 +1,20 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { describe, it, expect, beforeEach } from "vitest";
+import type { ReactNode } from "react";
 import { CaseScenarioProvider, useCaseScenarioContext, ScenarioProvider, useScenarioContext } from "./ScenarioProvider";
+
+const queryClient = new QueryClient({
+	defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+});
+
+function RQ({ children }: { children: ReactNode }) {
+	return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+beforeEach(() => {
+	queryClient.clear();
+});
 
 describe("useCaseScenarioContext", () => {
   it("throws when used outside CaseScenarioProvider", () => {
@@ -46,10 +60,11 @@ describe("useScenarioContext", () => {
 
     render(
       <CaseScenarioProvider caseId="case-42">
-        <ScenarioProvider scenarioId="s1" scenario={scenario}>
+        <ScenarioProvider scenarioId="s1" scenario={scenario} audit={[]}>
           <Consumer />
         </ScenarioProvider>
-      </CaseScenarioProvider>
+      </CaseScenarioProvider>,
+      { wrapper: RQ },
     );
     expect(screen.getByText("case-42")).toBeTruthy();
   });

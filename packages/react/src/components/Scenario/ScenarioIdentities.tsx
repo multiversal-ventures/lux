@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useScenarioContext } from "./ScenarioProvider.js";
 import type { components } from "@fenero/lux-core";
 
@@ -73,9 +73,15 @@ export interface ScenarioIdentitiesProps {
   className?: string;
   /** Direct identities override — when provided, bypasses the refinements context. */
   identities?: IdentityInfo[];
+  /** Optional leading icon for the section header (e.g. from lucide-react in the host app). */
+  headerIcon?: ReactNode;
 }
 
-export function ScenarioIdentities({ className, identities: identitiesProp }: ScenarioIdentitiesProps) {
+export function ScenarioIdentities({
+  className,
+  identities: identitiesProp,
+  headerIcon,
+}: ScenarioIdentitiesProps) {
   const { refinements } = useScenarioContext();
 
   const latest = getLatestRefinement(refinements);
@@ -90,16 +96,23 @@ export function ScenarioIdentities({ className, identities: identitiesProp }: Sc
     (i) => i.borrower_class === "business_entity" || i.borrower_class === "employer",
   );
 
-  if (borrowers.length === 0 && entities.length === 0) return null;
+  const financialInstitutions = identities.filter(
+    (i) => i.borrower_class === "financial_institution",
+  );
+
+  if (borrowers.length === 0 && entities.length === 0 && financialInstitutions.length === 0) return null;
 
   return (
     <div className={className}>
       <div style={{ padding: "0.5rem 0.75rem", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{ fontSize: "0.875rem", color: "#64748b" }}>👤</span>
+        {headerIcon != null ? (
+          <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0, color: "#64748b" }}>{headerIcon}</span>
+        ) : null}
         <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>Identities</h3>
         <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#64748b" }}>
           {borrowers.length} borrower{borrowers.length !== 1 ? "s" : ""}
           {entities.length > 0 && `, ${entities.length} ${entities.length !== 1 ? "entities" : "entity"}`}
+          {financialInstitutions.length > 0 && `, ${financialInstitutions.length} institution${financialInstitutions.length !== 1 ? "s" : ""}`}
         </span>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -122,6 +135,12 @@ export function ScenarioIdentities({ className, identities: identitiesProp }: Sc
             <>
               <tr><td colSpan={4} style={sectionHeaderTdStyle}>Business Entities</td></tr>
               {entities.map((e) => <IdentityTableRow key={String(e.id)} identity={e} />)}
+            </>
+          )}
+          {financialInstitutions.length > 0 && (
+            <>
+              <tr><td colSpan={4} style={sectionHeaderTdStyle}>Financial Institutions</td></tr>
+              {financialInstitutions.map((fi) => <IdentityTableRow key={fi.name ?? String(fi.id)} identity={fi} />)}
             </>
           )}
         </tbody>

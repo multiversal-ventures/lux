@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useScenarioContext } from "./ScenarioProvider.js";
+import { resolveAgency } from "./resolveAgency.js";
 
 export interface ScenarioCalcLogsProps {
   className?: string;
@@ -9,18 +10,30 @@ export function ScenarioCalcLogs({ className }: ScenarioCalcLogsProps) {
   const { scenario, audit, activeProductId } = useScenarioContext();
   const [expandedSpecs, setExpandedSpecs] = useState<Set<string>>(new Set());
 
-  const hints = scenario.rendering_hints;
-  const productSpec = hints?.product_specs?.find((p) => p.product_id === activeProductId);
-  const agency = productSpec?.agency ?? null;
+  // Resolves via rendering_hints first, then falls back to a static slug→agency
+  // map so audit filtering keeps working when Veritas leaves product_specs empty.
+  const agency = resolveAgency(activeProductId, scenario.rendering_hints?.product_specs ?? null);
 
   const filteredAudit = agency
     ? audit.filter((a) => a.spec_name?.startsWith(agency + "_"))
     : [];
 
   if (filteredAudit.length === 0) {
+    if (typeof window !== "undefined") {
+      console.warn("[ScenarioCalcLogs] no rows", {
+        activeProductId,
+        agency,
+        auditTotal: audit.length,
+        sampleSpecNames: audit.slice(0, 3).map((a) => a.spec_name),
+      });
+    }
+    const message =
+      audit.length === 0
+        ? "Calculation audit is still loading or unavailable."
+        : `No calculation logs for ${agency ?? "this product"}.`;
     return (
       <div className={className} style={{ padding: "1rem", color: "#64748b", fontSize: "0.875rem" }}>
-        No calculation logs for this product.
+        {message}
       </div>
     );
   }

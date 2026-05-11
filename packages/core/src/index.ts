@@ -142,6 +142,11 @@ export type { QualifyResult, NormalizedQualifyResult, NormalizedRefinement } fro
 /** Server-resolved rendering decisions for a scenario. */
 export type VeritasRenderingHints = import("./generated.js").components["schemas"]["RenderingHints"];
 
+/** Reports API — list / generate / download generated workbooks */
+export type ReportListItem = components["schemas"]["ReportListItem"];
+export type ReportGenerateRequest = components["schemas"]["ReportGenerateRequest"];
+export type ReportGenerateResponse = components["schemas"]["ReportGenerateResponse"];
+
 export type VeritasProductSpecGroup = components["schemas"]["ProductSpecGroup"];
 export type VeritasScenarioAdviceItem = components["schemas"]["ScenarioAdviceItem"];
 export type VeritasScenarioAdviceResponse = components["schemas"]["ScenarioAdviceResponse"];

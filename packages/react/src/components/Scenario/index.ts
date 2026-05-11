@@ -3,8 +3,17 @@ export {
   ScenarioProvider,
   useCaseScenarioContext,
   useScenarioContext,
+  caseScenariosQueryKey,
 } from "./ScenarioProvider.js";
 export type { CaseScenarioProviderProps, ScenarioProviderProps } from "./ScenarioProvider.js";
+export { useScenarioSummary, formatScenarioSummary } from "./useScenarioSummary.js";
+export type {
+  UseScenarioSummaryResult,
+  FormatScenarioSummaryOptions,
+  HasSummaryResult,
+} from "./useScenarioSummary.js";
+export { ScenarioSummaryText } from "./ScenarioSummaryText.js";
+export type { ScenarioSummaryTextProps } from "./ScenarioSummaryText.js";
 export { ScenarioHeader } from "./ScenarioHeader.js";
 export type { ScenarioHeaderProps } from "./ScenarioHeader.js";
 export { ScenarioTabs } from "./ScenarioTabs.js";
@@ -29,3 +38,8 @@ export { ScenarioIdentities } from "./ScenarioIdentities.js";
 export type { ScenarioIdentitiesProps } from "./ScenarioIdentities.js";
 export { ScenarioResults, AGENCY_LABELS, KNOWN_AGENCIES } from "./ScenarioResults.js";
 export type { ScenarioResultsProps } from "./ScenarioResults.js";
+export {
+  useScenarioProductIncome,
+  PRODUCT_ID_TO_AGENCY,
+} from "./useScenarioProductIncome.js";
+export type { UseScenarioProductIncomeResult } from "./useScenarioProductIncome.js";

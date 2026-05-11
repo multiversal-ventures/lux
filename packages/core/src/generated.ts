@@ -1136,6 +1136,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Case Reports
+         * @description List available report types and last-generated metadata.
+         *
+         *     Available report names come from the reports/ YAML directory.
+         *     When scenario_id is provided, last-generated data is merged from the
+         *     reports table for the scenario's latest manifest.
+         */
+        get: operations["list_case_reports_api_cases__case_id__reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/reports/{report_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Report
+         * @description Render *report_name* for *case_id* and persist the result.
+         *
+         *     For scenario-scoped reports (income_qm, etc.) pass scenario_id in the
+         *     request body.  Returns 422 if scenario_id is required but absent.
+         *
+         *     report_id in the response is null when no manifest can be resolved (e.g.
+         *     case-level reports without a scenario); in that case the Report row is not
+         *     persisted — only storage_key and generated_at are meaningful.
+         */
+        post: operations["generate_report_api_cases__case_id__reports__report_name__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/reports/{report_name}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Report
+         * @description Stream the generated .xlsx file for *report_id*.
+         *
+         *     report_id comes from the ReportGenerateResponse returned by POST .../generate.
+         *     Returns 404 when the report row or file is not found.
+         */
+        get: operations["download_report_api_cases__case_id__reports__report_name__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/reports/{report_name}/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Latest Report
+         * @description Return metadata for the most recently generated *report_name*.
+         *
+         *     Pass the same tenant_slug used when generating so spec_version reflects
+         *     any overlay that changes the version string.
+         *     Returns 404 if no report has been generated yet for this
+         *     (scenario, report_name) combination.
+         */
+        get: operations["get_latest_report_api_cases__case_id__reports__report_name__latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/samples": {
         parameters: {
             query?: never;
@@ -1884,10 +1983,10 @@ export interface components {
         /** EntityGroupResponse */
         EntityGroupResponse: {
             /**
-             * Entity Group Id
+             * Entity Id
              * Format: uuid
              */
-            entity_group_id: string;
+            entity_id: string;
             /**
              * Case Id
              * Format: uuid
@@ -1910,10 +2009,8 @@ export interface components {
              * @default []
              */
             doc_ids: string[];
-            /** Parent Entity Group Id */
-            parent_entity_group_id?: string | null;
-            /** Borrower Identity Id */
-            borrower_identity_id?: string | null;
+            /** Parent Entity Id */
+            parent_entity_id?: string | null;
         };
         /** EntityInfo */
         EntityInfo: {
@@ -2048,7 +2145,7 @@ export interface components {
              * @default other
              * @enum {string}
              */
-            borrower_class: "borrower" | "business_entity" | "employer" | "property" | "other";
+            borrower_class: "borrower" | "business_entity" | "employer" | "property" | "financial_institution" | "other";
             /**
              * Needs Review
              * @default false
@@ -2293,6 +2390,7 @@ export interface components {
             name?: string | null;
             /** Total Monthly Income */
             total_monthly_income?: number | null;
+            summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
             /** Loan Product Ids */
             loan_product_ids?: string[] | null;
         };
@@ -2365,6 +2463,57 @@ export interface components {
              * @default []
              */
             advice: components["schemas"]["ScenarioAdviceItem"][];
+        };
+        /**
+         * ReportGenerateRequest
+         * @description Body for POST /cases/{case_id}/reports/{report_name}.
+         */
+        ReportGenerateRequest: {
+            /** Scenario Id */
+            scenario_id?: string | null;
+            /** Tenant Slug */
+            tenant_slug?: string | null;
+            /** Agencies */
+            agencies?: string[] | null;
+        };
+        /**
+         * ReportGenerateResponse
+         * @description Returned after a report is rendered and stored.
+         *
+         *     report_id is None when no manifest was available to attach the Report row
+         *     to (e.g. a case-level report generated without a scenario).  Clients should
+         *     treat a null report_id as "rendered but not persisted for future retrieval".
+         */
+        ReportGenerateResponse: {
+            /** Report Id */
+            report_id: string | null;
+            /** Report Name */
+            report_name: string;
+            /** Storage Key */
+            storage_key: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Spec Version */
+            spec_version?: string | null;
+        };
+        /**
+         * ReportListItem
+         * @description One entry in the GET /cases/{case_id}/reports list.
+         */
+        ReportListItem: {
+            /** Report Name */
+            report_name: string;
+            /** Description */
+            description?: string | null;
+            /** Last Generated At */
+            last_generated_at?: string | null;
+            /** Last Report Id */
+            last_report_id?: string | null;
+            /** Last Storage Key */
+            last_storage_key?: string | null;
         };
         /** SampleFileInfo */
         SampleFileInfo: {
@@ -2445,6 +2594,7 @@ export interface components {
              * @default []
              */
             refinements: components["schemas"]["RefinementResponse"][];
+            summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
         };
         /** ScenarioDetailResponse */
         ScenarioDetailResponse: {
@@ -2562,6 +2712,42 @@ export interface components {
             monthly_amount: string | null;
             /** Computed At */
             computed_at: string | null;
+        };
+        /**
+         * SpecSummaryResultResponse
+         * @description Aggregated headline result derived from a set of ``SpecResultResponse`` rows.
+         *
+         *     Veritas computes one of these for every entity that holds spec results
+         *     (scenarios, refinements, future entities). The same shape carries any
+         *     policy domain — income, asset verification, DTI, reserves, etc. — so
+         *     consumers never special-case on "income".
+         *
+         *     The ``strategy`` field names the aggregation rule. For now the only
+         *     implemented rule is ``max_value``: bucket eligible results by spec-name
+         *     prefix, sum within each bucket, return the max bucket total. Additional
+         *     strategies (sum across buckets, weighted average, percentile, …) can be
+         *     introduced later as a backwards-compatible widening of the enum.
+         */
+        SpecSummaryResultResponse: {
+            /**
+             * Strategy
+             * @default max_value
+             * @constant
+             */
+            strategy: "max_value";
+            /** Value */
+            value: number | null;
+            /**
+             * Groups
+             * @default {}
+             */
+            groups: {
+                [key: string]: number;
+            };
+            /** Domain */
+            domain?: string | null;
+            /** Unit */
+            unit?: string | null;
         };
         /** SpecTestReportResponse */
         SpecTestReportResponse: {
@@ -3546,7 +3732,9 @@ export interface operations {
     };
     get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get: {
         parameters: {
-            query?: never;
+            query?: {
+                token?: string | null;
+            };
             header?: never;
             path: {
                 case_id: string;
@@ -4706,6 +4894,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_case_reports_api_cases__case_id__reports_get: {
+        parameters: {
+            query?: {
+                scenario_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_report_api_cases__case_id__reports__report_name__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                report_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReportGenerateRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_report_api_cases__case_id__reports__report_name__download_get: {
+        parameters: {
+            query: {
+                report_id: string;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                report_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_report_api_cases__case_id__reports__report_name__latest_get: {
+        parameters: {
+            query: {
+                scenario_id: string;
+                tenant_slug?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                report_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportGenerateResponse"];
                 };
             };
             /** @description Validation Error */

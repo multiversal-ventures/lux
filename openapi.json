@@ -1251,6 +1251,22 @@
               "type": "integer",
               "title": "Page Number"
             }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
           }
         ],
         "responses": {
@@ -3274,6 +3290,301 @@
         ]
       }
     },
+    "/api/cases/{case_id}/reports": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "List Case Reports",
+        "description": "List available report types and last-generated metadata.\n\nAvailable report names come from the reports/ YAML directory.\nWhen scenario_id is provided, last-generated data is merged from the\nreports table for the scenario's latest manifest.",
+        "operationId": "list_case_reports_api_cases__case_id__reports_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scenario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReportListItem"
+                  },
+                  "title": "Response List Case Reports Api Cases  Case Id  Reports Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reports/{report_name}": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Generate Report",
+        "description": "Render *report_name* for *case_id* and persist the result.\n\nFor scenario-scoped reports (income_qm, etc.) pass scenario_id in the\nrequest body.  Returns 422 if scenario_id is required but absent.\n\nreport_id in the response is null when no manifest can be resolved (e.g.\ncase-level reports without a scenario); in that case the Report row is not\npersisted \u2014 only storage_key and generated_at are meaningful.",
+        "operationId": "generate_report_api_cases__case_id__reports__report_name__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "report_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ReportGenerateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportGenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reports/{report_name}/download": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Download Report",
+        "description": "Stream the generated .xlsx file for *report_id*.\n\nreport_id comes from the ReportGenerateResponse returned by POST .../generate.\nReturns 404 when the report row or file is not found.",
+        "operationId": "download_report_api_cases__case_id__reports__report_name__download_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "report_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Name"
+            }
+          },
+          {
+            "name": "report_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reports/{report_name}/latest": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Latest Report",
+        "description": "Return metadata for the most recently generated *report_name*.\n\nPass the same tenant_slug used when generating so spec_version reflects\nany overlay that changes the version string.\nReturns 404 if no report has been generated yet for this\n(scenario, report_name) combination.",
+        "operationId": "get_latest_report_api_cases__case_id__reports__report_name__latest_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "report_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Name"
+            }
+          },
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Scenario Id"
+            }
+          },
+          {
+            "name": "tenant_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportGenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/samples": {
       "get": {
         "tags": [
@@ -5068,10 +5379,10 @@
       },
       "EntityGroupResponse": {
         "properties": {
-          "entity_group_id": {
+          "entity_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Entity Group Id"
+            "title": "Entity Id"
           },
           "case_id": {
             "type": "string",
@@ -5111,7 +5422,7 @@
             "title": "Doc Ids",
             "default": []
           },
-          "parent_entity_group_id": {
+          "parent_entity_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -5121,24 +5432,12 @@
                 "type": "null"
               }
             ],
-            "title": "Parent Entity Group Id"
-          },
-          "borrower_identity_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Borrower Identity Id"
+            "title": "Parent Entity Id"
           }
         },
         "type": "object",
         "required": [
-          "entity_group_id",
+          "entity_id",
           "case_id",
           "entity_type",
           "identifier_type",
@@ -5513,6 +5812,7 @@
               "business_entity",
               "employer",
               "property",
+              "financial_institution",
               "other"
             ],
             "title": "Borrower Class",
@@ -6072,6 +6372,16 @@
             ],
             "title": "Total Monthly Income"
           },
+          "summary_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpecSummaryResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "loan_product_ids": {
             "anyOf": [
               {
@@ -6244,6 +6554,159 @@
         ],
         "title": "RenderingHints",
         "description": "UI rendering decisions resolved server-side from scenario + manifest data.\n\nComputed once by Veritas so every consumer (React, Vue, agents) gets\nidentical behavior without re-implementing detection logic locally."
+      },
+      "ReportGenerateRequest": {
+        "properties": {
+          "scenario_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Id"
+          },
+          "tenant_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Slug"
+          },
+          "agencies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agencies"
+          }
+        },
+        "type": "object",
+        "title": "ReportGenerateRequest",
+        "description": "Body for POST /cases/{case_id}/reports/{report_name}."
+      },
+      "ReportGenerateResponse": {
+        "properties": {
+          "report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Id"
+          },
+          "report_name": {
+            "type": "string",
+            "title": "Report Name"
+          },
+          "storage_key": {
+            "type": "string",
+            "title": "Storage Key"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "spec_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_id",
+          "report_name",
+          "storage_key",
+          "generated_at"
+        ],
+        "title": "ReportGenerateResponse",
+        "description": "Returned after a report is rendered and stored.\n\nreport_id is None when no manifest was available to attach the Report row\nto (e.g. a case-level report generated without a scenario).  Clients should\ntreat a null report_id as \"rendered but not persisted for future retrieval\"."
+      },
+      "ReportListItem": {
+        "properties": {
+          "report_name": {
+            "type": "string",
+            "title": "Report Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "last_generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Generated At"
+          },
+          "last_report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Report Id"
+          },
+          "last_storage_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Storage Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_name"
+        ],
+        "title": "ReportListItem",
+        "description": "One entry in the GET /cases/{case_id}/reports list."
       },
       "SampleFileInfo": {
         "properties": {
@@ -6489,6 +6952,16 @@
             "type": "array",
             "title": "Refinements",
             "default": []
+          },
+          "summary_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpecSummaryResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6916,6 +7389,63 @@
           "computed_at"
         ],
         "title": "SpecResultResponse"
+      },
+      "SpecSummaryResultResponse": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "const": "max_value",
+            "title": "Strategy",
+            "default": "max_value"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "groups": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Groups",
+            "default": {}
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "title": "SpecSummaryResultResponse",
+        "description": "Aggregated headline result derived from a set of ``SpecResultResponse`` rows.\n\nVeritas computes one of these for every entity that holds spec results\n(scenarios, refinements, future entities). The same shape carries any\npolicy domain \u2014 income, asset verification, DTI, reserves, etc. \u2014 so\nconsumers never special-case on \"income\".\n\nThe ``strategy`` field names the aggregation rule. For now the only\nimplemented rule is ``max_value``: bucket eligible results by spec-name\nprefix, sum within each bucket, return the max bucket total. Additional\nstrategies (sum across buckets, weighted average, percentile, \u2026) can be\nintroduced later as a backwards-compatible widening of the enum."
       },
       "SpecTestReportResponse": {
         "properties": {

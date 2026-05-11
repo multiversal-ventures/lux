@@ -79,6 +79,9 @@ export {
   ScenarioSidebar,
   ScenarioComparison,
   ScenarioIdentities,
+  ScenarioResults,
+  AGENCY_LABELS,
+  KNOWN_AGENCIES,
   useScenarioAdvice,
 } from "./components/Scenario/index.js";
 export type {
@@ -87,6 +90,7 @@ export type {
   ScenarioRendererProps,
   ScenarioHeaderProps,
   ScenarioTabsProps,
+  ScenarioTabExtra,
   ScenarioTabPanelProps,
   ScenarioCalcLogsProps,
   ScenarioRefsProps,
@@ -94,5 +98,6 @@ export type {
   ScenarioSidebarProps,
   ScenarioComparisonProps,
   ScenarioIdentitiesProps,
+  ScenarioResultsProps,
   UseScenarioAdviceReturn,
 } from "./components/Scenario/index.js";

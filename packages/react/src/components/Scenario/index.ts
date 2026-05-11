@@ -8,7 +8,7 @@ export type { CaseScenarioProviderProps, ScenarioProviderProps } from "./Scenari
 export { ScenarioHeader } from "./ScenarioHeader.js";
 export type { ScenarioHeaderProps } from "./ScenarioHeader.js";
 export { ScenarioTabs } from "./ScenarioTabs.js";
-export type { ScenarioTabsProps } from "./ScenarioTabs.js";
+export type { ScenarioTabsProps, ScenarioTabExtra } from "./ScenarioTabs.js";
 export { ScenarioTabPanel } from "./ScenarioTabPanel.js";
 export type { ScenarioTabPanelProps } from "./ScenarioTabPanel.js";
 export { ScenarioCalcLogs } from "./ScenarioCalcLogs.js";
@@ -27,3 +27,5 @@ export { ScenarioRenderer } from "./ScenarioRenderer.js";
 export type { ScenarioRendererProps } from "./ScenarioRenderer.js";
 export { ScenarioIdentities } from "./ScenarioIdentities.js";
 export type { ScenarioIdentitiesProps } from "./ScenarioIdentities.js";
+export { ScenarioResults, AGENCY_LABELS, KNOWN_AGENCIES } from "./ScenarioResults.js";
+export type { ScenarioResultsProps } from "./ScenarioResults.js";

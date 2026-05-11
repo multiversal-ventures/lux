@@ -4,11 +4,19 @@ import styles from "./Scenario.module.css";
 const SUMMARY_TAB = "summary";
 const SHOW_PRODUCT_TABS_APPROACHES = new Set(["qm_standard"]);
 
-export interface ScenarioTabsProps {
-  className?: string;
+export interface ScenarioTabExtra {
+  id: string;
+  label: string;
+  onClick: () => void;
 }
 
-export function ScenarioTabs({ className }: ScenarioTabsProps) {
+export interface ScenarioTabsProps {
+  className?: string;
+  /** Additional tabs rendered after the product tabs. */
+  extraTabs?: ScenarioTabExtra[];
+}
+
+export function ScenarioTabs({ className, extraTabs = [] }: ScenarioTabsProps) {
   const { scenario, activeProductId, setActiveProductId } = useScenarioContext();
   const hints = scenario.rendering_hints;
   const approachType = hints?.approach_type ?? "qm_standard";
@@ -31,6 +39,15 @@ export function ScenarioTabs({ className }: ScenarioTabsProps) {
           onClick={() => setActiveProductId(p.product_id)}
         >
           {p.display_name}
+        </button>
+      ))}
+      {extraTabs.map((t) => (
+        <button
+          key={t.id}
+          className={[styles.tab, activeProd === t.id ? styles.tabActive : ""].join(" ")}
+          onClick={() => { setActiveProductId(t.id); t.onClick(); }}
+        >
+          {t.label}
         </button>
       ))}
     </div>

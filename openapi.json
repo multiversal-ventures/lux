@@ -3453,6 +3453,301 @@
           }
         }
       }
+    },
+    "/api/cases/{case_id}/reports": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "List Case Reports",
+        "description": "List available report types and last-generated metadata.\n\nAvailable report names come from the reports/ YAML directory.\nWhen scenario_id is provided, last-generated data is merged from the\nreports table for the scenario's latest manifest.",
+        "operationId": "list_case_reports_api_cases__case_id__reports_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scenario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReportListItem"
+                  },
+                  "title": "Response List Case Reports Api Cases  Case Id  Reports Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reports/{report_name}": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Generate Report",
+        "description": "Render *report_name* for *case_id* and persist the result.\n\nFor scenario-scoped reports (income_qm, etc.) pass scenario_id in the\nrequest body.  Returns 422 if scenario_id is required but absent.\n\nreport_id in the response is null when no manifest can be resolved (e.g.\ncase-level reports without a scenario); in that case the Report row is not\npersisted \u2014 only storage_key and generated_at are meaningful.",
+        "operationId": "generate_report_api_cases__case_id__reports__report_name__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "report_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ReportGenerateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportGenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reports/{report_name}/download": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Download Report",
+        "description": "Stream the generated .xlsx file for *report_id*.\n\nreport_id comes from the ReportGenerateResponse returned by POST .../generate.\nReturns 404 when the report row or file is not found.",
+        "operationId": "download_report_api_cases__case_id__reports__report_name__download_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "report_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Name"
+            }
+          },
+          {
+            "name": "report_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/reports/{report_name}/latest": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Latest Report",
+        "description": "Return metadata for the most recently generated *report_name*.\n\nPass the same tenant_slug used when generating so spec_version reflects\nany overlay that changes the version string.\nReturns 404 if no report has been generated yet for this\n(scenario, report_name) combination.",
+        "operationId": "get_latest_report_api_cases__case_id__reports__report_name__latest_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "report_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Name"
+            }
+          },
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Scenario Id"
+            }
+          },
+          {
+            "name": "tenant_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportGenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6562,6 +6857,17 @@
             ],
             "title": "Spec Domain"
           },
+          "semantic_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Key"
+          },
           "outcome": {
             "anyOf": [
               {
@@ -6604,6 +6910,7 @@
           "spec_name",
           "spec_version",
           "spec_domain",
+          "semantic_key",
           "outcome",
           "monthly_amount",
           "computed_at"
@@ -7100,6 +7407,159 @@
         },
         "type": "object",
         "title": "VerificationState"
+      },
+      "ReportGenerateRequest": {
+        "properties": {
+          "scenario_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Id"
+          },
+          "tenant_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Slug"
+          },
+          "agencies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agencies"
+          }
+        },
+        "type": "object",
+        "title": "ReportGenerateRequest",
+        "description": "Body for POST /cases/{case_id}/reports/{report_name}."
+      },
+      "ReportGenerateResponse": {
+        "properties": {
+          "report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Id"
+          },
+          "report_name": {
+            "type": "string",
+            "title": "Report Name"
+          },
+          "storage_key": {
+            "type": "string",
+            "title": "Storage Key"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "spec_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_id",
+          "report_name",
+          "storage_key",
+          "generated_at"
+        ],
+        "title": "ReportGenerateResponse",
+        "description": "Returned after a report is rendered and stored.\n\nreport_id is None when no manifest was available to attach the Report row\nto (e.g. a case-level report generated without a scenario).  Clients should\ntreat a null report_id as \"rendered but not persisted for future retrieval\"."
+      },
+      "ReportListItem": {
+        "properties": {
+          "report_name": {
+            "type": "string",
+            "title": "Report Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "last_generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Generated At"
+          },
+          "last_report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Report Id"
+          },
+          "last_storage_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Storage Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_name"
+        ],
+        "title": "ReportListItem",
+        "description": "One entry in the GET /cases/{case_id}/reports list."
       }
     },
     "securitySchemes": {

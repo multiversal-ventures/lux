@@ -1,92 +1,131 @@
-import { useScenarioContext } from "./ScenarioProvider.js";
-import { resolveAgency } from "./resolveAgency.js";
+import { useState } from "react";
+import { useReferenceFocus } from "../Reference/ReferenceFocusProvider.js";
+import { ScenarioReferenceDetail } from "./ScenarioReferenceDetail.js";
+import { ScenarioReferenceTable } from "./ScenarioReferenceTable.js";
+import {
+  useScenarioReferences,
+  type RefClickPayload,
+  type ScenarioReferenceRow,
+} from "./useScenarioReferences.js";
+
+export type { RefClickPayload } from "./useScenarioReferences.js";
 
 export interface ScenarioRefsProps {
-  onRefClick: (canonicalKey: string, docId?: string) => void;
+  /**
+   * Optional click handler. Receives the canonicalKey + payload with
+   * file_id / doc_id / page / bbox so hosts can wire URL deep-links,
+   * analytics, etc.
+   *
+   * When a {@link ReferenceFocusProvider} wraps this component, clicks
+   * ALSO call `setFocus(...)` on that context — letting a sibling
+   * {@link ReferenceViewerPanel} (or any custom consumer) react. The
+   * two behaviours coexist so hosts can subscribe to either or both.
+   */
+  onRefClick?: (canonicalKey: string, payload: RefClickPayload) => void;
+  /**
+   * Separate handler for the "Open in document viewer" CTA. Lets hosts
+   * route to a dedicated viewer page while inline `onRefClick` /
+   * `setFocus(...)` keep driving the sibling viewer panel. When
+   * omitted, the CTA falls back to `onRefClick`.
+   */
+  onOpenInViewer?: (canonicalKey: string, payload: RefClickPayload) => void;
   className?: string;
 }
 
-export function ScenarioRefs({ onRefClick, className }: ScenarioRefsProps) {
-  const { scenario, audit, activeProductId } = useScenarioContext();
-  // Resolves via rendering_hints first, then falls back to a static slug→agency
-  // map so references list keeps working when Veritas leaves product_specs empty.
-  const agency = resolveAgency(activeProductId, scenario.rendering_hints?.product_specs ?? null);
+/**
+ * Opinionated default layout: a two-pane table + detail. For custom
+ * layouts compose {@link useScenarioReferences},
+ * {@link ScenarioReferenceTable}, {@link ScenarioReferenceDetail}, and
+ * {@link ReferenceViewerPanel} directly instead.
+ */
+export function ScenarioRefs({ onRefClick, onOpenInViewer, className }: ScenarioRefsProps) {
+  const { rows, derivedFromDocs, emptyMessage } = useScenarioReferences();
+  const refCtx = useReferenceFocus();
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const selected =
+    rows.find((r) => r.rowKey === selectedKey) ?? rows[0] ?? null;
 
-  const filteredAudit = agency
-    ? audit.filter((a) => a.spec_name?.startsWith(agency + "_"))
-    : [];
+  const dispatch = (canonicalKey: string, payload: RefClickPayload) => {
+    refCtx?.setFocus(canonicalKey, payload);
+    onRefClick?.(canonicalKey, payload);
+  };
 
-  const refs: Array<{ label: string; canonicalKey: string; docId?: string }> = [];
-  const seen = new Set<string>();
-  let totalFunctionCalls = 0;
-  for (const spec of filteredAudit) {
-    for (const step of spec.steps ?? []) {
-      for (const fc of step.function_calls ?? []) {
-        totalFunctionCalls += 1;
-        const args = fc.args as Record<string, unknown> | null | undefined;
-        if (!args) continue;
-        const docType = (args.doc_type as string) ?? "";
-        const canonicalKey = (args.canonical_key as string) ?? (args.key as string) ?? "";
-        if (!canonicalKey) continue;
-        const label = docType ? `${docType}.${canonicalKey}` : canonicalKey;
-        if (seen.has(label)) continue;
-        seen.add(label);
-        refs.push({ label, canonicalKey, docId: args.doc_id as string | undefined });
-      }
-    }
-  }
-
-  if (refs.length === 0) {
-    if (typeof window !== "undefined") {
-      // One-shot diagnostic so we can see whether the empty state is from
-      // (a) audit fetch returning nothing, (b) wrong agency slug filtering it
-      // all out, or (c) audit rows present but no canonical_key in any fc.args.
-      console.warn("[ScenarioRefs] no refs", {
-        activeProductId,
-        agency,
-        auditTotal: audit.length,
-        filteredAuditTotal: filteredAudit.length,
-        totalFunctionCalls,
-        firstAuditSpec: audit[0]?.spec_name ?? null,
-        firstFcKeys:
-          filteredAudit[0]?.steps?.[0]?.function_calls?.[0]?.args
-            ? Object.keys(
-                filteredAudit[0].steps[0].function_calls[0].args as Record<string, unknown>,
-              )
-            : null,
-      });
-    }
-    let message = "No references for this product.";
-    if (audit.length === 0) {
-      message = "Calculation audit is still loading or unavailable.";
-    } else if (filteredAudit.length === 0) {
-      message = `No audit rows for ${agency ?? "this product"}.`;
-    } else if (totalFunctionCalls === 0) {
-      message = "No function calls recorded — references can't be derived.";
+  if (rows.length === 0) {
+    if (typeof window !== "undefined" && emptyMessage) {
+      console.warn("[ScenarioRefs] no refs", { emptyMessage });
     }
     return (
-      <div className={className} style={{ padding: "1rem", color: "#64748b", fontSize: "0.875rem" }}>
-        {message}
+      <div
+        className={className}
+        style={{ padding: "1rem", color: "#64748b", fontSize: "0.875rem" }}
+      >
+        {emptyMessage ?? "No references for this product."}
       </div>
     );
   }
 
   return (
-    <div className={className} style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", padding: "0.75rem" }}>
-      {refs.map((ref) => (
-        <button
-          key={ref.label}
-          onClick={() => onRefClick(ref.canonicalKey, ref.docId)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: "0.25rem",
-            padding: "0.25rem 0.625rem", borderRadius: "0.375rem",
-            background: "#eff6ff", border: "1px solid #bfdbfe",
-            color: "#1d4ed8", fontSize: "0.75rem", fontFamily: "monospace", cursor: "pointer",
-          }}
-        >
-          {ref.label}
-        </button>
-      ))}
+    <div
+      className={className}
+      style={{
+        display: "flex",
+        flex: "1 1 auto",
+        minHeight: 0,
+        height: "100%",
+        background: "#fff",
+      }}
+    >
+      <div
+        style={{
+          flex: "1 1 60%",
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          borderRight: "1px solid #e2e8f0",
+        }}
+      >
+        <ScenarioReferenceTable
+          rows={rows}
+          selectedKey={selected?.rowKey ?? null}
+          onSelect={(row: ScenarioReferenceRow) => setSelectedKey(row.rowKey)}
+          onActivate={dispatch}
+          banner={
+            derivedFromDocs ? (
+              <div
+                style={{
+                  padding: "0.5rem 0.75rem",
+                  background: "#fef3c7",
+                  borderBottom: "1px solid #fde68a",
+                  fontSize: "0.75rem",
+                  color: "#92400e",
+                }}
+              >
+                Showing source documents — per-derivation references aren't recorded for this run.
+              </div>
+            ) : null
+          }
+        />
+      </div>
+
+      <aside
+        style={{
+          flex: "0 0 320px",
+          minWidth: 280,
+          maxWidth: 360,
+          overflow: "auto",
+          padding: "0.875rem 1rem",
+          background: "#fafafa",
+          fontSize: "0.8125rem",
+          color: "#0f172a",
+        }}
+      >
+        <ScenarioReferenceDetail
+          row={selected}
+          onActivate={dispatch}
+          onOpenInViewer={onOpenInViewer}
+        />
+      </aside>
     </div>
   );
 }

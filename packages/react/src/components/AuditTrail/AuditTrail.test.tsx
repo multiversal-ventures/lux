@@ -29,6 +29,7 @@ describe("AuditTrail", () => {
 								result_type: null,
 								is_final: true,
 								function_calls: [],
+								input_values: [],
 							},
 						],
 					},

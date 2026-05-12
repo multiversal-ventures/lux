@@ -1577,7 +1577,7 @@
           "scenarios"
         ],
         "summary": "Get Scenario Summary",
-        "description": "Generate an LLM-powered narrative summary for a scenario.\n\nBuilds context from the scenario's approach, latest refinement selections,\nentity labels, and document types, then calls the AI provider.\nFalls back to a structured template if AI is unavailable.",
+        "description": "Return cached or freshly generated LLM narrative summary + name for a scenario.\n\nGenerates once, caches in DB. Pass ?refresh=true to force regeneration.\nFalls back to a structured template if AI is unavailable.",
         "operationId": "get_scenario_summary_api_cases__id__scenarios__sid__summary_get",
         "security": [
           {
@@ -1603,6 +1603,16 @@
               "type": "string",
               "format": "uuid",
               "title": "Sid"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
             }
           }
         ],
@@ -4148,6 +4158,14 @@
             "type": "array",
             "title": "Function Calls",
             "default": []
+          },
+          "input_values": {
+            "items": {
+              "$ref": "#/components/schemas/InputValueResponse"
+            },
+            "type": "array",
+            "title": "Input Values",
+            "default": []
           }
         },
         "type": "object",
@@ -5260,6 +5278,58 @@
         ],
         "title": "ExtractionResponse"
       },
+      "ExtractionSourceRef": {
+        "properties": {
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox"
+          },
+          "ocr_text_snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text Snippet"
+          }
+        },
+        "type": "object",
+        "title": "ExtractionSourceRef",
+        "description": "Page + bbox provenance carried alongside an input extraction.\n\n``file_id`` is the underlying file UUID \u2014 hosts wire this into their\ndocument viewer's ``?file=\u2026&page=\u2026`` deep-link convention (page_number is\n1-based, matching ``pages.page_number``)."
+      },
       "ExtractionSourceResponse": {
         "properties": {
           "page_number": {
@@ -5538,6 +5608,120 @@
           "status"
         ],
         "title": "IdentityInfo"
+      },
+      "InputProvenance": {
+        "properties": {
+          "extraction_id": {
+            "type": "string",
+            "title": "Extraction Id"
+          },
+          "doc_id": {
+            "type": "string",
+            "title": "Doc Id"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Type"
+          },
+          "canonical_key": {
+            "type": "string",
+            "title": "Canonical Key"
+          },
+          "value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "raw_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionSourceRef"
+            },
+            "type": "array",
+            "title": "Sources",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "extraction_id",
+          "doc_id",
+          "canonical_key"
+        ],
+        "title": "InputProvenance",
+        "description": "Single contributing extraction for a derivation input.\n\n`value` is the engine-side normalized value the derivation actually\nsaw; `raw_value` is the unparsed text the extraction stored. Together\nwith `doc_id` + `canonical_key` they let the UI render\n``W2.wages_y1 \u2192 $5,000`` chips that click through to a specific\npage/bbox."
+      },
+      "InputValueResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "source_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Line"
+          },
+          "document_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Type"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/InputProvenance"
+            },
+            "type": "array",
+            "title": "Provenance",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "InputValueResponse",
+        "description": "One variable that fed a derivation step, with all contributing extractions."
       },
       "Intent": {
         "properties": {
@@ -6600,6 +6784,17 @@
             ],
             "title": "Status"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -6766,6 +6961,35 @@
           "summary": {
             "type": "string",
             "title": "Summary"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "eval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SummaryEvalResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SummarySectionResponse"
+            },
+            "type": "array",
+            "title": "Sections",
+            "default": []
           }
         },
         "type": "object",
@@ -7444,6 +7668,125 @@
           "errors"
         ],
         "title": "SuiteResultResponse"
+      },
+      "SummaryEvalResponse": {
+        "properties": {
+          "clean": {
+            "type": "boolean",
+            "title": "Clean"
+          },
+          "confidence_score": {
+            "type": "number",
+            "title": "Confidence Score"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvalViolation"
+            },
+            "type": "array",
+            "title": "Violations",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "clean",
+          "confidence_score"
+        ],
+        "title": "SummaryEvalResponse"
+      },
+      "SummaryEvalViolation": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "raw": {
+            "type": "string",
+            "title": "Raw"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "raw",
+          "message"
+        ],
+        "title": "SummaryEvalViolation"
+      },
+      "SummaryItemResponse": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "default": "default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "label",
+          "detail"
+        ],
+        "title": "SummaryItemResponse"
+      },
+      "SummarySectionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "default": "default"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryItemResponse"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "SummarySectionResponse"
       },
       "TransactionRegion": {
         "properties": {

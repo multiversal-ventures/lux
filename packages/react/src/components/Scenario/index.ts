@@ -47,6 +47,8 @@ export {
 } from "./referenceFormat.js";
 export { ScenarioAdvice } from "./ScenarioAdvice.js";
 export type { ScenarioAdviceProps } from "./ScenarioAdvice.js";
+export { ScenarioNarrativeSummary } from "./ScenarioNarrativeSummary.js";
+export type { ScenarioNarrativeSummaryProps } from "./ScenarioNarrativeSummary.js";
 export { useScenarioAdvice } from "./useScenarioAdvice.js";
 export type { UseScenarioAdviceReturn } from "./useScenarioAdvice.js";
 export { ScenarioSidebar } from "./ScenarioSidebar.js";

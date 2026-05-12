@@ -191,6 +191,104 @@ export interface AddFilesProgress {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Credit report summary types (ported from Gunnr)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CreditScore {
+	score_model: string;
+	score: number | null;
+	reason_codes: string | null;
+	no_score_reason: string | null;
+}
+
+export interface TradeAccount {
+	company: string;
+	account_number: string | null;
+	account_type: string | null;
+	portfolio_type: string | null;
+	account_status: string | null;
+	account_rating: string | null;
+	balance: number | null;
+	credit_limit: number | null;
+	high_balance: number | null;
+	high_credit: number | null;
+	monthly_payment_amount: number | null;
+	past_due: number | null;
+	date_opened: string | null;
+	date_reported: string | null;
+	date_closed: string | null;
+	responsibility: string | null;
+	terms: string | null;
+	remarks: string | null;
+	delinquencies_30: number | null;
+	delinquencies_60: number | null;
+	delinquencies_90: number | null;
+}
+
+export interface CreditCollection {
+	collection_agency: string;
+	original_creditor: string | null;
+	balance: number | null;
+	date_opened: string | null;
+	status: string | null;
+}
+
+export interface CreditPublicRecord {
+	record_type: string;
+	court: string | null;
+	amount: number | null;
+	date_filed: string | null;
+	date_resolved: string | null;
+	status: string | null;
+}
+
+export interface CreditInquiry {
+	company: string;
+	date: string;
+	industry: string | null;
+}
+
+export interface CreditBorrowerInfo {
+	borrower_name: string | null;
+	ssn: string | null;
+	date_of_birth: string | null;
+	current_address: string | null;
+}
+
+export interface CreditReportSummaryStats {
+	total_accounts: number | null;
+	total_balance: number | null;
+	total_monthly_payments: number | null;
+	inquiries_count: number | null;
+	collections_count: number | null;
+	public_records_count: number | null;
+	delinquencies_30_60_90: string | null;
+}
+
+export interface CreditReportExtraction {
+	document_id: string;
+	file_id: string;
+	report_type: string | null;
+	date_pulled: string | null;
+	bureau: string | null;
+	borrower_info: CreditBorrowerInfo;
+	credit_scores: CreditScore[];
+	report_summary: CreditReportSummaryStats;
+	trade_accounts: TradeAccount[];
+	collections: CreditCollection[];
+	public_records: CreditPublicRecord[];
+	inquiries: CreditInquiry[];
+}
+
+export interface CreditReportSummary {
+	case_id: string;
+	credit_reports: CreditReportExtraction[];
+	total_trade_accounts: number;
+	total_monthly_payments: number;
+	total_balance: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Portal token issuance — uses OpenAPI generated schemas from index.ts.
 // operator-cases.ts imports these types from generated.ts directly.
 // ─────────────────────────────────────────────────────────────────────────────

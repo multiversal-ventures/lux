@@ -323,6 +323,10 @@ export class VeritasClient {
 		return this.requestJson(`/api/cases/${caseId}/banking`);
 	}
 
+	async getCreditReportSummary(caseId: string): Promise<import('./operator-types.js').CreditReportSummary> {
+		return this.requestJson(`/api/cases/${caseId}/credit-report/summary`);
+	}
+
 	async getCaseBankingTransactions(caseId: string): Promise<import('./operator-types.js').ClassifiedTransactionsResponse> {
 		return this.requestJson(`/api/cases/${caseId}/banking/transactions`);
 	}

@@ -2,6 +2,7 @@ import type {
 	BankingResponse,
 	CaseEvent,
 	CaseResponse,
+	CreditReportSummary,
 	DocumentResponse,
 	ExtractionResponse,
 	OperatorClientError,
@@ -244,6 +245,18 @@ export function createCaseMethods(
 		}
 	}
 
+	async function getCreditReportSummary(caseId: string): Promise<Result<CreditReportSummary>> {
+		try {
+			const res = await fetch(
+				`${base}/api/cases/${encodeURIComponent(caseId)}/credit-report/summary`,
+				{ headers: authHeaders() },
+			);
+			return await request<CreditReportSummary>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	async function listTransactions(caseId: string, docId: string): Promise<Result<TransactionsResponse>> {
 		try {
 			const res = await fetch(
@@ -308,6 +321,7 @@ export function createCaseMethods(
 		listDocuments,
 		listExtractions,
 		getBanking,
+		getCreditReportSummary,
 		listTransactions,
 		pagePngUrl,
 		createPortalToken,

@@ -32,6 +32,7 @@ export {
 	useDocuments,
 	useExtractions,
 	useBanking,
+	useCreditReport,
 	useAudit,
 	useAuthedBlob,
 	useQualification,

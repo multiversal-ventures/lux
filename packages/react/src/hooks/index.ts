@@ -5,6 +5,7 @@ export { useSpecDetail } from "./useSpecDetail.js";
 export { useDocuments } from "./useDocuments.js";
 export { useExtractions } from "./useExtractions.js";
 export { useBanking } from "./useBanking.js";
+export { useCreditReport } from "./useCreditReport.js";
 export { useAudit } from "./useAudit.js";
 export { useAuthedBlob } from "./useAuthedBlob.js";
 export { useQualification } from "./useQualification.js";

@@ -5,7 +5,7 @@ import { ScenarioHeader } from "./ScenarioHeader.js";
 import { ScenarioTabs } from "./ScenarioTabs.js";
 import { ScenarioTabPanel } from "./ScenarioTabPanel.js";
 import { ScenarioCalcLogs } from "./ScenarioCalcLogs.js";
-import { ScenarioRefs } from "./ScenarioRefs.js";
+import { ScenarioRefs, type RefClickPayload } from "./ScenarioRefs.js";
 import { ScenarioAdvice } from "./ScenarioAdvice.js";
 import type { components } from "@fenero/lux-core";
 
@@ -21,7 +21,7 @@ export interface ScenarioRendererProps {
   scenarios?: ScenarioComparisonResponse[];
   audit?: SpecAuditResponse[];
   refinements?: RefinementResponse[];
-  onRefClick: (canonicalKey: string, docId?: string) => void;
+  onRefClick: (canonicalKey: string, payload: RefClickPayload) => void;
   onAction?: (code: string, action: string) => void;
   onSelectScenario?: (scenarioId: string) => void;
   onNewScenario?: () => void;

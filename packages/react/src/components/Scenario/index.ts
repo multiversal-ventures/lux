@@ -23,7 +23,28 @@ export type { ScenarioTabPanelProps } from "./ScenarioTabPanel.js";
 export { ScenarioCalcLogs } from "./ScenarioCalcLogs.js";
 export type { ScenarioCalcLogsProps } from "./ScenarioCalcLogs.js";
 export { ScenarioRefs } from "./ScenarioRefs.js";
-export type { ScenarioRefsProps } from "./ScenarioRefs.js";
+export type { ScenarioRefsProps, RefClickPayload } from "./ScenarioRefs.js";
+export {
+  useScenarioReferences,
+  payloadFromRow,
+} from "./useScenarioReferences.js";
+export type {
+  ScenarioReferenceRow,
+  InputProvenance,
+  InputValueRow,
+  ExtractionSourceRef,
+  AuditStepWithProvenance,
+  UseScenarioReferencesResult,
+} from "./useScenarioReferences.js";
+export { ScenarioReferenceTable } from "./ScenarioReferenceTable.js";
+export type { ScenarioReferenceTableProps } from "./ScenarioReferenceTable.js";
+export { ScenarioReferenceDetail } from "./ScenarioReferenceDetail.js";
+export type { ScenarioReferenceDetailProps } from "./ScenarioReferenceDetail.js";
+export {
+  formatReferenceValue,
+  shortenText,
+  bboxLabel,
+} from "./referenceFormat.js";
 export { ScenarioAdvice } from "./ScenarioAdvice.js";
 export type { ScenarioAdviceProps } from "./ScenarioAdvice.js";
 export { useScenarioAdvice } from "./useScenarioAdvice.js";

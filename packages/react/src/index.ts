@@ -87,8 +87,15 @@ export {
   useScenarioAdvice,
   useScenarioSummary,
   useScenarioProductIncome,
+  useScenarioReferences,
+  payloadFromRow,
+  ScenarioReferenceTable,
+  ScenarioReferenceDetail,
   PRODUCT_ID_TO_AGENCY,
   formatScenarioSummary,
+  formatReferenceValue,
+  shortenText,
+  bboxLabel,
 } from "./components/Scenario/index.js";
 export {
   ReportRenderer,
@@ -97,6 +104,36 @@ export {
   useReportWorkbook,
   reportWorkbookQueryKey,
 } from "./components/Reports/index.js";
+export {
+  ReferenceFocusProvider,
+  useReferenceFocus,
+  ReferenceViewerPanel,
+  useReferenceFocusFromSearchParams,
+  payloadFromSearchParams,
+} from "./components/Reference/index.js";
+export type {
+  ReferenceFocus,
+  ReferenceFocusContextValue,
+  ReferenceFocusProviderProps,
+  ReferenceViewerPanelProps,
+  SearchParamsLike,
+  ReferenceFocusParamNames,
+  UseReferenceFocusFromSearchParamsOptions,
+} from "./components/Reference/index.js";
+
+export {
+  CaseDocumentViewer,
+  CasePageImage,
+  useCaseExtractions,
+  useCasePageBlob,
+} from "./components/Document/index.js";
+export type {
+  CaseDocumentViewerProps,
+  CaseDocumentViewerClassNames,
+  CaseDocumentViewerRenderSlots,
+  CasePageImageProps,
+  UseCasePageBlobResult,
+} from "./components/Document/index.js";
 export type {
   ReportRendererProps,
   ReportSheetProps,
@@ -116,6 +153,7 @@ export type {
   ScenarioTabPanelProps,
   ScenarioCalcLogsProps,
   ScenarioRefsProps,
+  RefClickPayload,
   ScenarioAdviceProps,
   ScenarioSidebarProps,
   ScenarioComparisonProps,
@@ -125,6 +163,14 @@ export type {
   UseScenarioAdviceReturn,
   UseScenarioSummaryResult,
   UseScenarioProductIncomeResult,
+  UseScenarioReferencesResult,
+  ScenarioReferenceRow,
+  ScenarioReferenceTableProps,
+  ScenarioReferenceDetailProps,
+  ExtractionSourceRef,
+  InputProvenance,
+  InputValueRow,
+  AuditStepWithProvenance,
   FormatScenarioSummaryOptions,
   HasSummaryResult,
 } from "./components/Scenario/index.js";

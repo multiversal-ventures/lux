@@ -567,10 +567,9 @@ export interface paths {
         };
         /**
          * Get Scenario Summary
-         * @description Generate an LLM-powered narrative summary for a scenario.
+         * @description Return cached or freshly generated LLM narrative summary + name for a scenario.
          *
-         *     Builds context from the scenario's approach, latest refinement selections,
-         *     entity labels, and document types, then calls the AI provider.
+         *     Generates once, caches in DB. Pass ?refresh=true to force regeneration.
          *     Falls back to a structured template if AI is unavailable.
          */
         get: operations["get_scenario_summary_api_cases__id__scenarios__sid__summary_get"];
@@ -1497,6 +1496,11 @@ export interface components {
              * @default []
              */
             function_calls: components["schemas"]["FunctionCallResponse"][];
+            /**
+             * Input Values
+             * @default []
+             */
+            input_values: components["schemas"]["InputValueResponse"][];
         };
         /** CaseResponse */
         CaseResponse: {
@@ -1959,6 +1963,26 @@ export interface components {
              */
             sources: components["schemas"]["ExtractionSourceResponse"][];
         };
+        /**
+         * ExtractionSourceRef
+         * @description Page + bbox provenance carried alongside an input extraction.
+         *
+         *     ``file_id`` is the underlying file UUID — hosts wire this into their
+         *     document viewer's ``?file=…&page=…`` deep-link convention (page_number is
+         *     1-based, matching ``pages.page_number``).
+         */
+        ExtractionSourceRef: {
+            /** File Id */
+            file_id?: string | null;
+            /** Page Number */
+            page_number?: number | null;
+            /** Bbox */
+            bbox?: {
+                [key: string]: unknown;
+            } | null;
+            /** Ocr Text Snippet */
+            ocr_text_snippet?: string | null;
+        };
         /** ExtractionSourceResponse */
         ExtractionSourceResponse: {
             /** Page Number */
@@ -2052,6 +2076,54 @@ export interface components {
              * @default false
              */
             needs_review: boolean;
+        };
+        /**
+         * InputProvenance
+         * @description Single contributing extraction for a derivation input.
+         *
+         *     `value` is the engine-side normalized value the derivation actually
+         *     saw; `raw_value` is the unparsed text the extraction stored. Together
+         *     with `doc_id` + `canonical_key` they let the UI render
+         *     ``W2.wages_y1 → $5,000`` chips that click through to a specific
+         *     page/bbox.
+         */
+        InputProvenance: {
+            /** Extraction Id */
+            extraction_id: string;
+            /** Doc Id */
+            doc_id: string;
+            /** Doc Type */
+            doc_type?: string | null;
+            /** Canonical Key */
+            canonical_key: string;
+            /** Value */
+            value?: unknown | null;
+            /** Raw Value */
+            raw_value?: unknown | null;
+            /**
+             * Sources
+             * @default []
+             */
+            sources: components["schemas"]["ExtractionSourceRef"][];
+        };
+        /**
+         * InputValueResponse
+         * @description One variable that fed a derivation step, with all contributing extractions.
+         */
+        InputValueResponse: {
+            /** Name */
+            name: string;
+            /** Value */
+            value?: unknown | null;
+            /** Source Line */
+            source_line?: string | null;
+            /** Document Type */
+            document_type?: string | null;
+            /**
+             * Provenance
+             * @default []
+             */
+            provenance: components["schemas"]["InputProvenance"][];
         };
         /** Intent */
         Intent: {
@@ -2477,6 +2549,8 @@ export interface components {
             pool_version: number | null;
             /** Status */
             status: string | null;
+            /** Name */
+            name?: string | null;
             /** Created At */
             created_at: string | null;
             /** Manifest Id */
@@ -2523,6 +2597,14 @@ export interface components {
         ScenarioSummaryResponse: {
             /** Summary */
             summary: string;
+            /** Name */
+            name?: string | null;
+            eval?: components["schemas"]["SummaryEvalResponse"] | null;
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["SummarySectionResponse"][];
         };
         /** SpecAuditResponse */
         SpecAuditResponse: {
@@ -2738,6 +2820,60 @@ export interface components {
             spec_reports: components["schemas"]["SpecTestReportResponse"][];
             /** Errors */
             errors: string[];
+        };
+        /** SummaryEvalResponse */
+        SummaryEvalResponse: {
+            /** Clean */
+            clean: boolean;
+            /** Confidence Score */
+            confidence_score: number;
+            /**
+             * Violations
+             * @default []
+             */
+            violations: components["schemas"]["SummaryEvalViolation"][];
+        };
+        /** SummaryEvalViolation */
+        SummaryEvalViolation: {
+            /** Type */
+            type: string;
+            /** Raw */
+            raw: string;
+            /** Message */
+            message: string;
+        };
+        /** SummaryItemResponse */
+        SummaryItemResponse: {
+            /** Type */
+            type: string;
+            /** Label */
+            label: string;
+            /** Value */
+            value?: string | null;
+            /** Detail */
+            detail: string;
+            /**
+             * Severity
+             * @default default
+             */
+            severity: string;
+        };
+        /** SummarySectionResponse */
+        SummarySectionResponse: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * Severity
+             * @default default
+             */
+            severity: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["SummaryItemResponse"][];
         };
         /**
          * TransactionRegion
@@ -3777,7 +3913,9 @@ export interface operations {
     };
     get_scenario_summary_api_cases__id__scenarios__sid__summary_get: {
         parameters: {
-            query?: never;
+            query?: {
+                refresh?: boolean;
+            };
             header?: never;
             path: {
                 id: string;

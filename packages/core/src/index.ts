@@ -151,3 +151,9 @@ export type VeritasProductSpecGroup = components["schemas"]["ProductSpecGroup"];
 export type VeritasScenarioAdviceItem = components["schemas"]["ScenarioAdviceItem"];
 export type VeritasScenarioAdviceResponse = components["schemas"]["ScenarioAdviceResponse"];
 export type VeritasRefinementError = components["schemas"]["RefinementError"];
+
+/** Structured narrative summary types for scenario income analysis. */
+export type VeritasSummaryItem = components["schemas"]["SummaryItemResponse"];
+export type VeritasSummarySection = components["schemas"]["SummarySectionResponse"];
+export type VeritasScenarioSummaryResponse = components["schemas"]["ScenarioSummaryResponse"];
+export type VeritasSummaryEvalResponse = components["schemas"]["SummaryEvalResponse"];

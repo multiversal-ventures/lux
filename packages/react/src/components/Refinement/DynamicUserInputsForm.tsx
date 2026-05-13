@@ -61,6 +61,7 @@ import type { components } from "@fenero/lux-core";
 
 type UserInputsSchema = components["schemas"]["UserInputsSchemaResponse"];
 type UserInputsSection = components["schemas"]["UserInputsProductSectionResponse"];
+type UserInputsGroupSection = components["schemas"]["UserInputsGroupSectionResponse"];
 type UserInputField = components["schemas"]["UserInputFieldResponse"];
 type UserInputOption = components["schemas"]["UserInputFieldOptionResponse"];
 
@@ -92,6 +93,11 @@ export interface DynamicUserInputsFormClassNames {
   sectionTitle?: string;
   sectionHint?: string;
   emptyMessage?: string;
+  /** Optional styling specifically for group sections (top-level shared blocks). */
+  groupSection?: string;
+  groupSectionTitle?: string;
+  groupSectionHint?: string;
+  groupAppliesTo?: string;
   field?: {
     root?: string;
     label?: string;
@@ -105,8 +111,10 @@ export interface DynamicUserInputsFormClassNames {
 export interface DynamicUserInputsFormSlots {
   /** Override the empty-state message rendered when the schema has no fields. */
   empty?: ReactNode;
-  /** Custom section header. */
+  /** Custom section header for per-product sections. */
   sectionHeader?: (section: UserInputsSection) => ReactNode;
+  /** Custom section header for shared override groups (e.g. "Qualified Mortgage"). */
+  groupSectionHeader?: (section: UserInputsGroupSection) => ReactNode;
   /** Per-type renderer override. Key is `field.type` (e.g. "percent"). */
   renderers?: Partial<Record<string, DynamicUserInputFieldRenderer>>;
   /** Renderer used when no per-type override matches. */
@@ -262,8 +270,53 @@ export function DynamicUserInputsForm({
   slots,
   style,
 }: DynamicUserInputsFormProps) {
-  const sections = schema?.products ?? [];
-  const hasAnyField = sections.some((s) => (s.fields ?? []).length > 0);
+  const groupSections = schema?.groups ?? [];
+  const productSections = schema?.products ?? [];
+  const hasAnyField =
+    groupSections.some((g) => (g.fields ?? []).length > 0) ||
+    productSections.some((s) => (s.fields ?? []).length > 0);
+
+  // Group-field write: fan out to every product the group applies to so
+  // the qualify activity sees the value under each member's manifest
+  // context. Reads are still per-product, but all members share the same
+  // value at steady state — we read from the first member as the
+  // representative (the writes keep them in sync).
+  const renderGroupField = useCallback(
+    (section: UserInputsGroupSection, field: UserInputField) => {
+      const members = section.applies_to_products ?? [];
+      const representative = members[0];
+      const currentValue = representative != null ? value[representative]?.inputs?.[field.name] : undefined;
+      const renderer =
+        slots?.renderers?.[field.type] ?? slots?.defaultRenderer ?? pickDefaultRenderer(field);
+      const onFieldChange = (next: unknown) => {
+        for (const pid of members) {
+          onContextChange(pid, field.name, next);
+        }
+      };
+      return (
+        <div key={`${section.group_id}.${field.name}`} className={classNames?.field?.root}>
+          <label className={classNames?.field?.label}>
+            {field.label}
+            {field.required && <span aria-label="required"> *</span>}
+          </label>
+          {renderer({
+            field,
+            // Pass the representative product so renderers that need a
+            // productId (e.g. custom renderers reaching into context) get
+            // a stable handle. Fan-out happens in onFieldChange above.
+            productId: representative ?? section.group_id,
+            value: currentValue,
+            yearOptions: documentYears,
+            disabled,
+            classNames: classNames?.field,
+            onChange: onFieldChange,
+          })}
+          {field.hint && <div className={classNames?.field?.hint}>{field.hint}</div>}
+        </div>
+      );
+    },
+    [value, onContextChange, documentYears, disabled, classNames?.field, slots?.renderers, slots?.defaultRenderer],
+  );
 
   const renderField = useCallback(
     (section: UserInputsSection, field: UserInputField) => {
@@ -308,7 +361,37 @@ export function DynamicUserInputsForm({
 
   return (
     <div className={classNames?.root} style={style}>
-      {sections.map((section) => {
+      {/* Shared override groups (e.g. QM Y1/Y2 pickers) render FIRST so
+          operators see the "applies-to-many" knobs above per-product
+          knobs that vary in scope. */}
+      {groupSections.map((section) => {
+        const fields = section.fields ?? [];
+        if (fields.length === 0) return null;
+        return (
+          <div
+            key={`group:${section.group_id}`}
+            className={classNames?.groupSection ?? classNames?.section}
+          >
+            {slots?.groupSectionHeader?.(section) ?? (
+              <h3 className={classNames?.groupSectionTitle ?? classNames?.sectionTitle}>
+                {section.display_name}
+                {section.applies_to_products.length > 1 && (
+                  <span className={classNames?.groupAppliesTo}>
+                    {` — applies to ${section.applies_to_products.length} products`}
+                  </span>
+                )}
+              </h3>
+            )}
+            {section.description && (
+              <div className={classNames?.groupSectionHint ?? classNames?.sectionHint}>
+                {section.description}
+              </div>
+            )}
+            {fields.map((field) => renderGroupField(section, field))}
+          </div>
+        );
+      })}
+      {productSections.map((section) => {
         const fields = section.fields ?? [];
         if (fields.length === 0) return null;
         return (

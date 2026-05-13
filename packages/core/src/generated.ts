@@ -3196,8 +3196,41 @@ export interface components {
             spec_name: string;
         };
         /**
+         * UserInputsGroupSectionResponse
+         * @description A shared override section for products that share a group declaration.
+         *
+         *     Emitted when one or more requested products opt into the same
+         *     ``override_groups`` entry in ``loan_products.yaml``. The UI renders
+         *     a single section (e.g. "Qualified Mortgage" Y1/Y2 pickers) and the
+         *     host fans the operator's value out to ``context[product_id].inputs[...]``
+         *     for every product in ``applies_to_products``.
+         */
+        UserInputsGroupSectionResponse: {
+            /** Group Id */
+            group_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Applies To Products
+             * @default []
+             */
+            applies_to_products: string[];
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["UserInputFieldResponse"][];
+        };
+        /**
          * UserInputsProductSectionResponse
          * @description Operator-adjustable fields scoped to one product (e.g. all FNMA knobs).
+         *
+         *     Excludes any field that came from a shared override group — those
+         *     are emitted ONCE in ``UserInputsSchemaResponse.groups`` instead, so
+         *     the UI doesn't render duplicate pickers across QM products in a
+         *     multi-product scenario.
          */
         UserInputsProductSectionResponse: {
             /** Product Id */
@@ -3214,10 +3247,26 @@ export interface components {
          * UserInputsSchemaResponse
          * @description Full operator-adjustable schema for a scenario/refinement.
          *
-         *     One section per product. The host writes user-chosen values to
-         *     ``context[product_id].inputs[<field_name>]`` on the manifest.
+         *     Two-tier rendering surface:
+         *
+         *       * ``groups``  — shared sections (one per active override group). A
+         *         scenario picking all QM products renders a single "Qualified
+         *         Mortgage" group with Y1/Y2 pickers.
+         *       * ``products`` — per-product sections holding product-specific +
+         *         spec-level overrides (group-sourced fields are stripped).
+         *
+         *     The host writes user-chosen values to
+         *     ``context[product_id].inputs[<field_name>]`` regardless of which
+         *     section the field lives in. Group sections fan their writes out to
+         *     every product in ``applies_to_products``; product sections write
+         *     directly.
          */
         UserInputsSchemaResponse: {
+            /**
+             * Groups
+             * @default []
+             */
+            groups: components["schemas"]["UserInputsGroupSectionResponse"][];
             /**
              * Products
              * @default []

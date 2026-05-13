@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useCaseScenarioContext } from "./ScenarioProvider.js";
+import { formatRefinementSubtitle, formatScenarioListHeadline } from "./scenarioDisplay.js";
 import type { components } from "@fenero/lux-core";
 
 type RefinementResponse = components["schemas"]["RefinementResponse"];
@@ -30,13 +31,14 @@ export function ScenarioSidebar({
 
   return (
     <div className={className} style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-      {scenarios.map((s) => {
+      {scenarios.map((s, idx) => {
         const scenarioId = String(s.scenario_id);
         const isActive = scenarioId === activeScenarioId;
         const isExpanded = expandedId === scenarioId;
         // income intentionally omitted — rendering_hints not on ScenarioComparisonResponse
         const approachLabel = APPROACH_LABELS[(s.approach ?? "")] ?? s.approach ?? "";
         const refinements: RefinementResponse[] = s.refinements ?? [];
+        const listTitle = formatScenarioListHeadline(s, idx + 1);
 
         return (
           <div key={scenarioId}>
@@ -54,7 +56,7 @@ export function ScenarioSidebar({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
-                  {approachLabel}
+                  {listTitle}
                 </span>
                 <span style={{ fontSize: "0.75rem", color: s.status === "completed" ? "#057a55" : "#92400e" }}>
                   {s.status === "completed" ? "✓" : "…"}
@@ -75,8 +77,13 @@ export function ScenarioSidebar({
                     <span style={{ color: r.status === "completed" ? "#057a55" : "#94a3b8" }}>
                       {r.status === "completed" ? "✓" : "○"}
                     </span>
-                    <span>Run #{r.refinement_num}</span>
-                    {r.name && <span style={{ color: "#94a3b8" }}>— {r.name}</span>}
+                    <span>
+                      {r.refinement_num != null ? `Run #${r.refinement_num}` : "Run"}
+                      <span style={{ color: "#94a3b8" }}>
+                        {" "}
+                        — {formatRefinementSubtitle(r)}
+                      </span>
+                    </span>
                   </div>
                 ))}
               </div>

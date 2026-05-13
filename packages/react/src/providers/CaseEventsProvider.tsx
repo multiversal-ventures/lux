@@ -30,6 +30,20 @@ interface CaseEventsContextValue {
 
 const CaseEventsContext = createContext<CaseEventsContextValue | null>(null);
 
+/**
+ * Non-throwing reader for the events context. Returns just the
+ * `subscribe` function (or null when no `<CaseEventsProvider>` is
+ * mounted) so infrastructure components can integrate with the event
+ * stream when available without forcing every host to wire up SSE.
+ */
+export function useCaseEventsOptional(): {
+	subscribe: (listener: (event: CaseEvent) => void) => () => void;
+} | null {
+	const ctx = useContext(CaseEventsContext);
+	if (!ctx) return null;
+	return { subscribe: ctx.subscribe };
+}
+
 export interface CaseEventsProviderProps {
 	caseId: string;
 	autoStop?: boolean;

@@ -569,10 +569,35 @@ export interface paths {
          * Get Scenario Summary
          * @description Return cached or freshly generated LLM narrative summary + name for a scenario.
          *
-         *     Generates once, caches in DB. Pass ?refresh=true to force regeneration.
-         *     Falls back to a structured template if AI is unavailable.
+         *     Thin wrapper around ``ensure_scenario_summary`` — see that helper for
+         *     the actual generation + persistence logic. Pass ?refresh=true to bust
+         *     the DB cache and force regeneration.
          */
         get: operations["get_scenario_summary_api_cases__id__scenarios__sid__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Refinement Summary
+         * @description Return cached or freshly generated LLM narrative summary + name for a refinement.
+         *
+         *     Mirrors ``get_scenario_summary`` but scoped to a single refinement
+         *     manifest's selections. Persists to ``selection_manifests.{name, summary,
+         *     summary_eval, summary_sections}``.
+         */
+        get: operations["get_refinement_summary_api_cases__id__scenarios__sid__refinements__rid__summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1708,6 +1733,12 @@ export interface components {
             spec_ids?: string[] | null;
             /** Note */
             note?: string | null;
+            /** Context */
+            context?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
         };
         /** CreateRefinementResponse */
         CreateRefinementResponse: {
@@ -2366,6 +2397,13 @@ export interface components {
             summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
             /** Loan Product Ids */
             loan_product_ids?: string[] | null;
+            /** Context */
+            context?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
         };
         /** RegisterTenantRequest */
         RegisterTenantRequest: {
@@ -2436,6 +2474,7 @@ export interface components {
              * @default []
              */
             advice: components["schemas"]["ScenarioAdviceItem"][];
+            user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
         };
         /**
          * ReportGenerateRequest
@@ -2589,6 +2628,8 @@ export interface components {
             pool_version: number | null;
             /** Status */
             status: string | null;
+            /** Name */
+            name?: string | null;
             /** Created At */
             created_at: string | null;
             rendering_hints?: components["schemas"]["RenderingHints"] | null;
@@ -2956,6 +2997,87 @@ export interface components {
              * @default
              */
             endpoint: string;
+        };
+        /**
+         * UserInputFieldOptionResponse
+         * @description One selectable option in an enum-style operator-adjustable input.
+         */
+        UserInputFieldOptionResponse: {
+            /** Value */
+            value: unknown;
+            /** Label */
+            label: string;
+        };
+        /**
+         * UserInputFieldResponse
+         * @description One operator-adjustable spec input declared by a policy spec.
+         *
+         *     Mirrors the YAML ``user_input:`` block: the host renders this as a
+         *     form field, validates the value against the declared constraints, and
+         *     POSTs the chosen value back under ``context[product_id].inputs.<name>``.
+         */
+        UserInputFieldResponse: {
+            /** Name */
+            name: string;
+            /** Type */
+            type: string;
+            /** Label */
+            label: string;
+            /** Hint */
+            hint?: string | null;
+            /** Default */
+            default?: unknown | null;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Minimum */
+            minimum?: number | null;
+            /** Maximum */
+            maximum?: number | null;
+            /** Step */
+            step?: number | null;
+            /** Unit */
+            unit?: string | null;
+            /**
+             * Options
+             * @default []
+             */
+            options: components["schemas"]["UserInputFieldOptionResponse"][];
+            /** Derive Options From */
+            derive_options_from?: string | null;
+            /** Spec Name */
+            spec_name: string;
+        };
+        /**
+         * UserInputsProductSectionResponse
+         * @description Operator-adjustable fields scoped to one product (e.g. all FNMA knobs).
+         */
+        UserInputsProductSectionResponse: {
+            /** Product Id */
+            product_id: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["UserInputFieldResponse"][];
+        };
+        /**
+         * UserInputsSchemaResponse
+         * @description Full operator-adjustable schema for a scenario/refinement.
+         *
+         *     One section per product. The host writes user-chosen values to
+         *     ``context[product_id].inputs[<field_name>]`` on the manifest.
+         */
+        UserInputsSchemaResponse: {
+            /**
+             * Products
+             * @default []
+             */
+            products: components["schemas"]["UserInputsProductSectionResponse"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -3920,6 +4042,41 @@ export interface operations {
             path: {
                 id: string;
                 sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_refinement_summary_api_cases__id__scenarios__sid__refinements__rid__summary_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+                rid: string;
             };
             cookie?: never;
         };

@@ -579,9 +579,23 @@ export class VeritasClient {
 	async getCaseScenarioSummary(
 		caseId: string,
 		scenarioId: string,
+		opts: { refresh?: boolean } = {},
 	): Promise<components["schemas"]["ScenarioSummaryResponse"]> {
+		const qs = opts.refresh ? "?refresh=true" : "";
 		return this.requestJson<components["schemas"]["ScenarioSummaryResponse"]>(
-			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/summary`,
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/summary${qs}`,
+		);
+	}
+
+	async getCaseScenarioRefinementSummary(
+		caseId: string,
+		scenarioId: string,
+		refinementId: string,
+		opts: { refresh?: boolean } = {},
+	): Promise<components["schemas"]["ScenarioSummaryResponse"]> {
+		const qs = opts.refresh ? "?refresh=true" : "";
+		return this.requestJson<components["schemas"]["ScenarioSummaryResponse"]>(
+			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements/${encodeURIComponent(refinementId)}/summary${qs}`,
 		);
 	}
 

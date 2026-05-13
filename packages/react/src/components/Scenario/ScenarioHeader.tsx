@@ -1,4 +1,5 @@
 import { useScenarioContext } from "./ScenarioProvider.js";
+import { ScenarioName } from "./ScenarioName.js";
 import styles from "./Scenario.module.css";
 
 export interface ScenarioHeaderProps {
@@ -19,7 +20,9 @@ export function ScenarioHeader({ className }: ScenarioHeaderProps) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <h1 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{"name" in scenario ? String((scenario as Record<string, unknown>).name) : "Scenario"}</h1>
+            <h1 style={{ fontSize: "1.25rem", fontWeight: 600 }}>
+              <ScenarioName scenario={scenario} />
+            </h1>
             <span className={[styles.statusBadge, statusClass].join(" ")}>
               {scenario.status}
             </span>

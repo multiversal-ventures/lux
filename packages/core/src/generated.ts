@@ -311,6 +311,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/suggested_products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Suggested Products
+         * @description Return the document-driven product suggestion persisted on the case.
+         *
+         *     Populated by the post-stitch hook (see
+         *     ``temporal.activities.stitch.stitch_activity``). Returns an empty list
+         *     when stitch hasn't run yet — the UI should fall back to showing the
+         *     full product list from ``GET /products`` in that case.
+         *
+         *     Lux subscribes to the ``case.products.suggested`` SSE event to
+         *     live-update when the suggestion arrives during the upload flow.
+         */
+        get: operations["get_suggested_products_api_cases__case_id__suggested_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/entities": {
         parameters: {
             query?: never;
@@ -1023,7 +1051,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Products */
+        /**
+         * List Products
+         * @description List the caller's tenant-scoped loan products.
+         *
+         *     Returns the full ``TenantProductView`` for each row in
+         *     ``tenant_products`` (or the YAML fallback when the tenant hasn't been
+         *     seeded yet — see ``policy.product_registry.list_tenant_products``).
+         *     The shape is rich enough for Lux to render the approach + product
+         *     pickers without a separate config endpoint.
+         */
         get: operations["list_products_api_products_get"];
         put?: never;
         post?: never;
@@ -2309,7 +2346,17 @@ export interface components {
              */
             upload_config: components["schemas"]["UploadConfig"];
         };
-        /** ProductResponse */
+        /**
+         * ProductResponse
+         * @description Tenant-scoped loan product configuration.
+         *
+         *     Returned by ``GET /products`` (a tenant's own catalog) and consumed by
+         *     Lux to drive ``<ApproachPicker>`` / ``<ProductPicker>`` data-driven.
+         *     The shape mirrors ``policy.product_registry.TenantProductView`` —
+         *     every field that matters for runtime resolution + UI rendering, so
+         *     the host never has to consult any other endpoint to render an
+         *     accurate picker.
+         */
         ProductResponse: {
             /** Product Id */
             product_id: string;
@@ -2317,8 +2364,49 @@ export interface components {
             display_name: string;
             /** Agency */
             agency: string;
-            /** Enabled */
+            /** Agency Path */
+            agency_path: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Spec Filter
+             * @default []
+             */
+            spec_filter: string[];
+            /**
+             * Income Document Types
+             * @default []
+             */
+            income_document_types: string[];
+            /**
+             * Credit Document Types
+             * @default []
+             */
+            credit_document_types: string[];
+            /** Default Calculation Track */
+            default_calculation_track?: string | null;
+            /**
+             * Config
+             * @default {}
+             */
+            config: {
+                [key: string]: unknown;
+            };
+            /**
+             * Enabled
+             * @default true
+             */
             enabled: boolean;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default: boolean;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {
@@ -2332,6 +2420,30 @@ export interface components {
             spec_names: string[];
             /** Total Monthly */
             total_monthly?: number | null;
+        };
+        /**
+         * ProductSuggestionItem
+         * @description One ranked product suggestion with score breakdown.
+         */
+        ProductSuggestionItem: {
+            /** Product Id */
+            product_id: string;
+            /** Score */
+            score: number;
+            /** Coverage */
+            coverage: number;
+            /** Specificity */
+            specificity: number;
+            /**
+             * Matched Document Types
+             * @default []
+             */
+            matched_document_types: string[];
+            /**
+             * Unmatched Document Types
+             * @default []
+             */
+            unmatched_document_types: string[];
         };
         /** RefinementError */
         RefinementError: {
@@ -2846,6 +2958,39 @@ export interface components {
             workflow_id: string;
             /** Message */
             message: string;
+        };
+        /**
+         * SuggestedProductsResponse
+         * @description Document-driven product suggestion for a case.
+         *
+         *     Computed by the post-stitch hook (see
+         *     ``temporal.activities.stitch.stitch_activity``) and persisted on
+         *     ``cases.suggested_product_ids``. The ``case.products.suggested`` SSE
+         *     event carries the same payload so the UI can live-update without
+         *     polling.
+         *
+         *     ``suggested_product_ids`` is empty (and ``computed_at`` ``None``)
+         *     when stitch hasn't run yet for the case — the UI should show the
+         *     full picker in that case rather than nothing.
+         */
+        SuggestedProductsResponse: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /**
+             * Suggested Product Ids
+             * @default []
+             */
+            suggested_product_ids: string[];
+            /**
+             * Ranked
+             * @default []
+             */
+            ranked: components["schemas"]["ProductSuggestionItem"][];
+            /** Computed At */
+            computed_at?: string | null;
         };
         /** SuiteResultResponse */
         SuiteResultResponse: {
@@ -3561,6 +3706,37 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_suggested_products_api_cases__case_id__suggested_products_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestedProductsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4839,7 +5015,9 @@ export interface operations {
     };
     list_products_api_products_get: {
         parameters: {
-            query?: never;
+            query?: {
+                include_disabled?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4853,6 +5031,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

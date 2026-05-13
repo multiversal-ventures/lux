@@ -275,6 +275,17 @@ export class VeritasClient {
 		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
 	}
 
+	async listTenantProducts(options?: { includeDisabled?: boolean }): Promise<components["schemas"]["ProductResponse"][]> {
+		const qs = options?.includeDisabled ? "?include_disabled=true" : "";
+		return this.requestJson<components["schemas"]["ProductResponse"][]>(`/api/products${qs}`);
+	}
+
+	async getSuggestedProducts(caseId: string): Promise<components["schemas"]["SuggestedProductsResponse"]> {
+		return this.requestJson<components["schemas"]["SuggestedProductsResponse"]>(
+			`/api/cases/${caseId}/suggested_products`,
+		);
+	}
+
 	async getCaseFiles(caseId: string): Promise<VeritasCaseFile[]> {
 		return this.requestJson<VeritasCaseFile[]>(`/api/cases/${caseId}/files`);
 	}

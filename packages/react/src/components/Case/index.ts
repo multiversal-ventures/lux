@@ -61,6 +61,30 @@ export type {
   ProductOption,
 } from "./ProductPicker.js";
 
+export {
+  useTenantProducts,
+  tenantProductsQueryKey,
+  groupProductsByApproach,
+  toApproachOptions,
+  toProductOptions,
+} from "./useTenantProducts.js";
+export type {
+  TenantProduct,
+  UseTenantProductsOptions,
+  UseTenantProductsResult,
+} from "./useTenantProducts.js";
+
+export {
+  useSuggestedProducts,
+  suggestedProductsQueryKey,
+} from "./useSuggestedProducts.js";
+export type {
+  SuggestedProducts,
+  ProductSuggestion,
+  UseSuggestedProductsOptions,
+  UseSuggestedProductsResult,
+} from "./useSuggestedProducts.js";
+
 export { useCreateScenarioWithRefinement } from "./useCreateScenarioWithRefinement.js";
 export type {
   CreateScenarioWithRefinementInput,

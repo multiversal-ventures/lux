@@ -12,6 +12,12 @@
     "typecheck": "turbo run typecheck",
     "codegen": "node scripts/codegen.mjs"
   },
+  "pnpm": {
+    "overrides": {
+      "postcss": "^8.5.10",
+      "protobufjs": "^7.5.5"
+    }
+  },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
     "openapi-typescript": "^7.4.0",

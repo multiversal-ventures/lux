@@ -423,6 +423,110 @@ and TypeScript types. No standalone markdown files.
 - Commit regularly at natural boundaries.
 - Do not add any attributes to anyone in commit messages.
 
+## Refinement Overrides — Schema-Driven Form
+
+The refine page renders a form for everything an operator can adjust on a
+scenario. The form is **schema-driven** end-to-end: the legal fields,
+their widget types, defaults, and validation come from the Veritas API,
+not from hardcoded Lux/host logic.
+
+### Contract
+
+Veritas walks the policy specs that would run for the selected products,
+extracts any input that carries an `override:` block in its YAML, and
+returns the schema as `user_inputs_schema` on:
+
+- `ScenarioDetailResponse.rendering_hints.user_inputs_schema`
+- `RefinementResponse.user_inputs_schema`
+
+Shape (see generated `components["schemas"]["UserInputsSchemaResponse"]`):
+
+```ts
+{
+  products: [
+    {
+      product_id: "non_qm_bank_statement",
+      display_name: "Non-QM Bank Statement",
+      fields: [
+        { name: "expense_factor", type: "percent", label: "Expense Factor",
+          default: 0.9, minimum: 0.0, maximum: 1.0, step: 0.01, hint: "…", … },
+        { name: "months_covered", type: "integer", label: "Statement Period",
+          options: [{value:24,label:"24 months"}, …], unit: "months" },
+      ],
+    },
+  ],
+}
+```
+
+### Render with `<DynamicUserInputsForm>`
+
+```tsx
+import { DynamicUserInputsForm, applyContextChange, type RefinementContext }
+  from '@fenero/lux-react';
+
+const [context, setContext] = useState<RefinementContext>(initial);
+
+<DynamicUserInputsForm
+  schema={refinement.user_inputs_schema}
+  value={context}
+  documentYears={availableYears}
+  onContextChange={(productId, fieldName, value) =>
+    setContext(prev => applyContextChange(prev, productId, fieldName, value))
+  }
+/>
+```
+
+The form picks the right widget per field automatically (select for
+`options[]`, year picker for `derive_options_from: case.document_years`,
+numeric for percent/currency/integer, checkbox for boolean, text fallback).
+Hosts override individual widgets through `slots.renderers[fieldType]`
+when they need a richer host-styled control.
+
+### Persistence shape (`context`)
+
+```ts
+// POST /api/cases/{id}/scenarios/{sid}/refinements
+{
+  context: {
+    non_qm_bank_statement: {
+      inputs: { expense_factor: 0.5, months_covered: 12 },
+    },
+    fannie_mae: {
+      inputs: { y1_override: "2024" },
+    },
+  },
+}
+```
+
+The Veritas qualify activity merges `context[product_id].inputs` into the
+spec's input dict before evaluation. Unknown keys are silently ignored —
+operators can target a specific spec without polluting siblings.
+
+### Adding a new override
+
+No Lux change. Edit the spec YAML:
+
+```yaml
+inputs:
+  my_new_knob:
+    type: percent
+    semantic: domain.path.my_new_knob
+    override:
+      label: "My New Knob"
+      hint: "What it controls…"
+      default: 0.5
+      minimum: 0.0
+      maximum: 1.0
+      step: 0.05
+      # optional — when present the form renders a <select> instead of <input>:
+      options:
+        - { value: 0.25, label: "Low" }
+        - { value: 0.5,  label: "Medium" }
+        - { value: 0.75, label: "High" }
+```
+
+Next refinement response carries the new field; the form renders it.
+
 ## Version Compatibility
 
 | `@fenero/lux-core` | Veritas API | Notes |

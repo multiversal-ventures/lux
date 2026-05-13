@@ -2,7 +2,9 @@ export {
   CaseScenarioProvider,
   ScenarioProvider,
   useCaseScenarioContext,
+  useMaybeCaseScenarioContext,
   useScenarioContext,
+  useMaybeScenarioContext,
   caseScenariosQueryKey,
 } from "./ScenarioProvider.js";
 export type { CaseScenarioProviderProps, ScenarioProviderProps } from "./ScenarioProvider.js";
@@ -16,6 +18,17 @@ export { ScenarioSummaryText } from "./ScenarioSummaryText.js";
 export type { ScenarioSummaryTextProps } from "./ScenarioSummaryText.js";
 export { ScenarioHeader } from "./ScenarioHeader.js";
 export type { ScenarioHeaderProps } from "./ScenarioHeader.js";
+export { ScenarioName } from "./ScenarioName.js";
+export type { ScenarioNameProps } from "./ScenarioName.js";
+export { RefinementName } from "./RefinementName.js";
+export type { RefinementNameProps } from "./RefinementName.js";
+export {
+  resolveScenarioDisplayName,
+  formatScenarioListHeadline,
+  formatRefinementDisplayName,
+  formatRefinementSubtitle,
+  formatRefinementRowTitle,
+} from "./scenarioDisplay.js";
 export { ScenarioTabs } from "./ScenarioTabs.js";
 export type { ScenarioTabsProps, ScenarioTabExtra } from "./ScenarioTabs.js";
 export { ScenarioTabPanel } from "./ScenarioTabPanel.js";

@@ -51,6 +51,16 @@ export function useCaseScenarioContext(): CaseScenarioContextValue {
   return ctx;
 }
 
+/** Same store as `useCaseScenarioContext`, but returns null outside the provider. */
+export function useMaybeCaseScenarioContext(): CaseScenarioContextValue | null {
+  return useContext(CaseScenarioContext);
+}
+
+/** Same store as `useScenarioContext`, but returns null outside `ScenarioProvider`. */
+export function useMaybeScenarioContext(): ScenarioContextValue | null {
+  return useContext(ScenarioContext);
+}
+
 export function useScenarioContext(): ScenarioContextValue {
   const ctx = useContext(ScenarioContext);
   if (!ctx) throw new Error("ScenarioProvider required");

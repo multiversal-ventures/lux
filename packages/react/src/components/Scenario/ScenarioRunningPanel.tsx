@@ -135,12 +135,14 @@ export function ScenarioRunningPanel({
   const headline = slots?.runningHeadline?.(state) ?? defaultHeadline(state);
   const subtitle = slots?.runningSubtitle?.(state) ?? defaultSubtitle(state);
   const extra = slots?.runningExtra?.(state);
-  const meta =
-    state.latestRefinementNum != null
-      ? `run #${state.latestRefinementNum}${
-          state.latestRefinementNote ? ` — ${state.latestRefinementNote}` : ""
-        }`
-      : null;
+  // Meta line ("run #0 — CLI qualify run") was creative-writing exercise,
+  // not signal — bootstrap manifests carry refinement_num=0 and a
+  // debug placeholder note, neither of which is informative for the
+  // operator watching the loader. The loader's job is "something is
+  // running"; the refinement's operator-facing identity belongs in the
+  // scenario header above the panel, which already shows the LLM-
+  // generated scenario name. Hosts can still inject custom meta via
+  // ``slots.runningExtra`` if they want a context line.
 
   return (
     <div
@@ -163,9 +165,6 @@ export function ScenarioRunningPanel({
       <p className={[styles.subtitle, classNames?.subtitle].filter(Boolean).join(" ")}>
         {subtitle}
       </p>
-      {meta && (
-        <p className={[styles.meta, classNames?.meta].filter(Boolean).join(" ")}>{meta}</p>
-      )}
       {extra}
       <div className={[styles.refreshHint, classNames?.refreshHint].filter(Boolean).join(" ")}>
         <span

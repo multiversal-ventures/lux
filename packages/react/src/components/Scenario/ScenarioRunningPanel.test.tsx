@@ -98,11 +98,12 @@ describe("ScenarioRunningPanel", () => {
   it("renders the loader when the latest refinement is running", () => {
     const scenarios = [
       makeScenarioRow({
-        status: "completed",
+        // Scenario status running so pulse / status checks both flag running.
+        status: "running",
         refinements: [{ status: "running", refinement_num: 1, note: "expense factor change" }],
       }),
     ];
-    const { getByRole, getByText } = render(
+    const { getByRole, getByText, queryByText } = render(
       <Wrap scenarios={scenarios}>
         <ScenarioRunningPanel>
           <div>idle results</div>
@@ -111,8 +112,33 @@ describe("ScenarioRunningPanel", () => {
     );
     expect(getByRole("status")).toBeTruthy();
     expect(getByText(/Calculating income/i)).toBeTruthy();
-    expect(getByText(/run #1/i)).toBeTruthy();
-    expect(getByText(/expense factor change/i)).toBeTruthy();
+    // The "run #N — note" meta line is intentionally suppressed —
+    // refinement_num=0 / placeholder notes ("CLI qualify run") were
+    // creative-writing exercise rather than signal.
+    expect(queryByText(/run #1/i)).toBeNull();
+    expect(queryByText(/expense factor change/i)).toBeNull();
+  });
+
+  it("collapses the loader when the scenario reaches completed even if the pulse is fresh", () => {
+    // Models the bug where a scenario finished server-side but the
+    // refinement carried no status (no spec_results joined) so the
+    // pulse pinned the loader for 60s. The scenarioTerminal guard in
+    // useScenarioRunningState now suppresses the pulse on either
+    // signal — scenario or refinement.
+    const scenarios = [
+      makeScenarioRow({ status: "completed", refinements: [{ status: undefined as never, refinement_num: 0 }] }),
+    ];
+    act(() => {
+      getScenarioRunsStore().getState().markJustStarted("s1");
+    });
+    const { getByText } = render(
+      <Wrap scenarios={scenarios}>
+        <ScenarioRunningPanel>
+          <div>idle results</div>
+        </ScenarioRunningPanel>
+      </Wrap>,
+    );
+    expect(getByText("idle results")).toBeTruthy();
   });
 
   it("renders the loader when the scenario row itself is pending", () => {
@@ -150,12 +176,15 @@ describe("ScenarioRunningPanel", () => {
     expect(() => getByRole("status")).toThrow();
   });
 
-  it("just-started pulse wins when no refinements have been recorded yet", () => {
-    // No refinements yet — refinementStatus stays null, so the pulse is
-    // the only signal. Models the moment immediately after Save & Run
+  it("just-started pulse wins when neither scenario nor refinements have settled", () => {
+    // No refinements yet AND scenario status hasn't transitioned to
+    // a terminal state. The pulse is the only running signal and must
+    // pin the loader. Models the moment immediately after Save & Run
     // when the API has accepted the request but the scenarios query
-    // hasn't refetched the new running refinement.
-    const scenarios = [makeScenarioRow({ status: "completed", refinements: [] })];
+    // hasn't refetched the new running scenario.
+    const scenarios = [
+      makeScenarioRow({ status: "running", refinements: [] }),
+    ];
     act(() => {
       getScenarioRunsStore().getState().markJustStarted("s1");
     });
@@ -166,6 +195,7 @@ describe("ScenarioRunningPanel", () => {
         </ScenarioRunningPanel>
       </Wrap>,
     );
-    expect(getByText(/Starting up/i)).toBeTruthy();
+    // Server says "running" too, so the headline is "Calculating income".
+    expect(getByText(/Calculating income/i)).toBeTruthy();
   });
 });

@@ -137,12 +137,21 @@ export function useScenarioRunningState(
   const TERMINAL = new Set(["completed", "failed"]);
   const refinementTerminal =
     refinementStatus !== null && TERMINAL.has(refinementStatus);
+  const scenarioTerminal =
+    scenarioStatus !== null && TERMINAL.has(scenarioStatus);
 
   const serverRunning = deriveServerRunning(scenarioStatus, refinementStatus);
-  // Pulse only counts when the server hasn't already confirmed a
-  // terminal refinement status — a quick run that finishes inside the
-  // pulse TTL must NOT keep the loader visible.
-  const pulseEffective = justStarted && !refinementTerminal;
+  // Pulse only counts when neither the scenario row NOR its latest
+  // refinement has reached a terminal status server-side. Suppressing
+  // on EITHER signal is critical because a freshly-bootstrapped
+  // scenario has ``refinementStatus = null`` (the manifest carries no
+  // status column — see ``_build_refinement.derived_status`` for the
+  // server-side derivation rules). Without the scenarioTerminal guard
+  // the pulse stayed pinned for the full 60s TTL even after qualify
+  // flipped the scenario row to ``completed``, leaving operators
+  // watching a spinner over fresh results.
+  const pulseEffective =
+    justStarted && !refinementTerminal && !scenarioTerminal;
 
   const isRunning = serverRunning || pulseEffective;
 

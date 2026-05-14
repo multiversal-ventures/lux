@@ -22,6 +22,25 @@ export type {
 	UseCaseEventsOptions,
 	UseCaseEventsResult,
 } from "./providers/CaseEventsProvider.js";
+export {
+	applyScenarioRunSideEffects,
+	invalidationMap,
+} from "./providers/invalidation-map.js";
+
+// Cross-component zustand stores. ``createCaseWorkflowStore`` is
+// re-exported via ``./components/Case/index.js`` already; here we
+// surface the scenario-run pulse store so SSE bridges (e.g. Gunnr's
+// ``useEventInvalidation``) can clear pulses on terminal events
+// without depending on the lux-react React context tree.
+export {
+	createScenarioRunsStore,
+	getScenarioRunsStore,
+} from "./state/index.js";
+export type {
+	ScenarioRunsState,
+	ScenarioRunsActions,
+	ScenarioRunsStore,
+} from "./state/index.js";
 
 // Query hooks (react-query based)
 export {

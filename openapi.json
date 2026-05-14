@@ -5192,6 +5192,22 @@
               }
             ],
             "title": "Filename"
+          },
+          "tax_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Year"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "Included"
           }
         },
         "type": "object",

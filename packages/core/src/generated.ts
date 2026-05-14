@@ -1944,6 +1944,13 @@ export interface components {
             display_type: string | null;
             /** Filename */
             filename: string | null;
+            /** Tax Year */
+            tax_year?: number | null;
+            /**
+             * Status
+             * @default Included
+             */
+            status: string;
         };
         /** DocumentResponse */
         DocumentResponse: {

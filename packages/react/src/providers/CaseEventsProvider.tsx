@@ -125,14 +125,10 @@ export function CaseEventsProvider({
 		// before the loader collapses.
 		applyScenarioRunSideEffects(event);
 
-		if (autoStopRef.current && terminalEventTypes.has(event.event_type)) {
-			console.info(
-				`[lux/SSE] stream closed by terminal event: ${event.event_type} case=${caseIdRef.current}`,
-			);
-			abortRef.current?.();
-			abortRef.current = null;
-			setStreamClosed(true);
-		}
+		// Server no longer emits stream.end — no client-side auto-stop needed.
+		// Stream lives until component unmounts (abort called in useEffect cleanup).
+		// autoStop prop is retained for backwards compatibility but is now a no-op
+		// because the server never sends case.system.completed as a terminal signal.
 	});
 
 	useEffect(() => {

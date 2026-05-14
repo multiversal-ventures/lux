@@ -11,7 +11,11 @@ import {
 import type { CaseEvent } from "@fenero/lux-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOperatorClient } from "./OperatorProvider.js";
-import { invalidationMap, terminalEventTypes } from "./invalidation-map.js";
+import {
+	applyScenarioRunSideEffects,
+	invalidationMap,
+	terminalEventTypes,
+} from "./invalidation-map.js";
 
 interface StreamError {
 	message: string;
@@ -96,6 +100,12 @@ export function CaseEventsProvider({
 				queryClient.invalidateQueries({ queryKey: key });
 			}
 		}
+
+		// Cross-store side-effects (e.g. clear the scenarioRunsStore
+		// just-started pulse on terminal qualify events) — kept after
+		// the React Query invalidation so the UI sees the data refresh
+		// before the loader collapses.
+		applyScenarioRunSideEffects(event);
 
 		if (autoStopRef.current && terminalEventTypes.has(event.event_type)) {
 			abortRef.current?.();

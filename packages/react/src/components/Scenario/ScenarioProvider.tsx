@@ -210,9 +210,13 @@ function AutoFetchingCaseScenarioProvider({
     queryKey: caseScenariosQueryKey(caseId),
     queryFn: () => getDefaultClient().getCaseScenarios(caseId),
     enabled: !!caseId,
-    staleTime: 30_000,
+    staleTime: 60_000,
     refetchInterval,
-    refetchOnWindowFocus: true,
+    // SSE qualify.completed/failed drives cache invalidation.
+    // Window-focus refetch is suppressed: this endpoint hydrates every
+    // scenario's refinements and is expensive — re-fetching on every
+    // tab-switch would visibly re-paint the sidebar multiple times a session.
+    refetchOnWindowFocus: false,
   });
 
   const scenarios = query.data ?? [];

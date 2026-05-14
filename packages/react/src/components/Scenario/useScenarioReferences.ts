@@ -131,15 +131,21 @@ export function payloadFromRow(
  * component(s).
  */
 export function useScenarioReferences(): UseScenarioReferencesResult {
-  const { scenario, audit, activeProductId, refinements } = useScenarioContext();
+  const { scenario, audit, activeProductId, refinements, activeRefinementId } = useScenarioContext();
+
+  // Filter audit to the active refinement before further processing so
+  // references and provenance always reflect the selected run.
+  const refinementAudit = activeRefinementId
+    ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
+    : audit;
   const agency = useMemo(
     () => resolveAgency(activeProductId, scenario.rendering_hints?.product_specs ?? null),
     [activeProductId, scenario.rendering_hints?.product_specs],
   );
 
   const filteredAudit = useMemo(
-    () => (agency ? audit.filter((a) => a.spec_name?.startsWith(agency + "_")) : []),
-    [agency, audit],
+    () => (agency ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_")) : []),
+    [agency, refinementAudit],
   );
 
   return useMemo<UseScenarioReferencesResult>(() => {
@@ -222,7 +228,7 @@ export function useScenarioReferences(): UseScenarioReferencesResult {
 
     let emptyMessage: string | null = null;
     if (rows.length === 0) {
-      if (audit.length === 0) {
+      if (refinementAudit.length === 0) {
         emptyMessage = "Calculation audit is still loading or unavailable.";
       } else if (filteredAudit.length === 0) {
         emptyMessage = `No audit rows for ${agency ?? "this product"}.`;
@@ -246,5 +252,5 @@ export function useScenarioReferences(): UseScenarioReferencesResult {
       derivedFromDocs,
       emptyMessage,
     };
-  }, [agency, audit.length, filteredAudit, refinements]);
+  }, [agency, refinementAudit.length, filteredAudit, refinements]);
 }

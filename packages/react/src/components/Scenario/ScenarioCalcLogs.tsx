@@ -7,15 +7,22 @@ export interface ScenarioCalcLogsProps {
 }
 
 export function ScenarioCalcLogs({ className }: ScenarioCalcLogsProps) {
-  const { scenario, audit, activeProductId } = useScenarioContext();
+  const { scenario, audit, activeProductId, activeRefinementId } = useScenarioContext();
   const [expandedSpecs, setExpandedSpecs] = useState<Set<string>>(new Set());
 
   // Resolves via rendering_hints first, then falls back to a static slug→agency
   // map so audit filtering keeps working when Veritas leaves product_specs empty.
   const agency = resolveAgency(activeProductId, scenario.rendering_hints?.product_specs ?? null);
 
+  // Filter by refinement first so calc logs always show data from the
+  // selected run only. Without this, all runs for the same scenario are
+  // mixed together — clicking refinement A shows steps from runs A+B+C.
+  const refinementAudit = activeRefinementId
+    ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
+    : audit;
+
   const filteredAudit = agency
-    ? audit.filter((a) => a.spec_name?.startsWith(agency + "_"))
+    ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_"))
     : [];
 
   if (filteredAudit.length === 0) {

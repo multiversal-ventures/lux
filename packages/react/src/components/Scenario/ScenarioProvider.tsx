@@ -55,6 +55,13 @@ interface ScenarioContextValue {
   activeProductId: string | null;
   setActiveProductId: (id: string | null) => void;
   isLoading: boolean;
+  /**
+   * The refinement currently being viewed (URL-selected or latest).
+   * When set, Lux components filter audit rows to only those whose
+   * `manifest_id` matches this refinement, ensuring calc logs and
+   * references always reflect the selected run — not a mix of all runs.
+   */
+  activeRefinementId: string | null;
 }
 
 const CaseScenarioContext = createContext<CaseScenarioContextValue | null>(null);
@@ -254,6 +261,11 @@ export interface ScenarioProviderProps {
   refinements?: RefinementResponse[];
   initialProductId?: string | null;
   isLoading?: boolean;
+  /** The refinement being actively viewed. Passed by the host (Gunnr ScenarioPage)
+   *  from the URL refinementId or latestRefinementId. When set, all Lux
+   *  components that consume the audit (calc logs, references) filter to
+   *  rows from this specific run. */
+  activeRefinementId?: string | null;
   children: ReactNode;
 }
 
@@ -264,6 +276,7 @@ export function ScenarioProvider({
   refinements = [],
   initialProductId = null,
   isLoading = false,
+  activeRefinementId = null,
   children,
 }: ScenarioProviderProps) {
   const caseCtx = useCaseScenarioContext();
@@ -306,6 +319,7 @@ export function ScenarioProvider({
         activeProductId,
         setActiveProductId,
         isLoading: mergedLoading,
+        activeRefinementId,
       }}
     >
       {children}

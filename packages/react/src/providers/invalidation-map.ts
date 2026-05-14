@@ -42,8 +42,9 @@ export const invalidationMap: Record<
 	"case.system.completed": (caseId) => [["case", caseId]],
 };
 
-/** Event types that, when autoStop is true, terminate the SSE stream. */
-export const terminalEventTypes = new Set(["case.system.completed"]);
+/** No event terminates the SSE stream server-side. Stream closes only on client disconnect.
+ *  Kept as empty set for backwards compatibility with code that checks it. */
+export const terminalEventTypes = new Set<string>();
 
 /**
  * Side-effects that fire on certain events ALONGSIDE query invalidation

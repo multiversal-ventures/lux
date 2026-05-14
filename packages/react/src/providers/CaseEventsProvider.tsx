@@ -87,6 +87,12 @@ export function CaseEventsProvider({
 		if (seenIds.current.has(event.event_id)) return;
 		seenIds.current.add(event.event_id);
 		setEvents((prev) => [...prev, event]);
+		if (triggerInvalidation) {
+			console.debug(
+				`[lux/SSE] live event received: ${event.event_type} id=${event.event_id} case=${caseIdRef.current}`,
+				(event as { event_data?: unknown }).event_data,
+			);
+		}
 
 		// Fire imperative subscribers. Errors are isolated — never crash the event loop.
 		listeners.current.forEach((fn) => {
@@ -103,7 +109,12 @@ export function CaseEventsProvider({
 		// the wrong case's query keys when caseId prop changes between renders.
 		const invalidator = invalidationMap[event.event_type];
 		if (invalidator) {
-			for (const key of invalidator(caseIdRef.current)) {
+			const keys = invalidator(caseIdRef.current);
+			console.debug(
+				`[lux/SSE] invalidating ${keys.length} query key(s) for ${event.event_type}`,
+				keys,
+			);
+			for (const key of keys) {
 				queryClient.invalidateQueries({ queryKey: key });
 			}
 		}
@@ -115,6 +126,9 @@ export function CaseEventsProvider({
 		applyScenarioRunSideEffects(event);
 
 		if (autoStopRef.current && terminalEventTypes.has(event.event_type)) {
+			console.info(
+				`[lux/SSE] stream closed by terminal event: ${event.event_type} case=${caseIdRef.current}`,
+			);
 			abortRef.current?.();
 			abortRef.current = null;
 			setStreamClosed(true);
@@ -132,6 +146,7 @@ export function CaseEventsProvider({
 		setStreamError(null);
 
 		async function run() {
+			console.info(`[lux/SSE] connecting to case stream: ${caseId}`);
 			// Backfill historical events — no invalidation (triggerInvalidation=false).
 			// Replaying 400+ historical events through invalidateQueries causes a
 			// request waterfall on every mount. Historical data is state-only.
@@ -158,6 +173,7 @@ export function CaseEventsProvider({
 			);
 			abortRef.current = abort;
 			setConnecting(false);
+			console.info(`[lux/SSE] stream live: ${caseId}`);
 		}
 
 		void run();

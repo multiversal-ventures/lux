@@ -60,7 +60,41 @@ describe("scenarioDisplay", () => {
     ).toBe("First line");
   });
 
-  it("formatRefinementRowTitle avoids duplicating Run #", () => {
+  it("formatRefinementRowTitle uses the refinement name when present (no Run # prefix)", () => {
+    expect(
+      formatRefinementRowTitle({
+        refinement_id: "r",
+        scenario_id: "s",
+        refinement_num: 0,
+        identities: [],
+        documents: [],
+        product_ids: [],
+        specs_run: [],
+        note: null,
+        name: "TechCorp Industries Inc. — W2 Wages Income Analysis",
+        errors: [],
+      } as never),
+    ).toBe("TechCorp Industries Inc. — W2 Wages Income Analysis");
+  });
+
+  it("formatRefinementRowTitle uses the note when name missing", () => {
+    expect(
+      formatRefinementRowTitle({
+        refinement_id: "r",
+        scenario_id: "s",
+        refinement_num: 1,
+        identities: [],
+        documents: [],
+        product_ids: [],
+        specs_run: [],
+        note: "Refined with 3 extraction edits",
+        name: null,
+        errors: [],
+      } as never),
+    ).toBe("Refined with 3 extraction edits");
+  });
+
+  it("formatRefinementRowTitle falls back to Run #N when neither name nor note exist", () => {
     expect(
       formatRefinementRowTitle({
         refinement_id: "r",
@@ -74,7 +108,7 @@ describe("scenarioDisplay", () => {
         name: null,
         errors: [],
       } as never),
-    ).toBe("Run #0 — Untitled refinement");
+    ).toBe("Run #0");
   });
 
   it("formatRefinementDisplayName falls back to Run # when alone", () => {

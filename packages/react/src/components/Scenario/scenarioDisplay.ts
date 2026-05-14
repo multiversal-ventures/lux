@@ -61,10 +61,28 @@ export function formatRefinementDisplayName(refinement: RefinementResponse): str
 }
 
 /**
- * Full refinement row title (number + body), e.g. `Run #0 — My label` (body never duplicates the run index).
+ * Refinement row title for sidebars / lists.
+ *
+ * Naming rules — informed by operator feedback that ``Run #0 — TechCorp
+ * Industries Inc. — W2 Wages Income Analysis`` reads as noisy
+ * boilerplate when every row in the list shares the ``Run #0`` prefix
+ * (every fresh manifest, including auto-bootstrap and operator
+ * Save-&-Run flows, lands at ``refinement_num=0`` until the next
+ * version of the manifest pipeline lands). We treat the ``Run #N``
+ * prefix as a fallback identity only:
+ *
+ *   1. If the refinement has a real ``name`` (LLM-generated headline
+ *      or operator-supplied) → just the name.
+ *   2. Else if it carries a ``note`` (e.g. "Refined with 3 extraction
+ *      edits") → just the note's first line, capped.
+ *   3. Else → ``Run #N`` as a last-resort identifier.
+ *
+ * This keeps the sidebar scannable: the operator sees what's IN the
+ * refinement, not its zero-indexed position.
  */
 export function formatRefinementRowTitle(refinement: RefinementResponse): string {
+  const sub = formatRefinementSubtitle(refinement);
+  if (sub !== "Untitled refinement") return sub;
   const num = refinement.refinement_num;
-  const prefix = num != null ? `Run #${num}` : "Run";
-  return `${prefix} — ${formatRefinementSubtitle(refinement)}`;
+  return num != null ? `Run #${num}` : "Refinement";
 }

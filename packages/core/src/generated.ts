@@ -577,7 +577,13 @@ export interface paths {
         put?: never;
         /**
          * Start Scenario
-         * @description Start a scenario run.
+         * @description Re-run qualify against the scenario's latest manifest.
+         *
+         *     Equivalent to ``start_refinement`` but resolves the manifest by
+         *     ``get_latest_manifest(sid)`` so callers don't need to know the
+         *     refinement id. Useful for "rerun the last attempt" UX (e.g. after
+         *     a transient worker outage); for "rerun with new operator inputs"
+         *     use ``POST .../refinements`` then ``.../refinements/{rid}/start``.
          */
         post: operations["start_scenario_api_cases__id__scenarios__sid__start_post"];
         delete?: never;
@@ -598,8 +604,8 @@ export interface paths {
          * @description Return cached or freshly generated LLM narrative summary + name for a scenario.
          *
          *     Thin wrapper around ``ensure_scenario_summary`` — see that helper for
-         *     the actual generation + persistence logic. Pass ?refresh=true to bust
-         *     the DB cache and force regeneration.
+         *     the actual generation + persistence logic. Pass ``?refresh=true`` to
+         *     bust the DB cache and force regeneration.
          */
         get: operations["get_scenario_summary_api_cases__id__scenarios__sid__summary_get"];
         put?: never;
@@ -709,7 +715,18 @@ export interface paths {
         put?: never;
         /**
          * Start Refinement
-         * @description Start a refinement run.
+         * @description Kick off a Temporal qualify workflow against an existing manifest.
+         *
+         *     The refinement (= ``SelectionManifest``) was created by ``POST
+         *     /scenarios/{sid}/refinements`` with the operator's selections +
+         *     overrides. This endpoint hands ``manifest_id`` to ``QualifyWorkflow``
+         *     so the activity re-evaluates that manifest in place, writing fresh
+         *     ``spec_results`` rows and flipping the parent scenario from
+         *     ``running`` → ``completed`` / ``failed`` when it's done.
+         *
+         *     The workflow id is unique per run (``refinement-{rid}-run-{epoch}``)
+         *     so re-running a refinement (e.g. after an extraction edit) doesn't
+         *     collide with the prior Temporal execution.
          */
         post: operations["start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post"];
         delete?: never;
@@ -1761,13 +1778,13 @@ export interface components {
         /** CreateRefinementRequest */
         CreateRefinementRequest: {
             /** Borrower Ids */
-            borrower_ids?: string[] | null;
+            borrower_ids?: (string | null)[] | null;
             /** Document Ids */
-            document_ids?: string[] | null;
+            document_ids?: (string | null)[] | null;
             /** Product Ids */
-            product_ids?: string[] | null;
+            product_ids?: (string | null)[] | null;
             /** Spec Ids */
-            spec_ids?: string[] | null;
+            spec_ids?: (string | null)[] | null;
             /** Note */
             note?: string | null;
             /** Context */
@@ -2654,10 +2671,10 @@ export interface components {
             description: string;
             /** Category */
             category: string;
-            /** Files */
-            files: components["schemas"]["SampleFileInfo"][];
             /** Loan Product Ids */
             loan_product_ids: string[];
+            /** Files */
+            files: components["schemas"]["SampleFileInfo"][];
         };
         /** SampleListResponse */
         SampleListResponse: {

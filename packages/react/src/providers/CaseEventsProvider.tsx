@@ -78,7 +78,12 @@ export function CaseEventsProvider({
 	const autoStopRef = useRef(autoStop);
 	autoStopRef.current = autoStop;
 
-	const ingestEvent = useRef((event: CaseEvent) => {
+	// ingestEvent: shared dedup + state + listener dispatch.
+	// ``triggerInvalidation=true`` for live SSE events only.
+	// Backfill events populate seenIds and state but NEVER fire cache
+	// invalidations — replaying 400+ historical events through
+	// invalidateQueries causes a request waterfall on every page load.
+	const ingestEvent = useRef((event: CaseEvent, triggerInvalidation = true) => {
 		if (seenIds.current.has(event.event_id)) return;
 		seenIds.current.add(event.event_id);
 		setEvents((prev) => [...prev, event]);
@@ -91,6 +96,8 @@ export function CaseEventsProvider({
 				/* subscriber error is isolated */
 			}
 		});
+
+		if (!triggerInvalidation) return;
 
 		// Centralized invalidation — use ref so stale caseId doesn't invalidate
 		// the wrong case's query keys when caseId prop changes between renders.
@@ -125,7 +132,9 @@ export function CaseEventsProvider({
 		setStreamError(null);
 
 		async function run() {
-			// Backfill historical events.
+			// Backfill historical events — no invalidation (triggerInvalidation=false).
+			// Replaying 400+ historical events through invalidateQueries causes a
+			// request waterfall on every mount. Historical data is state-only.
 			const res = await client.getEvents(caseId);
 			if (cancelled) return;
 			if (res.error) {
@@ -133,7 +142,7 @@ export function CaseEventsProvider({
 				setConnecting(false);
 				return;
 			}
-			for (const ev of res.data) ingestEvent.current(ev);
+			for (const ev of res.data) ingestEvent.current(ev, false);
 
 			// Open SSE stream.
 			const { abort } = client.streamEventsParsed(

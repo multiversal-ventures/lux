@@ -434,6 +434,7 @@ export class VeritasClient {
 		caseId: string,
 		onEvent: (event: VeritasCaseEvent) => void,
 		onError?: (err: Error) => void,
+		options?: { cursor?: number },
 	): () => void {
 		const controller = new AbortController();
 
@@ -447,9 +448,17 @@ export class VeritasClient {
 			const headers: Record<string, string> = {};
 			if (token) headers.Authorization = `Bearer ${token}`;
 
+			// Pass cursor so the server starts from after the last known event_id.
+			// This prevents historical case.system.completed from immediately
+			// closing the stream on reconnect after a case has completed extraction.
+			const cursor = options?.cursor;
+			const streamUrl = cursor != null && cursor > 0
+				? this.resolvePath(`/api/cases/${caseId}/events/stream?cursor=${cursor}`)
+				: this.resolvePath(`/api/cases/${caseId}/events/stream`);
+
 			let res: Response;
 			try {
-				res = await fetch(this.resolvePath(`/api/cases/${caseId}/events/stream`), {
+				res = await fetch(streamUrl, {
 					headers,
 					signal: controller.signal,
 				});

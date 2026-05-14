@@ -2,7 +2,6 @@ import { useScenarioContext } from "./ScenarioProvider.js";
 import styles from "./Scenario.module.css";
 
 const SUMMARY_TAB = "summary";
-const SHOW_PRODUCT_TABS_APPROACHES = new Set(["qm_standard"]);
 
 export interface ScenarioTabExtra {
   id: string;
@@ -22,12 +21,23 @@ export interface ScenarioTabsProps {
   onTabNavigate?: (tabId: string) => void;
 }
 
+/**
+ * Render Summary + one tab per product the scenario actually ran.
+ *
+ * Tab visibility is driven entirely by the server-supplied
+ * `rendering_hints.product_specs`. The host backend (Veritas) builds
+ * that list from the tenant product catalog via `_effective_product_ids`
+ * — Non-QM scenarios get Non-QM products, QM scenarios get the QM
+ * agencies, and tenant edits to the catalog flow straight through.
+ *
+ * Deliberately no client-side `approach_type` allow-list: the tenant
+ * catalog is the source of truth for "what loan products does this
+ * scenario have", so this component shouldn't second-guess it.
+ */
 export function ScenarioTabs({ className, extraTabs = [], onTabNavigate }: ScenarioTabsProps) {
   const { scenario, activeProductId, setActiveProductId } = useScenarioContext();
   const hints = scenario.rendering_hints;
-  const approachType = hints?.approach_type ?? "qm_standard";
-  const showProductTabs = SHOW_PRODUCT_TABS_APPROACHES.has(approachType);
-  const products = showProductTabs ? (hints?.product_specs ?? []) : [];
+  const products = hints?.product_specs ?? [];
   const activeProd = activeProductId ?? SUMMARY_TAB;
 
   return (

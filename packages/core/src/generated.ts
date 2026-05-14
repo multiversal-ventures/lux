@@ -2656,6 +2656,8 @@ export interface components {
             category: string;
             /** Files */
             files: components["schemas"]["SampleFileInfo"][];
+            /** Loan Product Ids */
+            loan_product_ids: string[];
         };
         /** SampleListResponse */
         SampleListResponse: {

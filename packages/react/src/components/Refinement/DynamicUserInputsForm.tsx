@@ -103,6 +103,10 @@ export interface DynamicUserInputsFormClassNames {
     label?: string;
     hint?: string;
     input?: string;
+    /** Wrapper around input + unit suffix. Defaults to inline-flex when unset. */
+    inputGroup?: string;
+    /** Unit suffix label (``%`` / ``USD`` / ``mo``). Driven by the YAML ``unit:`` field. */
+    inputSuffix?: string;
     select?: string;
     error?: string;
   };
@@ -182,14 +186,63 @@ function YearField({ field, value, disabled, classNames, yearOptions, onChange }
   );
 }
 
+/**
+ * Effective field value: prior context wins, then the YAML-declared
+ * default, then nothing. Keeps the renderers thin — every field type
+ * applies the same precedence so the form mirrors what qualify will
+ * actually use at evaluation time.
+ *
+ * Renderers compute this once per render so a fresh scenario (no prior
+ * context) still surfaces the spec author's default in the UI. That
+ * answers the operator's question "what value will be used if I submit
+ * without touching this field?" with the answer "the one you see".
+ */
+function resolveEffectiveValue(field: UserInputField, value: unknown): unknown {
+  if (value !== null && value !== undefined && value !== "") return value;
+  return field.default ?? null;
+}
+
+/**
+ * Render-time symbol for the YAML ``unit:`` declaration.
+ *
+ * Keeps the spec YAML free of presentation quirks: spec authors write
+ * the canonical unit slug (``percent``, ``months``, ``usd_per_month``)
+ * and the form layer maps it to a short, human-friendly suffix. Unknown
+ * slugs pass through verbatim so a one-off unit (e.g. a future
+ * ``basis_points``) renders something instead of silently dropping —
+ * adding it to the table later is a label tweak, not a contract change.
+ */
+function unitSuffix(unit: string | null | undefined): string | null {
+  if (!unit) return null;
+  switch (unit.toLowerCase()) {
+    case "percent":
+    case "percentage":
+      return "%";
+    case "currency":
+    case "usd":
+      return "USD";
+    case "usd_per_month":
+      return "$ / mo";
+    case "months":
+      return "months";
+    case "years":
+      return "years";
+    case "days":
+      return "days";
+    default:
+      return unit;
+  }
+}
+
 function NumericField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
+  const effective = resolveEffectiveValue(field, value);
   const display =
-    value == null
+    effective == null
       ? ""
-      : field.type === "percent" && typeof value === "number"
-        ? String(Math.round(value * 10000) / 100)
-        : String(value);
-  return (
+      : field.type === "percent" && typeof effective === "number"
+        ? String(Math.round(effective * 10000) / 100)
+        : String(effective);
+  const input = (
     <input
       type="number"
       inputMode="decimal"
@@ -213,13 +266,48 @@ function NumericField({ field, value, disabled, classNames, onChange }: DynamicU
       aria-label={field.label}
     />
   );
+
+  const suffix = unitSuffix(field.unit);
+  if (!suffix) return input;
+
+  // Inline-flex wrapper so the suffix sits next to the input on the same
+  // baseline. Inline styles cover the no-host-CSS case; ``inputGroup``
+  // and ``inputSuffix`` className hooks let hosts (e.g. Gunnr) restyle
+  // without forking the renderer. Suffix is ``aria-hidden`` because the
+  // unit is already part of the field's accessible label/hint.
+  return (
+    <div
+      className={classNames?.inputGroup}
+      style={
+        classNames?.inputGroup
+          ? undefined
+          : { display: "inline-flex", alignItems: "center", gap: "0.5rem", width: "100%" }
+      }
+    >
+      {input}
+      <span
+        className={classNames?.inputSuffix}
+        aria-hidden="true"
+        style={
+          classNames?.inputSuffix
+            ? undefined
+            : { color: "#64748b", fontSize: "0.875rem", whiteSpace: "nowrap" }
+        }
+      >
+        {suffix}
+      </span>
+    </div>
+  );
 }
 
 function BooleanField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
+  // Boolean inputs treat the YAML default identically to a prior context
+  // value — checkbox state mirrors what qualify would evaluate.
+  const effective = resolveEffectiveValue(field, value);
   return (
     <input
       type="checkbox"
-      checked={Boolean(value)}
+      checked={Boolean(effective)}
       disabled={disabled}
       onChange={(e) => onChange(e.target.checked)}
       className={classNames?.input}
@@ -229,10 +317,11 @@ function BooleanField({ field, value, disabled, classNames, onChange }: DynamicU
 }
 
 function StringField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
+  const effective = resolveEffectiveValue(field, value);
   return (
     <input
       type="text"
-      value={value == null ? "" : String(value)}
+      value={effective == null ? "" : String(effective)}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value || null)}
       className={classNames?.input}

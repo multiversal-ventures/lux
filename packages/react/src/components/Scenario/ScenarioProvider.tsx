@@ -16,6 +16,21 @@ interface CaseScenarioContextValue {
   isLoading: boolean;
   /** Force a refetch when the host hasn't supplied scenarios via prop. No-op otherwise. */
   refresh: () => void;
+  /**
+   * The scenarioId of the currently mounted `<ScenarioProvider>` descendant,
+   * if any. Lifted to the case-level context so siblings rendered ABOVE the
+   * `<ScenarioProvider>` (e.g. an export modal at the case-page root) can
+   * still observe which scenario the user is viewing without parsing URLs.
+   *
+   * `null` when no `<ScenarioProvider>` is mounted in the subtree.
+   */
+  activeScenarioId: string | null;
+  /**
+   * Internal: called by `<ScenarioProvider>` on mount / unmount to publish
+   * its scenarioId. Hosts should not call this directly — use the public
+   * `useActiveScenarioId()` reader instead.
+   */
+  _registerActiveScenarioId: (id: string | null) => void;
 }
 
 /**
@@ -65,6 +80,21 @@ export function useScenarioContext(): ScenarioContextValue {
   const ctx = useContext(ScenarioContext);
   if (!ctx) throw new Error("ScenarioProvider required");
   return ctx;
+}
+
+/**
+ * Returns the scenarioId of the currently mounted `<ScenarioProvider>`
+ * descendant of `<CaseScenarioProvider>`, or `null` if no scenario is active.
+ *
+ * Unlike `useScenarioContext()`, this hook works for components rendered
+ * ABOVE `<ScenarioProvider>` (siblings like a case-level export modal) —
+ * the inner provider lifts its scenarioId into the case context on mount.
+ *
+ * Returns `null` (does not throw) when called outside `<CaseScenarioProvider>`,
+ * so it's safe to call from optional/portal-mounted UI.
+ */
+export function useActiveScenarioId(): string | null {
+  return useContext(CaseScenarioContext)?.activeScenarioId ?? null;
 }
 
 export interface CaseScenarioProviderProps {
@@ -143,9 +173,17 @@ function StaticCaseScenarioProvider({
   isLoading: boolean;
   children: ReactNode;
 }) {
+  const [activeScenarioId, _registerActiveScenarioId] = useState<string | null>(null);
   const value = useMemo<CaseScenarioContextValue>(
-    () => ({ caseId, scenarios, isLoading, refresh: noopRefresh }),
-    [caseId, scenarios, isLoading],
+    () => ({
+      caseId,
+      scenarios,
+      isLoading,
+      refresh: noopRefresh,
+      activeScenarioId,
+      _registerActiveScenarioId,
+    }),
+    [caseId, scenarios, isLoading, activeScenarioId],
   );
   return (
     <CaseScenarioContext.Provider value={value}>
@@ -184,9 +222,18 @@ function AutoFetchingCaseScenarioProvider({
     queryClient.invalidateQueries({ queryKey: caseScenariosQueryKey(caseId) });
   }, [queryClient, caseId]);
 
+  const [activeScenarioId, _registerActiveScenarioId] = useState<string | null>(null);
+
   const value = useMemo<CaseScenarioContextValue>(
-    () => ({ caseId, scenarios, isLoading, refresh }),
-    [caseId, scenarios, isLoading, refresh],
+    () => ({
+      caseId,
+      scenarios,
+      isLoading,
+      refresh,
+      activeScenarioId,
+      _registerActiveScenarioId,
+    }),
+    [caseId, scenarios, isLoading, refresh, activeScenarioId],
   );
 
   return (
@@ -215,8 +262,18 @@ export function ScenarioProvider({
   isLoading = false,
   children,
 }: ScenarioProviderProps) {
-  const { caseId } = useCaseScenarioContext();
+  const caseCtx = useCaseScenarioContext();
+  const { caseId, _registerActiveScenarioId } = caseCtx;
   const [activeProductId, setActiveProductId] = useState<string | null>(initialProductId);
+
+  // Publish our scenarioId to the case-level context so siblings rendered
+  // ABOVE this provider (e.g. an export modal at the case page root) can
+  // observe the active scenario via `useActiveScenarioId()`. Clear on unmount
+  // so navigating off a scenario route resets the active id to null.
+  useEffect(() => {
+    _registerActiveScenarioId(scenarioId);
+    return () => _registerActiveScenarioId(null);
+  }, [scenarioId, _registerActiveScenarioId]);
 
   const auditQuery = useQuery({
     queryKey: caseAuditQueryKey(caseId),

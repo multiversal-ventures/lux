@@ -47,29 +47,31 @@ const Wrapper = ({ scenario, children }: any) => (
 );
 
 describe("ScenarioTabs", () => {
-  it("renders product tabs for qm_standard", () => {
+  it("renders one tab per product in rendering_hints.product_specs (QM example)", () => {
     const scenario = makeScenario("qm_standard", [
       { product_id: "fannie_mae", display_name: "Fannie Mae", agency: "fnma", spec_names: [], total_monthly: null },
+      { product_id: "freddie_mac", display_name: "Freddie Mac", agency: "fhlmc", spec_names: [], total_monthly: null },
     ]);
     render(<Wrapper scenario={scenario}><ScenarioTabs /></Wrapper>, { wrapper: RQ });
     expect(screen.getByText("Summary")).toBeTruthy();
     expect(screen.getByText("Fannie Mae")).toBeTruthy();
+    expect(screen.getByText("Freddie Mac")).toBeTruthy();
   });
 
-  it("renders only Summary tab for non_qm_bank_statement", () => {
+  it("renders Non-QM product tabs (e.g. 1099) without any approach_type allow-list", () => {
+    const scenario = makeScenario("non_qm_1099", [
+      { product_id: "irs_1099_income", display_name: "IRS 1099 Income (Non-QM)", agency: "non_qm", spec_names: [], total_monthly: null },
+    ]);
+    render(<Wrapper scenario={scenario}><ScenarioTabs /></Wrapper>, { wrapper: RQ });
+    expect(screen.getByText("Summary")).toBeTruthy();
+    expect(screen.getByText("IRS 1099 Income (Non-QM)")).toBeTruthy();
+  });
+
+  it("renders only Summary when product_specs is empty", () => {
     const scenario = makeScenario("non_qm_bank_statement", []);
     render(<Wrapper scenario={scenario}><ScenarioTabs /></Wrapper>, { wrapper: RQ });
     expect(screen.getByText("Summary")).toBeTruthy();
     expect(screen.queryByText("Fannie Mae")).toBeNull();
-  });
-
-  it("falls back to Summary-only for unknown approach_type", () => {
-    const scenario = makeScenario("future_unknown_type", [
-      { product_id: "p1", display_name: "Product 1", agency: "p1", spec_names: [], total_monthly: null },
-    ]);
-    render(<Wrapper scenario={scenario}><ScenarioTabs /></Wrapper>, { wrapper: RQ });
-    expect(screen.getByText("Summary")).toBeTruthy();
-    expect(screen.queryByText("Product 1")).toBeNull();
   });
 
   it("invokes onTabNavigate for Summary and product tabs", async () => {

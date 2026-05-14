@@ -129,4 +129,117 @@ describe("DynamicUserInputsForm", () => {
     expect(queryByText("Non-QM")).toBeTruthy();
     expect(queryByText("Fannie Mae")).toBeNull();
   });
+
+  // Free-form numeric variant of expense_factor (no options[] → numeric input)
+  // — exercises the YAML `default` fallback that wasn't there before.
+  const NUMERIC_SCHEMA = {
+    products: [
+      {
+        product_id: "non_qm_bank_statement",
+        display_name: "Non-QM Bank Statement",
+        fields: [
+          {
+            name: "expense_factor",
+            type: "percent",
+            label: "Expense Factor",
+            hint: "Deduction percentage",
+            default: 0.9,
+            required: false,
+            minimum: 0,
+            maximum: 1,
+            step: 0.01,
+            unit: "percent",
+            options: [],
+            derive_options_from: null,
+            spec_name: "non_qm_bank_statement_income",
+          },
+        ],
+      },
+    ],
+  };
+
+  it("displays YAML default in the numeric input when context is empty", () => {
+    const onChange = vi.fn();
+    const { getByLabelText } = render(
+      <DynamicUserInputsForm
+        schema={NUMERIC_SCHEMA as never}
+        value={{}}
+        onContextChange={onChange}
+      />,
+    );
+    const input = getByLabelText("Expense Factor") as HTMLInputElement;
+    expect(input.tagName).toBe("INPUT");
+    expect(input.type).toBe("number");
+    // 0.9 fraction → "90" in the percent display.
+    expect(input.value).toBe("90");
+  });
+
+  it("prefers prior refinement context over the YAML default", () => {
+    const onChange = vi.fn();
+    const { getByLabelText } = render(
+      <DynamicUserInputsForm
+        schema={NUMERIC_SCHEMA as never}
+        value={{ non_qm_bank_statement: { inputs: { expense_factor: 0.5 } } }}
+        onContextChange={onChange}
+      />,
+    );
+    const input = getByLabelText("Expense Factor") as HTMLInputElement;
+    // 0.5 fraction → "50" in the percent display.
+    expect(input.value).toBe("50");
+  });
+
+  it("renders the YAML unit as a suffix next to numeric inputs", () => {
+    const onChange = vi.fn();
+    const { getByLabelText, getByText } = render(
+      <DynamicUserInputsForm
+        schema={NUMERIC_SCHEMA as never}
+        value={{}}
+        onContextChange={onChange}
+      />,
+    );
+    // Suffix sits next to the input; both share a wrapper.
+    const input = getByLabelText("Expense Factor") as HTMLInputElement;
+    expect(input).toBeTruthy();
+    // ``percent`` slug → ``%`` suffix.
+    expect(getByText("%")).toBeTruthy();
+  });
+
+  it("omits the unit suffix when no unit is declared on the spec", () => {
+    const onChange = vi.fn();
+    const noUnit = {
+      products: [
+        {
+          product_id: "non_qm_bank_statement",
+          display_name: "Non-QM Bank Statement",
+          fields: [
+            {
+              name: "raw_count",
+              type: "integer",
+              label: "Raw Count",
+              hint: null,
+              default: null,
+              required: false,
+              minimum: 0,
+              maximum: null,
+              step: 1,
+              unit: null,
+              options: [],
+              derive_options_from: null,
+              spec_name: "test_spec",
+            },
+          ],
+        },
+      ],
+    };
+    const { queryByText, getByLabelText } = render(
+      <DynamicUserInputsForm
+        schema={noUnit as never}
+        value={{}}
+        onContextChange={onChange}
+      />,
+    );
+    expect(getByLabelText("Raw Count")).toBeTruthy();
+    expect(queryByText("%")).toBeNull();
+    expect(queryByText("USD")).toBeNull();
+  });
 });

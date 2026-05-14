@@ -5,6 +5,7 @@ export {
   useMaybeCaseScenarioContext,
   useScenarioContext,
   useMaybeScenarioContext,
+  useActiveScenarioId,
   caseScenariosQueryKey,
 } from "./ScenarioProvider.js";
 export type { CaseScenarioProviderProps, ScenarioProviderProps } from "./ScenarioProvider.js";
@@ -79,3 +80,18 @@ export {
   PRODUCT_ID_TO_AGENCY,
 } from "./useScenarioProductIncome.js";
 export type { UseScenarioProductIncomeResult } from "./useScenarioProductIncome.js";
+export {
+  useScenarioRunningState,
+  useMarkScenarioJustStarted,
+} from "./useScenarioRunningState.js";
+export type {
+  ScenarioRunningState,
+  ScenarioRunPhase,
+  UseMarkScenarioJustStartedResult,
+} from "./useScenarioRunningState.js";
+export { ScenarioRunningPanel } from "./ScenarioRunningPanel.js";
+export type {
+  ScenarioRunningPanelProps,
+  ScenarioRunningPanelClassNames,
+  ScenarioRunningPanelSlots,
+} from "./ScenarioRunningPanel.js";

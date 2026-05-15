@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getDefaultClient, type ExtractionResponse } from "@fenero/lux-core";
+import { getDefaultClient, type ExtractionResponse } from "@fenero-ai/lux-core";
 
 /**
  * Fetch extractions for one or more documents in a case. When

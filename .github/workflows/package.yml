@@ -80,9 +80,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-          # Configure npm to use GitHub Packages for the @fenero scope
           registry-url: "https://npm.pkg.github.com"
-          scope: "@fenero"
+          scope: "@fenero-ai"
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build

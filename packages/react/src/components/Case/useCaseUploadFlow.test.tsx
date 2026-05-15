@@ -6,8 +6,8 @@ import { CaseWorkflowProvider } from "./CaseWorkflowProvider.js";
 import { useCaseUploadFlow } from "./useCaseUploadFlow.js";
 import type { UseCaseUploadFlowResult } from "./useCaseUploadFlow.js";
 
-vi.mock("@fenero/lux-core", async () => {
-  const actual = await vi.importActual<typeof import("@fenero/lux-core")>("@fenero/lux-core");
+vi.mock("@fenero-ai/lux-core", async () => {
+  const actual = await vi.importActual<typeof import("@fenero-ai/lux-core")>("@fenero-ai/lux-core");
   return {
     ...actual,
     getDefaultClient: () => mockClient,

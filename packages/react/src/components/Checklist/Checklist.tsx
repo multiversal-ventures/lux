@@ -1,4 +1,4 @@
-import type { ChecklistItem } from "@fenero/lux-core";
+import type { ChecklistItem } from "@fenero-ai/lux-core";
 
 export interface ChecklistProps {
 	items: ChecklistItem[];

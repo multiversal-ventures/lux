@@ -1,4 +1,4 @@
-import type { BankingResponse } from "@fenero/lux-core";
+import type { BankingResponse } from "@fenero-ai/lux-core";
 import styles from "./BankingSummary.module.css";
 
 export interface BankingSummaryProps {

@@ -1,6 +1,6 @@
 /** Copy-paste snippets for the integration guide (keep in sync with packages manually). */
 
-export const SNIPPET_INIT_MAIN = `import { initLux } from "@fenero/lux-core";
+export const SNIPPET_INIT_MAIN = `import { initLux } from "@fenero-ai/lux-core";
 
 const sampleAuth = {
   async getToken(): Promise<string | null> {
@@ -17,7 +17,7 @@ initLux({
   },
 });`;
 
-export const SNIPPET_INIT_CUSTOM_AUTH = `import { initLux, type AuthProvider } from "@fenero/lux-core";
+export const SNIPPET_INIT_CUSTOM_AUTH = `import { initLux, type AuthProvider } from "@fenero-ai/lux-core";
 
 /** Bridge your identity layer (OIDC, magic link, cookie session, etc.) to Lux. */
 function createAuthFromMyIdP(getAccessToken: () => Promise<string | null>): AuthProvider {
@@ -39,14 +39,14 @@ initLux({
   },
 });`;
 
-export const SNIPPET_INIT_PORTAL_TOKEN = `import { initLux, PortalTokenAuthProvider } from "@fenero/lux-core";
+export const SNIPPET_INIT_PORTAL_TOKEN = `import { initLux, PortalTokenAuthProvider } from "@fenero-ai/lux-core";
 
 initLux({
   baseUrl: "",
   auth: new PortalTokenAuthProvider(portalTokenFromUrl),
 });`;
 
-export const SNIPPET_SESSION_PROVIDER = `import { SessionProvider } from "@fenero/lux-react";
+export const SNIPPET_SESSION_PROVIDER = `import { SessionProvider } from "@fenero-ai/lux-react";
 
 function App() {
   return (
@@ -56,7 +56,7 @@ function App() {
   );
 }`;
 
-export const SNIPPET_USE_SESSION = `import { useSession } from "@fenero/lux-react";
+export const SNIPPET_USE_SESSION = `import { useSession } from "@fenero-ai/lux-react";
 
 function Header() {
   const session = useSession();
@@ -71,7 +71,7 @@ export const SNIPPET_APP_AUTH_UI = `// User identity (sign-in, sign-out, profile
 // Implement hooks/context in your app using your IdP, then pass tokens via AuthProvider + initLux.
 // VeritasSession (useSession) holds tenant/case UI state for API flows — separate from end-user login UI.`;
 
-export const SNIPPET_USE_CASE_EVENTS = `import { useCase, useEvents } from "@fenero/lux-react";
+export const SNIPPET_USE_CASE_EVENTS = `import { useCase, useEvents } from "@fenero-ai/lux-react";
 
 function CasePanel() {
   const session = useCase(); // alias of useSession today
@@ -84,7 +84,7 @@ export const SNIPPET_API_LAYER = `import {
   APIError,
   getDefaultClient,
   getLuxToken,
-} from "@fenero/lux-core";
+} from "@fenero-ai/lux-core";
 
 export { APIError };
 
@@ -125,7 +125,7 @@ pnpm install --force
 
 export const SNIPPET_LINKING_PACKAGE_JSON = `{
   "dependencies": {
-    "@fenero/lux-core": "file:../../lux/dist-pack/fenero-lux-core-0.0.1.tgz",
-    "@fenero/lux-react": "file:../../lux/dist-pack/fenero-lux-react-0.0.1.tgz"
+    "@fenero-ai/lux-core": "file:../../lux/dist-pack/fenero-lux-core-0.0.1.tgz",
+    "@fenero-ai/lux-react": "file:../../lux/dist-pack/fenero-lux-react-0.0.1.tgz"
   }
 }`;

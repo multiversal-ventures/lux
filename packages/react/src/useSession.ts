@@ -1,4 +1,4 @@
-import type { VeritasSession } from "@fenero/lux-core";
+import type { VeritasSession } from "@fenero-ai/lux-core";
 import { useContext } from "react";
 import { SessionContext } from "./context.js";
 

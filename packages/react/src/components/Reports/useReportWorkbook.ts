@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { read, type WorkBook } from "xlsx";
-import { getDefaultClient, type components } from "@fenero/lux-core";
+import { getDefaultClient, type components } from "@fenero-ai/lux-core";
 
 export type ReportGenerateResponse = components["schemas"]["ReportGenerateResponse"];
 

@@ -74,7 +74,7 @@ describe("SessionPage", () => {
 	it("shows consent banner when doc_sharing is false", () => {
 		mockUsePortalSession.mockReturnValue({ session: SESSION_FIXTURE, loading: false, error: null, submitIntent: vi.fn() });
 		renderPage();
-		expect(screen.getByText("Grant permission")).toBeDefined();
+		expect(screen.getByText(/I agree/i)).toBeDefined();
 	});
 
 	it("calls submitIntent when grant permission is clicked", async () => {
@@ -82,7 +82,7 @@ describe("SessionPage", () => {
 		mockUsePortalSession.mockReturnValue({ session: SESSION_FIXTURE, loading: false, error: null, submitIntent });
 		renderPage();
 
-		await userEvent.click(screen.getByText("Grant permission"));
+		await userEvent.click(screen.getByText(/I agree/i));
 		await waitFor(() => expect(submitIntent).toHaveBeenCalledOnce());
 	});
 
@@ -90,6 +90,6 @@ describe("SessionPage", () => {
 		const emptySession = { ...SESSION_FIXTURE, checklist: [] };
 		mockUsePortalSession.mockReturnValue({ session: emptySession, loading: false, error: null, submitIntent: vi.fn() });
 		renderPage();
-		expect(screen.getByText("All set!")).toBeDefined();
+		expect(screen.getByText(/all caught up/i)).toBeDefined();
 	});
 });

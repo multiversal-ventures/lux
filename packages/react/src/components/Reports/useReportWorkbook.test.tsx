@@ -7,8 +7,8 @@ const generateReport = vi.fn();
 const downloadReport = vi.fn();
 const listReports = vi.fn();
 
-vi.mock("@fenero-ai/lux-core", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@fenero-ai/lux-core")>();
+vi.mock("@multiversal-ventures/lux-core", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@multiversal-ventures/lux-core")>();
 	return {
 		...actual,
 		getDefaultClient: () => ({

@@ -7,7 +7,7 @@ import { ScenarioTabPanel } from "./ScenarioTabPanel.js";
 import { ScenarioCalcLogs } from "./ScenarioCalcLogs.js";
 import { ScenarioRefs, type RefClickPayload } from "./ScenarioRefs.js";
 import { ScenarioAdvice } from "./ScenarioAdvice.js";
-import type { components } from "@fenero-ai/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 type ScenarioDetailResponse = components["schemas"]["ScenarioDetailResponse"];
 type ScenarioComparisonResponse = components["schemas"]["ScenarioComparisonResponse"];

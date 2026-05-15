@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { components } from "@fenero-ai/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 type SpecSummaryResultResponse = components["schemas"]["SpecSummaryResultResponse"];
 

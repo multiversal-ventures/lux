@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { Checklist, ConsentBanner, usePortalSession } from "@fenero-ai/lux-react";
+import { Checklist, ConsentBanner, usePortalSession } from "@multiversal-ventures/lux-react";
 
 /** Read the portal token from the URL search params. */
 function usePortalToken(): string | null {

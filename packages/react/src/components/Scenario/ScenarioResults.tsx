@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useScenarioContext, useCaseScenarioContext } from "./ScenarioProvider.js";
-import type { components } from "@fenero-ai/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 type SpecResultResponse = components["schemas"]["SpecResultResponse"];
 

@@ -1,4 +1,4 @@
-import type { BankingResponse } from "@fenero-ai/lux-core";
+import type { BankingResponse } from "@multiversal-ventures/lux-core";
 import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useBanking(caseId: string) {

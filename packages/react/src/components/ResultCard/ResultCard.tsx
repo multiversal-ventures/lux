@@ -1,4 +1,4 @@
-import type { QualifyResult } from "@fenero-ai/lux-core";
+import type { QualifyResult } from "@multiversal-ventures/lux-core";
 import styles from "./ResultCard.module.css";
 
 export interface ResultCardProps {

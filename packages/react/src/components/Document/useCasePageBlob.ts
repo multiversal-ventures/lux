@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryCacheNotifyEvent, UseQueryResult } from "@tanstack/react-query";
-import { getDefaultClient } from "@fenero-ai/lux-core";
+import { getDefaultClient } from "@multiversal-ventures/lux-core";
 
 /**
  * Cache-keyed query for a single page's PNG, returned as a blob URL

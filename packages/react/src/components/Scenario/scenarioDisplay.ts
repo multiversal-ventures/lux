@@ -1,4 +1,4 @@
-import type { components } from "@fenero-ai/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 type ScenarioComparisonResponse = components["schemas"]["ScenarioComparisonResponse"];
 type ScenarioDetailResponse = components["schemas"]["ScenarioDetailResponse"];

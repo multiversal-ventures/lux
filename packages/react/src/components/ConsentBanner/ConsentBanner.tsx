@@ -1,4 +1,4 @@
-import type { ConsentState, Intent } from "@fenero-ai/lux-core";
+import type { ConsentState, Intent } from "@multiversal-ventures/lux-core";
 
 export interface ConsentBannerProps {
 	consent: ConsentState;

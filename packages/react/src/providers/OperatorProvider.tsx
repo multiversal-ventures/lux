@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode, type Context } from
 import {
 	createOperatorClient,
 	type OperatorClient,
-} from "@fenero-ai/lux-core";
+} from "@multiversal-ventures/lux-core";
 import {
 	QueryClient,
 	QueryClientProvider,

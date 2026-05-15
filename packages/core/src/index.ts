@@ -1,5 +1,5 @@
 /**
- * @fenero-ai/lux-core — Veritas SDK primitives.
+ * @multiversal-ventures/lux-core — Veritas SDK primitives.
  *
  * Includes: generated OpenAPI types, {@link AuthProvider} abstraction,
  * VeritasClient (HTTP, Bearer-based — dashboard apps),

@@ -1,5 +1,5 @@
 {
-  "name": "@fenero-ai/lux-react",
+  "name": "@multiversal-ventures/lux-react",
   "version": "0.1.0",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
@@ -25,14 +25,14 @@
     "zustand": "^5.0.13"
   },
   "peerDependencies": {
-    "@fenero-ai/lux-core": "workspace:*",
+    "@multiversal-ventures/lux-core": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@fenero-ai/lux-core": "workspace:*",
-    "@fenero-ai/lux-themes": "workspace:*",
+    "@multiversal-ventures/lux-core": "workspace:*",
+    "@multiversal-ventures/lux-themes": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.4.0",

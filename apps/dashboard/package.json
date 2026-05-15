@@ -1,5 +1,5 @@
 {
-  "name": "@fenero-ai/lux-sample-dashboard",
+  "name": "@multiversal-ventures/lux-sample-dashboard",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fenero-ai/lux-core": "workspace:*",
-    "@fenero-ai/lux-react": "workspace:*",
+    "@multiversal-ventures/lux-core": "workspace:*",
+    "@multiversal-ventures/lux-react": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

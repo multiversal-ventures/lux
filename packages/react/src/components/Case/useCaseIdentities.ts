@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getDefaultClient, type VeritasEntityGroup, type components } from "@fenero-ai/lux-core";
+import { getDefaultClient, type VeritasEntityGroup, type components } from "@multiversal-ventures/lux-core";
 import { useMaybeCaseScenarioContext } from "../Scenario/ScenarioProvider.js";
 
 type IdentityInfo = components["schemas"]["IdentityInfo"];

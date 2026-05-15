@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { usePortalSession } from "@fenero-ai/lux-react";
+import { usePortalSession } from "@multiversal-ventures/lux-react";
 
 const SESSION_FIXTURE = {
 	session_id: "sess-1",

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import type { CaseEvent, QualifyResult } from "@fenero-ai/lux-core";
-import { normalizeQualifyResult } from "@fenero-ai/lux-core";
+import type { CaseEvent, QualifyResult } from "@multiversal-ventures/lux-core";
+import { normalizeQualifyResult } from "@multiversal-ventures/lux-core";
 import { useOperatorClient } from "../providers/OperatorProvider.js";
 import { useCaseEvents } from "../providers/CaseEventsProvider.js";
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CaseEvent } from "@fenero-ai/lux-core";
+import type { CaseEvent } from "@multiversal-ventures/lux-core";
 import styles from "./PipelineFeed.module.css";
 
 export interface PipelineFeedProps {

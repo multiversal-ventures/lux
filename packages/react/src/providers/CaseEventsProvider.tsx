@@ -11,7 +11,11 @@ import {
 import type { CaseEvent } from "@fenero/lux-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOperatorClient } from "./OperatorProvider.js";
-import { invalidationMap, terminalEventTypes } from "./invalidation-map.js";
+import {
+	applyScenarioRunSideEffects,
+	invalidationMap,
+	terminalEventTypes,
+} from "./invalidation-map.js";
 
 interface StreamError {
 	message: string;
@@ -29,6 +33,20 @@ interface CaseEventsContextValue {
 }
 
 const CaseEventsContext = createContext<CaseEventsContextValue | null>(null);
+
+/**
+ * Non-throwing reader for the events context. Returns just the
+ * `subscribe` function (or null when no `<CaseEventsProvider>` is
+ * mounted) so infrastructure components can integrate with the event
+ * stream when available without forcing every host to wire up SSE.
+ */
+export function useCaseEventsOptional(): {
+	subscribe: (listener: (event: CaseEvent) => void) => () => void;
+} | null {
+	const ctx = useContext(CaseEventsContext);
+	if (!ctx) return null;
+	return { subscribe: ctx.subscribe };
+}
 
 export interface CaseEventsProviderProps {
 	caseId: string;
@@ -60,10 +78,21 @@ export function CaseEventsProvider({
 	const autoStopRef = useRef(autoStop);
 	autoStopRef.current = autoStop;
 
-	const ingestEvent = useRef((event: CaseEvent) => {
+	// ingestEvent: shared dedup + state + listener dispatch.
+	// ``triggerInvalidation=true`` for live SSE events only.
+	// Backfill events populate seenIds and state but NEVER fire cache
+	// invalidations — replaying 400+ historical events through
+	// invalidateQueries causes a request waterfall on every page load.
+	const ingestEvent = useRef((event: CaseEvent, triggerInvalidation = true) => {
 		if (seenIds.current.has(event.event_id)) return;
 		seenIds.current.add(event.event_id);
 		setEvents((prev) => [...prev, event]);
+		if (triggerInvalidation) {
+			console.debug(
+				`[lux/SSE] live event received: ${event.event_type} id=${event.event_id} case=${caseIdRef.current}`,
+				(event as { event_data?: unknown }).event_data,
+			);
+		}
 
 		// Fire imperative subscribers. Errors are isolated — never crash the event loop.
 		listeners.current.forEach((fn) => {
@@ -74,20 +103,32 @@ export function CaseEventsProvider({
 			}
 		});
 
+		if (!triggerInvalidation) return;
+
 		// Centralized invalidation — use ref so stale caseId doesn't invalidate
 		// the wrong case's query keys when caseId prop changes between renders.
 		const invalidator = invalidationMap[event.event_type];
 		if (invalidator) {
-			for (const key of invalidator(caseIdRef.current)) {
+			const keys = invalidator(caseIdRef.current);
+			console.debug(
+				`[lux/SSE] invalidating ${keys.length} query key(s) for ${event.event_type}`,
+				keys,
+			);
+			for (const key of keys) {
 				queryClient.invalidateQueries({ queryKey: key });
 			}
 		}
 
-		if (autoStopRef.current && terminalEventTypes.has(event.event_type)) {
-			abortRef.current?.();
-			abortRef.current = null;
-			setStreamClosed(true);
-		}
+		// Cross-store side-effects (e.g. clear the scenarioRunsStore
+		// just-started pulse on terminal qualify events) — kept after
+		// the React Query invalidation so the UI sees the data refresh
+		// before the loader collapses.
+		applyScenarioRunSideEffects(event);
+
+		// Server no longer emits stream.end — no client-side auto-stop needed.
+		// Stream lives until component unmounts (abort called in useEffect cleanup).
+		// autoStop prop is retained for backwards compatibility but is now a no-op
+		// because the server never sends case.system.completed as a terminal signal.
 	});
 
 	useEffect(() => {
@@ -101,7 +142,10 @@ export function CaseEventsProvider({
 		setStreamError(null);
 
 		async function run() {
-			// Backfill historical events.
+			console.info(`[lux/SSE] connecting to case stream: ${caseId}`);
+			// Backfill historical events — no invalidation (triggerInvalidation=false).
+			// Replaying 400+ historical events through invalidateQueries causes a
+			// request waterfall on every mount. Historical data is state-only.
 			const res = await client.getEvents(caseId);
 			if (cancelled) return;
 			if (res.error) {
@@ -109,7 +153,7 @@ export function CaseEventsProvider({
 				setConnecting(false);
 				return;
 			}
-			for (const ev of res.data) ingestEvent.current(ev);
+			for (const ev of res.data) ingestEvent.current(ev, false);
 
 			// Open SSE stream.
 			const { abort } = client.streamEventsParsed(
@@ -125,6 +169,7 @@ export function CaseEventsProvider({
 			);
 			abortRef.current = abort;
 			setConnecting(false);
+			console.info(`[lux/SSE] stream live: ${caseId}`);
 		}
 
 		void run();

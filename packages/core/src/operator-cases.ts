@@ -9,6 +9,11 @@ import type {
 	SpecAuditResponse,
 	TransactionsResponse,
 } from "./operator-types.js";
+import type { components } from "./generated.js";
+
+// Defined inline — not yet in the OpenAPI spec.
+type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
+type CreatePortalTokenResponse = { token: string; expires_at: string };
 
 /** Stream SSE case events from an authenticated URL, calling onEvent per parsed event. */
 async function consumeSseEventStream(
@@ -181,9 +186,16 @@ export function createCaseMethods(
 		return { abort: () => controller.abort() };
 	}
 
-	async function getEvents(caseId: string): Promise<Result<CaseEvent[]>> {
+	async function getEvents(
+		caseId: string,
+		opts?: { eventType?: string },
+	): Promise<Result<CaseEvent[]>> {
 		try {
-			const res = await fetch(`${base}/api/cases/${caseId}/events`, { headers: authHeaders() });
+			let url = `${base}/api/cases/${caseId}/events`;
+			if (opts?.eventType) {
+				url += `?event_type=${encodeURIComponent(opts.eventType)}`;
+			}
+			const res = await fetch(url, { headers: authHeaders() });
 			return await request<CaseEvent[]>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
@@ -249,6 +261,39 @@ export function createCaseMethods(
 		return `${base}/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`;
 	}
 
+	/** Issue a portal token for a borrower on a case. Caller supplies identity_id. */
+	async function createPortalToken(
+		caseId: string,
+		body: Partial<CreatePortalTokenRequest>,
+	): Promise<Result<CreatePortalTokenResponse>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}/portal-tokens`, {
+				method: "POST",
+				headers: authHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify(body),
+			});
+			return await request<CreatePortalTokenResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
+	/** Fetch AI-generated advice items for a scenario. */
+	async function getCaseScenarioAdvice(
+		caseId: string,
+		scenarioId: string,
+	): Promise<Result<components["schemas"]["ScenarioAdviceResponse"]>> {
+		try {
+			const res = await fetch(
+				`${base}/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/advice`,
+				{ headers: authHeaders() },
+			);
+			return await request<components["schemas"]["ScenarioAdviceResponse"]>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	return {
 		listCases,
 		createCase,
@@ -265,5 +310,7 @@ export function createCaseMethods(
 		getBanking,
 		listTransactions,
 		pagePngUrl,
+		createPortalToken,
+		getCaseScenarioAdvice,
 	};
 }

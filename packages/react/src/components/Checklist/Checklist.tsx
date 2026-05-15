@@ -58,9 +58,14 @@ export function Checklist({ items, className }: ChecklistProps) {
 			<div
 				className={`bg-white rounded-xl border border-slate-200 p-8 text-center${className ? ` ${className}` : ""}`}
 			>
-				<h2 className="text-xl font-semibold text-slate-900 mb-2">All set!</h2>
-				<p className="text-slate-600">
-					No action items at this time. We&apos;ll notify you if anything changes.
+				<div className="text-3xl mb-3">&#9989;</div>
+				<h2 className="text-xl font-semibold text-slate-900 mb-2">
+					You&apos;re all caught up
+				</h2>
+				<p className="text-slate-600 max-w-sm mx-auto">
+					Your loan officer hasn&apos;t requested any documents or actions
+					yet. When they do, the items will appear here. Check back later
+					or wait for a notification.
 				</p>
 			</div>
 		);

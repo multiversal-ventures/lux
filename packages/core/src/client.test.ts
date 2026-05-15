@@ -1,6 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createPortalClient } from "./client.js";
+import { createPortalClient, VeritasClient } from "./client.js";
 import { createOperatorClient } from "./operator-client.js";
+
+// ─── VeritasClient test helpers ───────────────────────────────────────────────
+
+function makeTestClient(): VeritasClient {
+	return new VeritasClient({
+		baseUrl: "",
+		auth: { getToken: async () => "test-token" },
+	});
+}
+
+function mockFetch(data: unknown): void {
+	vi.mocked(fetch).mockResolvedValue({
+		ok: true,
+		headers: { get: () => "application/json" } as unknown as Headers,
+		json: async () => data,
+		text: async () => JSON.stringify(data),
+	} as unknown as Response);
+}
 
 const SESSION_FIXTURE = {
 	session_id: "sess-1",
@@ -89,6 +107,45 @@ describe("createPortalClient", () => {
 			vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ session: SESSION_FIXTURE }) } as Response);
 			await customClient.submitIntents("sess-1", "tok-1", []);
 			expect(vi.mocked(fetch).mock.calls[0][0]).toContain("https://api.example.com");
+		});
+	});
+});
+
+// ─── VeritasClient method tests ───────────────────────────────────────────────
+
+describe("VeritasClient", () => {
+	beforeEach(() => {
+		vi.stubGlobal("fetch", vi.fn());
+	});
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	describe("getAudit", () => {
+		it("calls GET /cases/:id/audit and returns array", async () => {
+			const client = makeTestClient();
+			mockFetch([{ spec_name: "fnma_w2", outcome: "pass" }]);
+			const result = await client.getAudit("case-123");
+			expect(result).toHaveLength(1);
+			expect(result[0].spec_name).toBe("fnma_w2");
+		});
+	});
+
+	describe("getSpecAudit", () => {
+		it("calls GET /cases/:id/audit/specs/:specName and returns object", async () => {
+			const client = makeTestClient();
+			mockFetch({ spec_name: "fnma_w2", outcome: "pass" });
+			const result = await client.getSpecAudit("case-123", "fnma_w2");
+			expect(result.spec_name).toBe("fnma_w2");
+		});
+	});
+
+	describe("getCaseScenarioAdvice", () => {
+		it("calls GET /cases/:id/scenarios/:sid/advice", async () => {
+			const client = makeTestClient();
+			mockFetch({ items: [], narrative: "All good." });
+			const result = await client.getCaseScenarioAdvice("case-1", "scenario-1");
+			expect(result.narrative).toBe("All good.");
 		});
 	});
 });

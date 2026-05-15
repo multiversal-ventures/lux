@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeQualifyResult } from "./normalize.js";
+import { normalizeQualifyResult, parseStringArray } from "./normalize.js";
 
 describe("normalizeQualifyResult", () => {
 	it("prefers product === 'custom' even when other products have total_monthly > 0", () => {
@@ -65,5 +65,40 @@ describe("normalizeQualifyResult", () => {
 		const { primary, all } = normalizeQualifyResult(null);
 		expect(primary).toBeNull();
 		expect(all).toEqual([]);
+	});
+});
+
+describe("parseStringArray", () => {
+	it("unwraps a Python-list string wrapped in a single-element array", () => {
+		const input = ["['fannie_mae', 'freddie_mac', 'fha', 'va', 'usda', 'non_qm']"];
+		expect(parseStringArray(input)).toEqual([
+			"fannie_mae",
+			"freddie_mac",
+			"fha",
+			"va",
+			"usda",
+			"non_qm",
+		]);
+	});
+
+	it("returns a normal string[] unchanged", () => {
+		const input = ["fannie_mae", "fha"];
+		expect(parseStringArray(input)).toEqual(["fannie_mae", "fha"]);
+	});
+
+	it("returns [] for null", () => {
+		expect(parseStringArray(null)).toEqual([]);
+	});
+
+	it("returns [] for undefined", () => {
+		expect(parseStringArray(undefined)).toEqual([]);
+	});
+
+	it("returns empty array when input is empty", () => {
+		expect(parseStringArray([])).toEqual([]);
+	});
+
+	it("handles a single-element array that is not a list string", () => {
+		expect(parseStringArray(["fannie_mae"])).toEqual(["fannie_mae"]);
 	});
 });

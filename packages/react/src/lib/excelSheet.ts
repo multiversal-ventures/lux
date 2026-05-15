@@ -88,7 +88,7 @@ function getLuminance(hex: string): number {
 	return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-const NUMERIC_RE = /^[\s$,()-]*\d[\d,]*\.?\d*[\s%]*$/;
+const NUMERIC_RE = /^[\s$,()\-]*\d[\d,]*(?:\.\d+)?[\s%]*$/;
 
 function getCell(ws: Record<string, unknown>, R: number, C: number, dense: boolean) {
 	const raw = dense ? (ws[R] as unknown[])?.[C] : ws[utils.encode_cell({ r: R, c: C })];

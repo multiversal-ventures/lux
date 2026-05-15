@@ -133,11 +133,16 @@ export function payloadFromRow(
 export function useScenarioReferences(): UseScenarioReferencesResult {
   const { scenario, audit, activeProductId, refinements, activeRefinementId } = useScenarioContext();
 
-  // Filter audit to the active refinement before further processing so
-  // references and provenance always reflect the selected run.
-  const refinementAudit = activeRefinementId
-    ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
-    : audit;
+  // Filter audit to the active refinement when manifest_id is present.
+  // Guard: if no audit rows carry manifest_id yet (field not on API response),
+  // skip the filter so references still render.
+  const auditHasManifestId = audit.some(
+    (a) => typeof (a as { manifest_id?: string }).manifest_id === "string",
+  );
+  const refinementAudit =
+    activeRefinementId && auditHasManifestId
+      ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
+      : audit;
   const agency = useMemo(
     () => resolveAgency(activeProductId, scenario.rendering_hints?.product_specs ?? null),
     [activeProductId, scenario.rendering_hints?.product_specs],

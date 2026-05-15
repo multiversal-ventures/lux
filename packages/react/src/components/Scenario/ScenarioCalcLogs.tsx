@@ -14,12 +14,16 @@ export function ScenarioCalcLogs({ className }: ScenarioCalcLogsProps) {
   // map so audit filtering keeps working when Veritas leaves product_specs empty.
   const agency = resolveAgency(activeProductId, scenario.rendering_hints?.product_specs ?? null);
 
-  // Filter by refinement first so calc logs always show data from the
-  // selected run only. Without this, all runs for the same scenario are
-  // mixed together — clicking refinement A shows steps from runs A+B+C.
-  const refinementAudit = activeRefinementId
-    ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
-    : audit;
+  // Filter by refinement when manifest_id is present on audit rows.
+  // The audit endpoint may not yet return manifest_id on every row — guard
+  // against that case so calc logs still render until the field is added.
+  const auditHasManifestId = audit.some(
+    (a) => typeof (a as { manifest_id?: string }).manifest_id === "string",
+  );
+  const refinementAudit =
+    activeRefinementId && auditHasManifestId
+      ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
+      : audit;
 
   const filteredAudit = agency
     ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_"))

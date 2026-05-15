@@ -2340,7 +2340,7 @@
           "events"
         ],
         "summary": "Stream Events",
-        "description": "SSE stream of case events. Polls Postgres by event_id cursor.\n\nClients connect and receive events as they occur:\n    data: {\"event_id\": 1, \"event_type\": \"qualify.spec.evaluated\", ...}\n\nThe stream ends when the case reaches a terminal state (completed/failed)\nor the client disconnects.",
+        "description": "SSE stream of case events. Polls Postgres by event_id cursor.\n\nClients connect and receive events as they arrive:\n    data: {\"event_id\": 1, \"event_type\": \"qualify.spec.evaluated\", ...}\n\nPass ``?cursor=N`` to start from event_id N+1 (exclusive). The client\nshould backfill historical events via ``GET /events`` first, record the\nlast event_id, then open this stream with ``?cursor=<last_id>``. This\nprevents the stream from replaying historical ``case.system.completed``\nevents on every reconnect \u2014 which would cause an immediate ``stream.end``\neven though the case is still receiving refinement events.",
         "operationId": "stream_events_api_cases__case_id__events_stream_get",
         "security": [
           {
@@ -2356,6 +2356,16 @@
               "type": "string",
               "format": "uuid",
               "title": "Case Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Cursor"
             }
           }
         ],
@@ -7451,6 +7461,17 @@
             "type": "array",
             "title": "Proof Trace",
             "default": []
+          },
+          "manifest_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Id"
           }
         },
         "type": "object",

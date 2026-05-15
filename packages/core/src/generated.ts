@@ -833,11 +833,15 @@ export interface paths {
          * Stream Events
          * @description SSE stream of case events. Polls Postgres by event_id cursor.
          *
-         *     Clients connect and receive events as they occur:
+         *     Clients connect and receive events as they arrive:
          *         data: {"event_id": 1, "event_type": "qualify.spec.evaluated", ...}
          *
-         *     The stream ends when the case reaches a terminal state (completed/failed)
-         *     or the client disconnects.
+         *     Pass ``?cursor=N`` to start from event_id N+1 (exclusive). The client
+         *     should backfill historical events via ``GET /events`` first, record the
+         *     last event_id, then open this stream with ``?cursor=<last_id>``. This
+         *     prevents the stream from replaying historical ``case.system.completed``
+         *     events on every reconnect — which would cause an immediate ``stream.end``
+         *     even though the case is still receiving refinement events.
          */
         get: operations["stream_events_api_cases__case_id__events_stream_get"];
         put?: never;
@@ -2809,6 +2813,8 @@ export interface components {
              * @default []
              */
             proof_trace: string[];
+            /** Manifest Id */
+            manifest_id?: string | null;
         };
         /** SpecDetailResponse */
         SpecDetailResponse: {
@@ -4671,7 +4677,9 @@ export interface operations {
     };
     stream_events_api_cases__case_id__events_stream_get: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: number;
+            };
             header?: never;
             path: {
                 case_id: string;

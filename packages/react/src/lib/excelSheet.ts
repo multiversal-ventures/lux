@@ -191,18 +191,20 @@ export function sheetToHtmlWithStyles(ws: Record<string, unknown>): string {
 	return "<table>" + rows.join("") + "</table>";
 }
 
-function decodeHtmlEntities(s: string): string {
-	return s
-		.replace(/&amp;/g, "&")
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&quot;/g, '"');
-}
-
+// Standard, JS/TS-friendly approach: just escape, don't double-decode/escape.
+// HTML entity decoding in-browser should use DOM APIs (if necessary).
+// For escaping, a simple replace suffices.
 export function escapeHtml(s: string): string {
-	return decodeHtmlEntities(s)
+	return s
 		.replace(/&/g, "&amp;")
 		.replace(/</g, "&lt;")
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;");
+}
+
+// For decoding: DOM-based decoding is safest and browser standardized.
+export function decodeHtmlEntities(s: string): string {
+	const txt = document.createElement("textarea");
+	txt.innerHTML = s;
+	return txt.value;
 }

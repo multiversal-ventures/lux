@@ -1,48 +1,43 @@
-import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
 
-export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, process.cwd(), "VITE_");
-	const projectId = env.VITE_FIREBASE_PROJECT_ID || "";
-	const apiTarget = env.VITE_API_TARGET || "http://localhost:8000";
-	// Google's stable public JWKS endpoint for Firebase tokens — not a secret, not tenant-specific.
-	const firebaseJwksUrl = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-	return {
-		plugins: [react(), tailwindcss()],
-		server: {
-			port: 3332,
-			proxy: {
-				// Dashboard is multi-tenant — user's JWT is the Bearer.
-				// Tenant resolved from user lookup in Veritas, not from proxy.
-				"/api/v1": {
-					target: apiTarget,
-					changeOrigin: true,
-					rewrite: (path) => path.replace(/^\/api\/v1/, ""),
-					configure: (proxy) => {
-						proxy.on("proxyReq", (proxyReq) => {
-							// JWT stays as Bearer — Veritas validates via JWKS
-							// Inject JWKS verification params
-							proxyReq.setHeader("X-Auth-JWKS-URL", firebaseJwksUrl);
-							if (projectId) {
-								proxyReq.setHeader("X-Auth-Audience", projectId);
-								proxyReq.setHeader(
-									"X-Auth-Issuer",
-									`https://securetoken.google.com/${projectId}`,
-								);
-							}
-						});
-						proxy.on("proxyRes", (proxyRes, req) => {
-							if (req.url?.includes("/stream")) {
-								proxyRes.headers["X-Accel-Buffering"] = "no";
-								proxyRes.headers["Cache-Control"] = "no-cache";
-								proxyRes.headers["Connection"] = "keep-alive";
-							}
-						});
-					},
+function readPkgVersion(relativePath: string): string {
+	const full = resolve(__dirname, relativePath);
+	return JSON.parse(readFileSync(full, "utf8")).version as string;
+}
+
+const luxCoreVersion = readPkgVersion("../../packages/core/package.json");
+const luxReactVersion = readPkgVersion("../../packages/react/package.json");
+const sampleDashboardVersion = readPkgVersion("./package.json");
+
+export default defineConfig({
+	define: {
+		__LUX_CORE_PKG_VERSION__: JSON.stringify(luxCoreVersion),
+		__LUX_REACT_PKG_VERSION__: JSON.stringify(luxReactVersion),
+		__LUX_SAMPLE_DASHBOARD_PKG_VERSION__: JSON.stringify(sampleDashboardVersion),
+	},
+	plugins: [react()],
+	server: {
+		port: 3332,
+		proxy: {
+			"/api": {
+				target: process.env.VITE_LUX_PROXY_TARGET ?? "http://localhost:8000",
+				changeOrigin: true,
+				configure: (proxy) => {
+					proxy.on("proxyRes", (proxyRes, req) => {
+						if (req.url?.includes("/stream")) {
+							proxyRes.headers["X-Accel-Buffering"] = "no";
+							proxyRes.headers["Cache-Control"] = "no-cache";
+							proxyRes.headers["Connection"] = "keep-alive";
+						}
+					});
 				},
 			},
 		},
-	};
+	},
 });

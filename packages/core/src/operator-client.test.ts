@@ -208,6 +208,12 @@ describe("createOperatorClient — event streaming", () => {
 		expect(res.data?.[0].event_type).toBe("intake.file.processed");
 	});
 
+	it("getEvents: appends event_type filter when provided", async () => {
+		vi.mocked(fetch).mockResolvedValue(ok([]));
+		await client.getEvents("c-1", { eventType: "qualify.completed" });
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/events?event_type=qualify.completed");
+	});
+
 	it("streamEventsParsed: calls onEvent for each SSE data line", async () => {
 		const ssePayload = `data: ${JSON.stringify({ event_id: 1, event_type: "qualify.completed", event_data: {}, created_at: null })}\n\ndata: ${JSON.stringify({ event_id: 2, event_type: "case.system.completed", event_data: null, created_at: null })}\n\n`;
 		const encoder = new TextEncoder();
@@ -264,6 +270,83 @@ describe("createOperatorClient — event streaming", () => {
 		client.streamEventsParsed("c-1", (ev) => events.push(ev.event_id));
 		await new Promise((r) => setTimeout(r, 0));
 		expect(events).toEqual([3]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Upload orchestration (operator client level)
+// ---------------------------------------------------------------------------
+
+describe("createOperatorClient — upload methods", () => {
+	const client = makeClient();
+
+	it("prepareUpload: POSTs to /api/cases/prepare-upload", async () => {
+		const fixture = { case_id: "c-new", upload_urls: [], expires_in_seconds: 3600 };
+		vi.mocked(fetch).mockResolvedValue(ok(fixture));
+		const res = await client.prepareUpload([{ filename: "doc.pdf", size: 1024 }]);
+		expect(res.error).toBeNull();
+		expect(res.data?.case_id).toBe("c-new");
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/prepare-upload");
+		expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("POST");
+	});
+
+	it("startCase: POSTs to /api/cases/{id}/start", async () => {
+		vi.mocked(fetch).mockResolvedValue(ok({ case_id: "c-1", status: "started", workflow_id: "wf-1" }));
+		const res = await client.startCase("c-1", { files: [] });
+		expect(res.error).toBeNull();
+		expect(res.data?.workflow_id).toBe("wf-1");
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/start");
+	});
+
+	it("prepareAddFiles: POSTs to /api/cases/{id}/files/prepare", async () => {
+		const fixture = { case_id: "c-1", upload_urls: [], expires_in_seconds: 3600 };
+		vi.mocked(fetch).mockResolvedValue(ok(fixture));
+		const res = await client.prepareAddFiles("c-1", [{ filename: "extra.pdf", size: 512 }]);
+		expect(res.error).toBeNull();
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/files/prepare");
+	});
+
+	it("startAddFiles: POSTs to /api/cases/{id}/files/start", async () => {
+		vi.mocked(fetch).mockResolvedValue(ok({ case_id: "c-1", status: "started", workflow_id: "wf-2" }));
+		const res = await client.startAddFiles("c-1", [{ file_id: "f-1", gcs_path: "path/f-1" }]);
+		expect(res.error).toBeNull();
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/files/start");
+	});
+
+	it("prepareUpload: returns network error on fetch throw", async () => {
+		vi.mocked(fetch).mockRejectedValue(new Error("offline"));
+		const res = await client.prepareUpload([]);
+		expect(res.error?.status).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Portal token issuance
+// ---------------------------------------------------------------------------
+
+describe("createOperatorClient — portal token", () => {
+	const client = makeClient();
+
+	it("createPortalToken: POSTs to /api/cases/{id}/portal-tokens", async () => {
+		vi.mocked(fetch).mockResolvedValue(ok({ token: "pt-abc", portal_url: "https://portal.example.com?token=pt-abc", expires_at: "2026-06-01T00:00:00Z" }));
+		const res = await client.createPortalToken("c-1", { identity_id: "id-1" });
+		expect(res.error).toBeNull();
+		expect(res.data?.token).toBe("pt-abc");
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/portal-tokens");
+		expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("POST");
+	});
+
+	it("createPortalToken: returns network error on fetch throw", async () => {
+		vi.mocked(fetch).mockRejectedValue(new Error("offline"));
+		const res = await client.createPortalToken("c-1", {});
+		expect(res.error?.status).toBe(0);
+	});
+
+	it("createPortalToken: returns API error on non-ok response", async () => {
+		vi.mocked(fetch).mockResolvedValue(fail(400, "No identity"));
+		const res = await client.createPortalToken("c-1", {});
+		expect(res.error?.status).toBe(400);
+		expect(res.error?.message).toBe("No identity");
 	});
 });
 

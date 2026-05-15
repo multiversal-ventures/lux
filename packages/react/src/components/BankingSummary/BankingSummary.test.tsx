@@ -21,6 +21,7 @@ describe("BankingSummary", () => {
 							balance_reconciled: true,
 							coverage_passed: true,
 							summary_matched: true,
+							header_fallback: null,
 							source_doc_ids: [],
 						},
 					],

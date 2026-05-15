@@ -25,6 +25,7 @@ export interface BankingAccount {
 	balance_reconciled: boolean | null;
 	coverage_passed: boolean | null;
 	summary_matched: boolean | null;
+	header_fallback: boolean | null;
 	source_doc_ids: string[];
 }
 
@@ -46,6 +47,27 @@ export interface BankingResponse {
 	borrowers: BankingBorrowerRollup[];
 	total_gross_deposits: number;
 	total_average_monthly: number;
+}
+
+export interface ClassifiedTransaction {
+	transaction_id: string;
+	account_id: string;
+	transaction_date: string;
+	description: string;
+	credit_debit: "CR" | "DR";
+	amount: number;
+	classification: string | null;
+	is_transfer: boolean;
+	is_large_deposit: boolean;
+	source_file_id: string | null;
+	source_page_number: number | null;
+	running_balance: number | null;
+}
+
+export interface ClassifiedTransactionsResponse {
+	case_id: string;
+	transactions: ClassifiedTransaction[];
+	total_count: number;
 }
 
 export interface TransactionRow {
@@ -92,6 +114,86 @@ export interface GenerateSpecResult {
 	domain: string;
 	version: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload orchestration types (prepare → signed-URL PUT → start)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PrepareUploadFile {
+	filename: string;
+	size: number;
+}
+
+export interface UploadUrlInfo {
+	file_id: string;
+	filename: string;
+	gcs_path: string;
+	upload_url: string;
+	content_type: string;
+}
+
+export interface PrepareUploadResponse {
+	case_id: string;
+	upload_urls: UploadUrlInfo[];
+	expires_in_seconds: number;
+}
+
+export interface StartCaseRequest {
+	files: UploadUrlInfo[];
+	include_chunks?: boolean;
+	include_page_images?: boolean;
+	max_concurrency?: number;
+	loan_product_ids?: string[];
+	calculation_track?: string;
+}
+
+export interface StartCaseResponse {
+	case_id: string;
+	status: string;
+	workflow_id?: string;
+	file_count?: number;
+}
+
+export interface StartAddFilesFileInfo {
+	file_id: string;
+	gcs_path: string;
+	filename?: string;
+}
+
+export interface StartAddFilesResponse {
+	case_id: string;
+	status: string;
+	workflow_id: string;
+}
+
+export type DirectUploadPhase = "preparing" | "uploading" | "starting";
+
+export interface DirectUploadProgress {
+	phase: DirectUploadPhase;
+	totalFiles: number;
+	completedFiles: number;
+	currentFileProgress: number;
+	currentFileName?: string;
+}
+
+export interface DirectUploadOptions {
+	onProgress?: (progress: DirectUploadProgress) => void;
+	loanProductIds?: string[];
+	calculationTrack?: string;
+}
+
+export interface AddFilesProgress {
+	phase: "idle" | "preparing" | "uploading" | "starting" | "complete" | "error";
+	totalFiles: number;
+	completedFiles: number;
+	currentFileProgress: number;
+	currentFileName?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Portal token issuance — uses OpenAPI generated schemas from index.ts.
+// operator-cases.ts imports these types from generated.ts directly.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface OperatorClientConfig {
 	/** Base URL of the Veritas API. Empty string = same origin (Vite proxy). */

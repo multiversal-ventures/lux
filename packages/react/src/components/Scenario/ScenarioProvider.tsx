@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDefaultClient, type components } from "@fenero/lux-core";
+import { getDefaultClient, type components } from "@fenero-ai/lux-core";
 
 const caseAuditQueryKey = (caseId: string): readonly [string, string, string, string] =>
 	["case", caseId, "audit", "lux-scenario"] as const;

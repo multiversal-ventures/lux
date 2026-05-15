@@ -1,4 +1,4 @@
-import type { SpecAuditResponse } from "@fenero/lux-core";
+import type { SpecAuditResponse } from "@fenero-ai/lux-core";
 import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useAudit(caseId: string) {

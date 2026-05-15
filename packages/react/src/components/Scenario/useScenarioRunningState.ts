@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@fenero-ai/lux-core";
 import { useMaybeCaseScenarioContext } from "./ScenarioProvider.js";
 import { getScenarioRunsStore } from "../../state/scenarioRunsStore.js";
 

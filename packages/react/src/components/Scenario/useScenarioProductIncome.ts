@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@fenero-ai/lux-core";
 import { useScenarioContext, useCaseScenarioContext } from "./ScenarioProvider.js";
 import { KNOWN_AGENCIES } from "./ScenarioResults.js";
 import {

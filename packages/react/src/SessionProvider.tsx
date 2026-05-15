@@ -1,4 +1,4 @@
-import { VeritasSession, getDefaultClient } from "@fenero/lux-core";
+import { VeritasSession, getDefaultClient } from "@fenero-ai/lux-core";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { SessionContext } from "./context.js";
 

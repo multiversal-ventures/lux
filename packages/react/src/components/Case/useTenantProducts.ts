@@ -3,7 +3,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   getDefaultClient,
   type components,
-} from "@fenero/lux-core";
+} from "@fenero-ai/lux-core";
 
 import type { ApproachOption } from "./ApproachPicker.js";
 import type { ProductOption } from "./ProductPicker.js";

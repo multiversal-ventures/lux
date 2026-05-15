@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Intent, PortalClientError, PortalSession } from "@fenero/lux-core";
-import { createPortalClient } from "@fenero/lux-core";
+import type { Intent, PortalClientError, PortalSession } from "@fenero-ai/lux-core";
+import { createPortalClient } from "@fenero-ai/lux-core";
 
 export interface UsePortalSessionReturn {
 	session: PortalSession | null;

@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { useCaseIdentities } from "./useCaseIdentities.js";
 import { CaseScenarioProvider } from "../Scenario/ScenarioProvider.js";
 
-vi.mock("@fenero/lux-core", async () => {
-  const actual = await vi.importActual<typeof import("@fenero/lux-core")>("@fenero/lux-core");
+vi.mock("@fenero-ai/lux-core", async () => {
+  const actual = await vi.importActual<typeof import("@fenero-ai/lux-core")>("@fenero-ai/lux-core");
   return {
     ...actual,
     getDefaultClient: () => mockClient,

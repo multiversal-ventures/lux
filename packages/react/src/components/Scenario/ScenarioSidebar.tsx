@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useCaseScenarioContext } from "./ScenarioProvider.js";
 import { formatRefinementSubtitle, formatScenarioListHeadline } from "./scenarioDisplay.js";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@fenero-ai/lux-core";
 
 type RefinementResponse = components["schemas"]["RefinementResponse"];
 

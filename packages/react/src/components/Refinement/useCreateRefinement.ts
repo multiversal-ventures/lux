@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
-import { getDefaultClient, type components } from "@fenero/lux-core";
+import { getDefaultClient, type components } from "@fenero-ai/lux-core";
 import { caseScenariosQueryKey } from "../Scenario/ScenarioProvider.js";
 
 type CreateRefinementRequest = components["schemas"]["CreateRefinementRequest"];

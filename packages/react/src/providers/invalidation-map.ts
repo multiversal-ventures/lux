@@ -1,5 +1,5 @@
 import type { QueryKey } from "@tanstack/react-query";
-import type { CaseEvent } from "@fenero/lux-core";
+import type { CaseEvent } from "@fenero-ai/lux-core";
 
 import { getScenarioRunsStore } from "../state/scenarioRunsStore.js";
 

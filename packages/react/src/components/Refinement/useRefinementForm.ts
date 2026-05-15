@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer } from "react";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@fenero-ai/lux-core";
 import {
   resolveProductCategory,
   type ProductCategory,

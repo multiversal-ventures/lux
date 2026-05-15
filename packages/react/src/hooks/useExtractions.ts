@@ -1,4 +1,4 @@
-import type { ExtractionResponse } from "@fenero/lux-core";
+import type { ExtractionResponse } from "@fenero-ai/lux-core";
 import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useExtractions(

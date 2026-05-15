@@ -8,7 +8,7 @@ import {
 	type ReactNode,
 	type DependencyList,
 } from "react";
-import type { CaseEvent } from "@fenero/lux-core";
+import type { CaseEvent } from "@fenero-ai/lux-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOperatorClient } from "./OperatorProvider.js";
 import {

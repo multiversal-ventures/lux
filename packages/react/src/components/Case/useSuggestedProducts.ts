@@ -4,7 +4,7 @@ import {
   getDefaultClient,
   type CaseEvent,
   type components,
-} from "@fenero/lux-core";
+} from "@fenero-ai/lux-core";
 
 import { useCaseEventsOptional } from "../../providers/CaseEventsProvider.js";
 

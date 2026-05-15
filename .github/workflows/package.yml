@@ -55,9 +55,9 @@ jobs:
       - name: Pack distributable packages
         run: |
           mkdir -p dist-pack
-          pnpm --filter @multiversal-ventures/lux-core pack --pack-destination ../../dist-pack
-          pnpm --filter @multiversal-ventures/lux-react pack --pack-destination ../../dist-pack
-          pnpm --filter @multiversal-ventures/lux-themes pack --pack-destination ../../dist-pack
+          pnpm --filter @multiversal-ventures/lux-core pack --pack-destination ./dist-pack
+          pnpm --filter @multiversal-ventures/lux-react pack --pack-destination ./dist-pack
+          pnpm --filter @multiversal-ventures/lux-themes pack --pack-destination ./dist-pack
           echo "## Packed artifacts" >> "$GITHUB_STEP_SUMMARY"
           ls -lh dist-pack/*.tgz | awk '{print "- `" $NF "` — " $5}' >> "$GITHUB_STEP_SUMMARY"
 

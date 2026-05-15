@@ -91,13 +91,19 @@ jobs:
 
       - name: Publish @multiversal-ventures/lux-core to GitHub Packages
         working-directory: packages/core
-        run: npm publish --access restricted
+        run: |
+          npm publish --access restricted || \
+          npm view "@multiversal-ventures/lux-core@$(node -p "require('./package.json').version")" \
+            --registry https://npm.pkg.github.com > /dev/null 2>&1
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Publish @multiversal-ventures/lux-react to GitHub Packages
         working-directory: packages/react
-        run: npm publish --access restricted
+        run: |
+          npm publish --access restricted || \
+          npm view "@multiversal-ventures/lux-react@$(node -p "require('./package.json').version")" \
+            --registry https://npm.pkg.github.com > /dev/null 2>&1
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 

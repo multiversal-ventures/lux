@@ -1,7 +1,7 @@
 import type {
 	ExtractionResponse,
 	ExtractionSourceResponse,
-} from "@fenero-ai/lux-core";
+} from "@multiversal-ventures/lux-core";
 import styles from "./ExtractionTable.module.css";
 
 export interface ExtractionTableProps {

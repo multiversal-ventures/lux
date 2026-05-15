@@ -4,12 +4,12 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, type Mock } from "vitest";
 import { SessionPage } from "./SessionPage";
 
-vi.mock("@fenero-ai/lux-react", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@fenero-ai/lux-react")>();
+vi.mock("@multiversal-ventures/lux-react", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@multiversal-ventures/lux-react")>();
 	return { ...actual, usePortalSession: vi.fn() };
 });
-import { usePortalSession } from "@fenero-ai/lux-react";
-import type { PortalClientError } from "@fenero-ai/lux-core";
+import { usePortalSession } from "@multiversal-ventures/lux-react";
+import type { PortalClientError } from "@multiversal-ventures/lux-core";
 const mockUsePortalSession = usePortalSession as Mock;
 
 const SESSION_FIXTURE = {

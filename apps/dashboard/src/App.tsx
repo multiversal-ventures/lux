@@ -1,4 +1,4 @@
-import { SessionProvider } from "@fenero-ai/lux-react";
+import { SessionProvider } from "@multiversal-ventures/lux-react";
 import { IntegrationGuide } from "./IntegrationGuide.js";
 
 export function App() {

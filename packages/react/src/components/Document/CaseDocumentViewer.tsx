@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   ExtractionResponse,
   VeritasCaseDocument,
-} from "@fenero-ai/lux-core";
+} from "@multiversal-ventures/lux-core";
 import { useReferenceFocus } from "../Reference/ReferenceFocusProvider.js";
 import { CasePageImage } from "./CasePageImage.js";
 import { useCaseExtractions } from "./useCaseExtractions.js";

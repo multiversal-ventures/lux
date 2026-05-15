@@ -2,7 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createContext, useContext, type ReactNode } from "react";
 import { describe, it, expect, vi } from "vitest";
-import type { OperatorClient } from "@fenero-ai/lux-core";
+import type { OperatorClient } from "@multiversal-ventures/lux-core";
 import { OperatorProvider } from "../providers/OperatorProvider.js";
 import {
 	useCase,
@@ -149,7 +149,7 @@ describe("query hooks", () => {
 // ---------------------------------------------------------------------------
 
 describe("useOperatorQuery", () => {
-	type FakeResult = import("@fenero-ai/lux-core").Result<unknown[]>;
+	type FakeResult = import("@multiversal-ventures/lux-core").Result<unknown[]>;
 
 	it("returns data when Result.data is set", async () => {
 		const fetcher = vi.fn().mockResolvedValue({ data: ["item-1"], error: null } as FakeResult);

@@ -1,5 +1,5 @@
-import { getDefaultClient, isLuxInitialized } from "@fenero-ai/lux-core";
-import { useSession } from "@fenero-ai/lux-react";
+import { getDefaultClient, isLuxInitialized } from "@multiversal-ventures/lux-core";
+import { useSession } from "@multiversal-ventures/lux-react";
 import { type CSSProperties, useState } from "react";
 import { CodeBlock } from "./CodeBlock.js";
 import {
@@ -17,7 +17,7 @@ import {
 import { LUX_SAMPLE_PKG_VERSIONS } from "./sdkVersions.js";
 
 /**
- * Interactive integration guide for `@fenero-ai/lux-core` and `@fenero-ai/lux-react`.
+ * Interactive integration guide for `@multiversal-ventures/lux-core` and `@multiversal-ventures/lux-react`.
  */
 export function IntegrationGuide() {
 	return (

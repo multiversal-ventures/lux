@@ -32,11 +32,23 @@ export type {
 	OperatorClientConfig,
 	OperatorClientError,
 	Result,
+	PrepareUploadFile,
+	UploadUrlInfo,
+	PrepareUploadResponse,
+	StartCaseRequest,
+	StartCaseResponse,
+	StartAddFilesFileInfo,
+	StartAddFilesResponse,
+	DirectUploadPhase,
+	DirectUploadProgress,
+	DirectUploadOptions,
+	AddFilesProgress,
 } from "./operator-types.js";
 import type { OperatorClientConfig, Result } from "./operator-types.js";
 
 import { createSpecMethods } from "./operator-spec.js";
 import { createCaseMethods } from "./operator-cases.js";
+import { createUploadMethods } from "./operator-uploads.js";
 
 export function createOperatorClient(config: OperatorClientConfig) {
 	const base = config.baseUrl ?? "";
@@ -58,6 +70,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 	return {
 		...createSpecMethods(base, authHeaders, request),
 		...createCaseMethods(base, authHeaders, request),
+		...createUploadMethods(base, authHeaders, request),
 	};
 }
 

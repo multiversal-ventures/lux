@@ -16,6 +16,10 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.13"
+  },
   "peerDependencies": {
     "@fenero/lux-core": "workspace:*",
     "@tanstack/react-query": "^5.0.0",

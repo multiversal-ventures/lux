@@ -27,10 +27,10 @@ importers:
 
   apps/dashboard:
     dependencies:
-      '@fenero/lux-core':
+      '@fenero-ai/lux-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@fenero/lux-react':
+      '@fenero-ai/lux-react':
         specifier: workspace:*
         version: link:../../packages/react
       react:
@@ -58,13 +58,13 @@ importers:
 
   apps/portal:
     dependencies:
-      '@fenero/lux-core':
+      '@fenero-ai/lux-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@fenero/lux-react':
+      '@fenero-ai/lux-react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@fenero/lux-themes':
+      '@fenero-ai/lux-themes':
         specifier: workspace:*
         version: link:../../packages/themes
       react:
@@ -116,7 +116,7 @@ importers:
 
   apps/storybook:
     dependencies:
-      '@fenero/lux-themes':
+      '@fenero-ai/lux-themes':
         specifier: workspace:*
         version: link:../../packages/themes
       react:
@@ -172,10 +172,10 @@ importers:
         specifier: ^5.0.13
         version: 5.0.13(@types/react@19.2.14)(react@19.2.5)
     devDependencies:
-      '@fenero/lux-core':
+      '@fenero-ai/lux-core':
         specifier: workspace:*
         version: link:../core
-      '@fenero/lux-themes':
+      '@fenero-ai/lux-themes':
         specifier: workspace:*
         version: link:../themes
       '@tanstack/react-query':

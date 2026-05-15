@@ -11,9 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fenero/lux-core": "workspace:*",
-    "@fenero/lux-react": "workspace:*",
-    "@fenero/lux-themes": "workspace:*",
+    "@fenero-ai/lux-core": "workspace:*",
+    "@fenero-ai/lux-react": "workspace:*",
+    "@fenero-ai/lux-themes": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.11.0"

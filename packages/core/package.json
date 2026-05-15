@@ -1,5 +1,5 @@
 {
-  "name": "@fenero/lux-core",
+  "name": "@fenero-ai/lux-core",
   "version": "0.1.0",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",

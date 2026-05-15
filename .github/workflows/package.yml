@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: write
+  packages: write   # required to publish to GitHub Packages
 
 jobs:
   build-test:
@@ -66,9 +67,44 @@ jobs:
           path: dist-pack/*.tgz
           retention-days: 90
 
-  release:
+  publish:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          # Configure npm to use GitHub Packages for the @fenero scope
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@fenero"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Resolve workspace dependencies for publishing
+        run: node scripts/resolve-workspace-deps.mjs
+
+      - name: Publish @fenero/lux-core to GitHub Packages
+        working-directory: packages/core
+        run: npm publish --access restricted
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @fenero/lux-react to GitHub Packages
+        working-directory: packages/react
+        run: npm publish --access restricted
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

@@ -1,0 +1,172 @@
+import type { components } from "./generated.js";
+export type CaseResponse = components["schemas"]["CaseResponse"];
+export type SpecAuditResponse = components["schemas"]["SpecAuditResponse"];
+export type CalculationStepResponse = components["schemas"]["CalculationStepResponse"];
+export type SpecResponse = components["schemas"]["SpecResponse"];
+export type DocumentResponse = components["schemas"]["DocumentResponse"];
+export type ExtractionResponse = components["schemas"]["ExtractionResponse"];
+export type ExtractionSourceResponse = components["schemas"]["ExtractionSourceResponse"];
+export type BboxResponse = components["schemas"]["BboxResponse"];
+export interface BankingAccount {
+    account_id: string | null;
+    account_holder_name: string | null;
+    currency: string | null;
+    gross_deposits_aggressive: number;
+    gross_deposits_conservative: number;
+    average_monthly_deposits: number;
+    months_covered: number | null;
+    stream_count: number;
+    payroll_stream_confidence: number | null;
+    balance_reconciled: boolean | null;
+    coverage_passed: boolean | null;
+    summary_matched: boolean | null;
+    header_fallback: boolean | null;
+    source_doc_ids: string[];
+}
+export interface BankingBorrowerRollup {
+    borrower_id: string | null;
+    borrower_name: string | null;
+    account_count: number;
+    source_account_ids: string[];
+    gross_deposits_aggressive: number;
+    gross_deposits_conservative: number;
+    average_monthly_deposits: number;
+    months_covered: number | null;
+    stream_count: number;
+    payroll_stream_confidence: number | null;
+}
+export interface BankingResponse {
+    accounts: BankingAccount[];
+    borrowers: BankingBorrowerRollup[];
+    total_gross_deposits: number;
+    total_average_monthly: number;
+}
+export interface ClassifiedTransaction {
+    transaction_id: string;
+    account_id: string;
+    transaction_date: string;
+    description: string;
+    credit_debit: "CR" | "DR";
+    amount: number;
+    classification: string | null;
+    is_transfer: boolean;
+    is_large_deposit: boolean;
+    source_file_id: string | null;
+    source_page_number: number | null;
+    running_balance: number | null;
+}
+export interface ClassifiedTransactionsResponse {
+    case_id: string;
+    transactions: ClassifiedTransaction[];
+    total_count: number;
+}
+export interface TransactionRow {
+    row_index: number | null;
+    data: Record<string, unknown>;
+}
+export interface TransactionRegion {
+    region_id: string;
+    page_number: number | null;
+    parquet_path: string;
+    columns: string[];
+    row_count: number;
+    rows: TransactionRow[];
+}
+export interface TransactionsResponse {
+    doc_id: string;
+    source_filename: string | null;
+    regions: TransactionRegion[];
+    total_rows: number;
+}
+/** Known SSE event types emitted by Veritas during case processing. */
+export type CaseEventType = "intake.file.processed" | "extraction.completed" | "banking.completed" | "qualify.completed" | "qualify.failed" | "case.system.completed" | (string & Record<never, never>);
+export interface CaseEvent {
+    event_id: number;
+    event_type: CaseEventType;
+    event_data: Record<string, unknown> | null;
+    created_at: string | null;
+}
+export interface GenerateSpecResult {
+    yaml: string;
+    name: string;
+    domain: string;
+    version: string;
+}
+export interface PrepareUploadFile {
+    filename: string;
+    size: number;
+}
+export interface UploadUrlInfo {
+    file_id: string;
+    filename: string;
+    gcs_path: string;
+    upload_url: string;
+    content_type: string;
+}
+export interface PrepareUploadResponse {
+    case_id: string;
+    upload_urls: UploadUrlInfo[];
+    expires_in_seconds: number;
+}
+export interface StartCaseRequest {
+    files: UploadUrlInfo[];
+    include_chunks?: boolean;
+    include_page_images?: boolean;
+    max_concurrency?: number;
+    loan_product_ids?: string[];
+    calculation_track?: string;
+}
+export interface StartCaseResponse {
+    case_id: string;
+    status: string;
+    workflow_id?: string;
+    file_count?: number;
+}
+export interface StartAddFilesFileInfo {
+    file_id: string;
+    gcs_path: string;
+    filename?: string;
+}
+export interface StartAddFilesResponse {
+    case_id: string;
+    status: string;
+    workflow_id: string;
+}
+export type DirectUploadPhase = "preparing" | "uploading" | "starting";
+export interface DirectUploadProgress {
+    phase: DirectUploadPhase;
+    totalFiles: number;
+    completedFiles: number;
+    currentFileProgress: number;
+    currentFileName?: string;
+}
+export interface DirectUploadOptions {
+    onProgress?: (progress: DirectUploadProgress) => void;
+    loanProductIds?: string[];
+    calculationTrack?: string;
+}
+export interface AddFilesProgress {
+    phase: "idle" | "preparing" | "uploading" | "starting" | "complete" | "error";
+    totalFiles: number;
+    completedFiles: number;
+    currentFileProgress: number;
+    currentFileName?: string;
+}
+export interface OperatorClientConfig {
+    /** Base URL of the Veritas API. Empty string = same origin (Vite proxy). */
+    baseUrl?: string;
+    /** Bearer token from `veritas tenant issue-credential`. */
+    bearerToken: string;
+}
+export interface OperatorClientError {
+    status: number;
+    message: string;
+}
+export type Result<T> = {
+    data: T;
+    error: null;
+} | {
+    data: null;
+    error: OperatorClientError;
+};
+//# sourceMappingURL=operator-types.d.ts.map

@@ -1,6 +1,11 @@
 {
-  "name": "@fenero/lux-react",
-  "version": "0.1.0",
+  "name": "@multiversal-ventures/lux-react",
+  "version": "0.1.2",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "files": ["dist"],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,14 +26,14 @@
     "zustand": "^5.0.13"
   },
   "peerDependencies": {
-    "@fenero/lux-core": "workspace:*",
+    "@multiversal-ventures/lux-core": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@fenero/lux-core": "workspace:*",
-    "@fenero/lux-themes": "workspace:*",
+    "@multiversal-ventures/lux-core": "workspace:*",
+    "@multiversal-ventures/lux-themes": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.4.0",

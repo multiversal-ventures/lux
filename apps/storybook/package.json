@@ -1,5 +1,5 @@
 {
-  "name": "@fenero/storybook",
+  "name": "@multiversal-ventures/storybook",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "echo 'storybook typecheck placeholder'"
   },
   "dependencies": {
-    "@fenero/lux-themes": "workspace:*",
+    "@multiversal-ventures/lux-themes": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

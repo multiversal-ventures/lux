@@ -1,5 +1,5 @@
 import { useCallback, type CSSProperties, type ReactNode } from "react";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 /**
  * `<DynamicUserInputsForm>` — schema-driven operator overrides form.

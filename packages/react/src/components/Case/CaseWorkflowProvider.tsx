@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { CaseEvent } from "@fenero/lux-core";
+import type { CaseEvent } from "@multiversal-ventures/lux-core";
 import {
   createCaseWorkflowStore,
   type CaseWorkflowStore,

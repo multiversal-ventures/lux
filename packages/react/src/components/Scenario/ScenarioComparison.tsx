@@ -1,5 +1,5 @@
 import { useCaseScenarioContext } from "./ScenarioProvider.js";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 type ProductSpecGroup = components["schemas"]["ProductSpecGroup"];
 

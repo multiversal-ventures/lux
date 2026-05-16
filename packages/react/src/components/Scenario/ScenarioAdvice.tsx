@@ -1,6 +1,6 @@
 import { useScenarioContext } from "./ScenarioProvider.js";
 import { useScenarioAdvice } from "./useScenarioAdvice.js";
-import type { VeritasScenarioAdviceItem } from "@fenero/lux-core";
+import type { VeritasScenarioAdviceItem } from "@multiversal-ventures/lux-core";
 
 const SEVERITY_ICONS: Record<string, string> = {
   action_required: "🔴",

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
-import { getDefaultClient } from "@fenero/lux-core";
+import { getDefaultClient } from "@multiversal-ventures/lux-core";
 import { caseScenariosQueryKey } from "../Scenario/ScenarioProvider.js";
 
 export interface CreateScenarioWithRefinementInput {

@@ -1,4 +1,4 @@
-import type { CaseResponse } from "@fenero/lux-core";
+import type { CaseResponse } from "@multiversal-ventures/lux-core";
 import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useCases(opts?: { specId?: string }) {

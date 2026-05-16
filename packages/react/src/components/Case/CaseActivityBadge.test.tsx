@@ -6,8 +6,8 @@ import { CaseWorkflowProvider } from "./CaseWorkflowProvider.js";
 import { CaseActivityBadge } from "./CaseActivityBadge.js";
 import { useCaseUploadFlow } from "./useCaseUploadFlow.js";
 
-vi.mock("@fenero/lux-core", async () => {
-  const actual = await vi.importActual<typeof import("@fenero/lux-core")>("@fenero/lux-core");
+vi.mock("@multiversal-ventures/lux-core", async () => {
+  const actual = await vi.importActual<typeof import("@multiversal-ventures/lux-core")>("@multiversal-ventures/lux-core");
   return {
     ...actual,
     getDefaultClient: () => mockClient,

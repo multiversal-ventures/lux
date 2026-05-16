@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryOptions, type UseQueryResult, type QueryKey } from "@tanstack/react-query";
-import type { OperatorClient, Result } from "@fenero/lux-core";
+import type { OperatorClient, Result } from "@multiversal-ventures/lux-core";
 import { useOperatorClient } from "../providers/OperatorProvider.js";
 
 /**

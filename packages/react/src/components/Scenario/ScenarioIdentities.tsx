@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useScenarioContext } from "./ScenarioProvider.js";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 
 type IdentityInfo = components["schemas"]["IdentityInfo"];
 type RefinementResponse = components["schemas"]["RefinementResponse"];

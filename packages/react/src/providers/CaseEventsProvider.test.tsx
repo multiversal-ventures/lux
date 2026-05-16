@@ -1,7 +1,7 @@
 import { render, renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { CaseEvent, OperatorClient } from "@fenero/lux-core";
+import type { CaseEvent, OperatorClient } from "@multiversal-ventures/lux-core";
 import { OperatorProvider } from "./OperatorProvider.js";
 import { CaseEventsProvider, useCaseEvents } from "./CaseEventsProvider.js";
 

@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { components } from "@fenero/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 import { useMaybeScenarioContext } from "./ScenarioProvider.js";
 import { formatRefinementDisplayName } from "./scenarioDisplay.js";
 

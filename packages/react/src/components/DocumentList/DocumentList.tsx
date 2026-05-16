@@ -1,4 +1,4 @@
-import type { DocumentResponse } from "@fenero/lux-core";
+import type { DocumentResponse } from "@multiversal-ventures/lux-core";
 import styles from "./DocumentList.module.css";
 
 export interface DocumentListProps {

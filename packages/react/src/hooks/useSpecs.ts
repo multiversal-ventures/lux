@@ -1,4 +1,4 @@
-import type { SpecResponse } from "@fenero/lux-core";
+import type { SpecResponse } from "@multiversal-ventures/lux-core";
 import { useOperatorQuery } from "./_useOperatorQuery.js";
 
 export function useSpecs(opts?: { domain?: string }) {

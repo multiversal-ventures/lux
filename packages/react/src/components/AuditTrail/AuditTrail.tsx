@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CaseEvent, SpecAuditResponse } from "@fenero/lux-core";
+import type { CaseEvent, SpecAuditResponse } from "@multiversal-ventures/lux-core";
 import styles from "./AuditTrail.module.css";
 
 export interface AuditTrailProps {

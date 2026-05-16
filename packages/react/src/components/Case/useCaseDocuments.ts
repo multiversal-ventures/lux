@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getDefaultClient, type VeritasCaseDocument, type VeritasCaseFile } from "@fenero/lux-core";
+import { getDefaultClient, type VeritasCaseDocument, type VeritasCaseFile } from "@multiversal-ventures/lux-core";
 
 /**
  * Normalized row used by every doc-picker UI in Lux + host apps.

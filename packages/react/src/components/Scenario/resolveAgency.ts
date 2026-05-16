@@ -1,4 +1,4 @@
-import type { components } from "@fenero/lux-core";
+import type { components } from "@multiversal-ventures/lux-core";
 import { KNOWN_AGENCIES } from "./ScenarioResults.js";
 
 type ProductSpecGroup = components["schemas"]["ProductSpecGroup"];

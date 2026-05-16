@@ -3,7 +3,7 @@ import type {
   VeritasSummarySection,
   VeritasSummaryItem,
   VeritasSummaryEvalResponse,
-} from "@fenero/lux-core";
+} from "@multiversal-ventures/lux-core";
 
 const SEVERITY_BORDER: Record<string, string> = {
   default: "#e2e8f0",

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useOperatorClient } from "../../providers/OperatorProvider.js";
-import type { VeritasScenarioAdviceItem } from "@fenero/lux-core";
+import type { VeritasScenarioAdviceItem } from "@multiversal-ventures/lux-core";
 
 export interface UseScenarioAdviceReturn {
   items: VeritasScenarioAdviceItem[];

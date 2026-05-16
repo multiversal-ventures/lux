@@ -1,4 +1,4 @@
-import { initLux } from "@fenero/lux-core";
+import { initLux } from "@multiversal-ventures/lux-core";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";

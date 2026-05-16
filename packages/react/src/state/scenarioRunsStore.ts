@@ -98,7 +98,7 @@ export function createScenarioRunsStore(): ScenarioRunsStore {
 /**
  * Module-level singleton so unrelated components on the same page can
  * observe the same pulse without prop-drilling. Mirrors the ergonomic
- * choice we made for ``getDefaultClient`` in ``@fenero/lux-core``: one
+ * choice we made for ``getDefaultClient`` in ``@multiversal-ventures/lux-core``: one
  * shared instance for the common case, ``createScenarioRunsStore`` for
  * tests / multi-tenant harnesses that want isolation.
  */

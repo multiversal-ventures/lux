@@ -5,7 +5,7 @@ import { ExpiredPage } from "./ExpiredPage";
 describe("ExpiredPage", () => {
 	it("explains that the link expired", () => {
 		render(<ExpiredPage />);
-		expect(screen.getByRole("heading", { name: /link expired/i })).toBeDefined();
-		expect(screen.getByText(/contact your loan officer/i)).toBeDefined();
+		expect(screen.getByRole("heading", { name: /no longer active/i })).toBeDefined();
+		expect(screen.getByText(/fresh link/i)).toBeDefined();
 	});
 });

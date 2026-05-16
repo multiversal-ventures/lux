@@ -4,12 +4,12 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, type Mock } from "vitest";
 import { SessionPage } from "./SessionPage";
 
-vi.mock("@fenero/lux-react", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@fenero/lux-react")>();
+vi.mock("@multiversal-ventures/lux-react", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@multiversal-ventures/lux-react")>();
 	return { ...actual, usePortalSession: vi.fn() };
 });
-import { usePortalSession } from "@fenero/lux-react";
-import type { PortalClientError } from "@fenero/lux-core";
+import { usePortalSession } from "@multiversal-ventures/lux-react";
+import type { PortalClientError } from "@multiversal-ventures/lux-core";
 const mockUsePortalSession = usePortalSession as Mock;
 
 const SESSION_FIXTURE = {
@@ -74,7 +74,7 @@ describe("SessionPage", () => {
 	it("shows consent banner when doc_sharing is false", () => {
 		mockUsePortalSession.mockReturnValue({ session: SESSION_FIXTURE, loading: false, error: null, submitIntent: vi.fn() });
 		renderPage();
-		expect(screen.getByText("Grant permission")).toBeDefined();
+		expect(screen.getByText(/I agree/i)).toBeDefined();
 	});
 
 	it("calls submitIntent when grant permission is clicked", async () => {
@@ -82,7 +82,7 @@ describe("SessionPage", () => {
 		mockUsePortalSession.mockReturnValue({ session: SESSION_FIXTURE, loading: false, error: null, submitIntent });
 		renderPage();
 
-		await userEvent.click(screen.getByText("Grant permission"));
+		await userEvent.click(screen.getByText(/I agree/i));
 		await waitFor(() => expect(submitIntent).toHaveBeenCalledOnce());
 	});
 
@@ -90,6 +90,6 @@ describe("SessionPage", () => {
 		const emptySession = { ...SESSION_FIXTURE, checklist: [] };
 		mockUsePortalSession.mockReturnValue({ session: emptySession, loading: false, error: null, submitIntent: vi.fn() });
 		renderPage();
-		expect(screen.getByText("All set!")).toBeDefined();
+		expect(screen.getByText(/all caught up/i)).toBeDefined();
 	});
 });

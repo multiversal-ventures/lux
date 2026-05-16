@@ -1,5 +1,5 @@
 {
-  "name": "@fenero/portal",
+  "name": "@multiversal-ventures/portal",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,9 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fenero/lux-core": "workspace:*",
-    "@fenero/lux-react": "workspace:*",
-    "@fenero/lux-themes": "workspace:*",
+    "@multiversal-ventures/lux-core": "workspace:*",
+    "@multiversal-ventures/lux-react": "workspace:*",
+    "@multiversal-ventures/lux-themes": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.11.0"

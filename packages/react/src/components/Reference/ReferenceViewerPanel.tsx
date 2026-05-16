@@ -86,7 +86,7 @@ const detailRowStyle: CSSProperties = {
  * Composable reference viewer. Subscribes to {@link useReferenceFocus}
  * — when a host or `ScenarioRefs` calls `setFocus(...)`, this panel
  * fetches the page image via the singleton `VeritasClient`
- * (`@fenero/lux-core.getDefaultClient()`) and renders it with bbox
+ * (`@multiversal-ventures/lux-core.getDefaultClient()`) and renders it with bbox
  * overlays for the focused source.
  *
  * Designed to be dropped beside or inside any layout — it owns no

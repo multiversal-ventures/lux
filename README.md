@@ -10,7 +10,7 @@ through Lux — a typed API client, an auth-provider abstraction, a session
 primitive, and (today) a thin React glue layer.
 
 Lux is product-agnostic. Customer apps (e.g. Gunnr's LO dashboard, the
-borrower portal) live in their own repos and consume `@fenero/lux-*` as
+borrower portal) live in their own repos and consume `@multiversal-ventures/lux-*` as
 versioned packages.
 
 ## Principles
@@ -25,23 +25,23 @@ versioned packages.
 - Theming is CSS custom properties, not component forks or prop overrides.
 - If Veritas is down, Lux shows a status page. It does not cache or guess.
 - The reference portal (`apps/portal`) must be buildable entirely from published packages.
-  If it reaches around `@fenero/lux-react`, the SDK has a gap.
+  If it reaches around `@multiversal-ventures/lux-react`, the SDK has a gap.
 
 ## Architecture
 
 ```
 Veritas (backend)              Lux (frontend SDK)
 ─────────────────              ──────────────────
-Composable APIs        →       @fenero/lux-core     (HTTP client, auth, session, SSE, OpenAPI types)
-SDUI display_hints     →       @fenero/lux-react    (SessionProvider + hooks; component registry planned)
-Design tokens          →       @fenero/lux-themes   (CSS custom properties)
+Composable APIs        →       @multiversal-ventures/lux-core     (HTTP client, auth, session, SSE, OpenAPI types)
+SDUI display_hints     →       @multiversal-ventures/lux-react    (SessionProvider + hooks; component registry planned)
+Design tokens          →       @multiversal-ventures/lux-themes   (CSS custom properties)
 
                                apps/dashboard       (minimal SDK sample — not a product)
                                apps/portal          (reference borrower portal)
 
 Customer apps (live elsewhere)
 ──────────────────────────────
-gunnr/ui                       LO dashboard — consumes @fenero/lux-* via npm/file:
+gunnr/ui                       LO dashboard — consumes @multiversal-ventures/lux-* via npm/file:
 ```
 
 Lux is a **pure client** of the Veritas API. It has zero server-side
@@ -60,7 +60,7 @@ The dependency is one-directional: Lux depends on Veritas, never the reverse.
 ```
 lux/
 ├── packages/
-│   ├── core/                  @fenero/lux-core — Veritas SDK primitives
+│   ├── core/                  @multiversal-ventures/lux-core — Veritas SDK primitives
 │   │   └── src/
 │   │       ├── client.ts        VeritasClient (Bearer + Veritas-Version)
 │   │       ├── auth.ts          AuthProvider + PortalTokenAuthProvider
@@ -70,7 +70,7 @@ lux/
 │   │       ├── generated.ts     Veritas OpenAPI types (`pnpm codegen`)
 │   │       └── index.ts
 │   │
-│   ├── react/                 @fenero/lux-react — React glue (no feature widgets yet)
+│   ├── react/                 @multiversal-ventures/lux-react — React glue (no feature widgets yet)
 │   │   └── src/
 │   │       ├── SessionProvider.tsx
 │   │       ├── useSession.ts / useCase.ts / useEvents.ts
@@ -83,7 +83,7 @@ lux/
 │       └── tokens.ts
 │
 ├── apps/
-│   ├── dashboard/             Minimal SDK sample (`@fenero/lux-sample-dashboard`)
+│   ├── dashboard/             Minimal SDK sample (`@multiversal-ventures/lux-sample-dashboard`)
 │   └── portal/                Reference borrower portal (Vite)
 │
 ├── dist-pack/                 Local tarballs for file: linking into customer repos
@@ -101,16 +101,16 @@ the SDK primitives below.
 
 | Package | What's in it | Who uses it |
 |---------|--------------|-------------|
-| `@fenero/lux-core` | `VeritasClient`, `initLux`, `VeritasSession`, `CaseSseTransport`, OpenAPI types | Everyone — React, Vue, vanilla JS, agents |
-| `@fenero/lux-react` | `SessionProvider`, `useSession` / `useCase` / `useEvents` | React frontends |
-| `@fenero/lux-themes` | CSS custom properties, design tokens, global styles | Anyone who wants Fenero styling |
+| `@multiversal-ventures/lux-core` | `VeritasClient`, `initLux`, `VeritasSession`, `CaseSseTransport`, OpenAPI types | Everyone — React, Vue, vanilla JS, agents |
+| `@multiversal-ventures/lux-react` | `SessionProvider`, `useSession` / `useCase` / `useEvents` | React frontends |
+| `@multiversal-ventures/lux-themes` | CSS custom properties, design tokens, global styles | Anyone who wants Fenero styling |
 
 ## How It Works
 
 ### 1. Bootstrap
 
 ```ts
-import { initLux, type AuthProvider } from '@fenero/lux-core'
+import { initLux, type AuthProvider } from '@multiversal-ventures/lux-core'
 
 const auth: AuthProvider = {
   async getToken(forceRefresh) {
@@ -135,7 +135,7 @@ Static portal tokens use `PortalTokenAuthProvider` with the same
 ### 2. React shell
 
 ```tsx
-import { SessionProvider, useSession } from '@fenero/lux-react'
+import { SessionProvider, useSession } from '@multiversal-ventures/lux-react'
 
 function App() {
   return (
@@ -152,7 +152,7 @@ End-user sign-in UI and token refresh live in your app; the SDK only needs
 ### 3. HTTP calls
 
 ```ts
-import { getDefaultClient } from '@fenero/lux-core'
+import { getDefaultClient } from '@multiversal-ventures/lux-core'
 
 const data = await getDefaultClient().requestJson<Foo>('/api/v1/some-endpoint')
 ```
@@ -165,22 +165,26 @@ methods.
 
 ```bash
 pnpm install
-pnpm --filter @fenero/lux-core build
-pnpm --filter @fenero/lux-react build
-pnpm --filter @fenero/lux-sample-dashboard dev   # http://localhost:3332
+pnpm --filter @multiversal-ventures/lux-core build
+pnpm --filter @multiversal-ventures/lux-react build
+pnpm --filter @multiversal-ventures/lux-sample-dashboard dev   # http://localhost:3332
 ```
 
 ## Linking into a customer repo (local dev)
 
 ```bash
-# In lux/
-pnpm --filter @fenero/lux-core pack --pack-destination ./dist-pack
-pnpm --filter @fenero/lux-react pack --pack-destination ./dist-pack
-
+# Local dev — symlink directly (no tarball needed)
 # In customer/ui/package.json
 "dependencies": {
-  "@fenero/lux-core":  "file:../../lux/dist-pack/fenero-lux-core-0.0.1.tgz",
-  "@fenero/lux-react": "file:../../lux/dist-pack/fenero-lux-react-0.0.1.tgz"
+  "@multiversal-ventures/lux-core":  "file:../../lux/packages/core",
+  "@multiversal-ventures/lux-react": "file:../../lux/packages/react"
+}
+
+# Published packages (GitHub Packages — @multiversal-ventures scope)
+# Requires NODE_AUTH_TOKEN with read:packages from multiversal-ventures org
+"dependencies": {
+  "@multiversal-ventures/lux-core":  "^0.1.2",
+  "@multiversal-ventures/lux-react": "^0.1.2"
 }
 ```
 
@@ -189,8 +193,8 @@ pnpm --filter @fenero/lux-react pack --pack-destination ./dist-pack
 
 ## Sample Dashboard (`apps/dashboard`)
 
-A minimal app that demonstrates how to consume `@fenero/lux-core` and
-`@fenero/lux-react` from a customer application. This is **a sample**, not
+A minimal app that demonstrates how to consume `@multiversal-ventures/lux-core` and
+`@multiversal-ventures/lux-react` from a customer application. This is **a sample**, not
 a product. It exists as an **interactive integration guide**: copyable
 snippets for `initLux`, `SessionProvider` / hooks, a thin `getDefaultClient`
 API layer, local `pnpm pack` linking, plus a live session demo and health
@@ -200,9 +204,9 @@ For the real Gunnr product, see the `gunnr` repo.
 
 ```bash
 pnpm install                   # at repo root
-pnpm --filter @fenero/lux-core build
-pnpm --filter @fenero/lux-react build
-pnpm --filter @fenero/lux-sample-dashboard dev
+pnpm --filter @multiversal-ventures/lux-core build
+pnpm --filter @multiversal-ventures/lux-react build
+pnpm --filter @multiversal-ventures/lux-sample-dashboard dev
 ```
 
 Then open `http://localhost:3332`.
@@ -220,7 +224,7 @@ What it does **not** include (on purpose):
 - Routing, Redux, React Query, Tailwind, Mixpanel.
 - Any product-specific endpoints.
 
-## OpenAPI Codegen (`@fenero/lux-core`)
+## OpenAPI Codegen (`@multiversal-ventures/lux-core`)
 
 ### Source
 
@@ -262,7 +266,7 @@ Hand-typed in Lux until the spec includes them (non-exhaustive):
 
 ### SDK-provided upload + portal methods
 
-`@fenero/lux-core` now includes:
+`@multiversal-ventures/lux-core` now includes:
 
 - **Upload orchestration** (`operator-uploads.ts`): `uploadToSignedUrl`,
   `uploadFilesDirectToGCS`, `addFilesToCase`, `uploadFilesToCase` — pure
@@ -283,15 +287,15 @@ The SDK orchestration helpers use `/api/cases/...` (Veritas-native) by default.
 
 - **API contract**: `veritas/docs/superpowers/specs/2026-04-13-composable-api-surface-design.md`
 - **Type generation**: Lux runs `pnpm codegen` against the Veritas OpenAPI spec to generate
-  `@fenero/lux-core` types. When Veritas changes, Lux picks it up on next codegen.
+  `@multiversal-ventures/lux-core` types. When Veritas changes, Lux picks it up on next codegen.
 - **API versioning**: Lux pins to a `Veritas-Version` header. Upgrading means bumping the
   version string and regenerating types.
 
 ## App Shells Design — Portal, Dashboard, Storybook
 
 Three app shells in `lux/apps/` prove the monorepo wiring works. Each app
-is a thin Vite+React shell importing `@fenero/lux-react` and
-`@fenero/lux-themes`. End-user authentication and identity providers are
+is a thin Vite+React shell importing `@multiversal-ventures/lux-react` and
+`@multiversal-ventures/lux-themes`. End-user authentication and identity providers are
 implemented in app code, not in the SDK.
 
 ### `packages/themes/` — Fenero design tokens
@@ -336,14 +340,14 @@ implemented in app code, not in the SDK.
 **Files:**
 
 - `.storybook/main.ts` — points at `../../packages/react/src/**/*.stories.tsx`
-- `.storybook/preview.ts` — imports `@fenero/lux-themes/default.css` and `globals.css`
+- `.storybook/preview.ts` — imports `@multiversal-ventures/lux-themes/default.css` and `globals.css`
 - `src/Welcome.stories.tsx` — placeholder story
 - `package.json`
 
 ### Shared decisions
 
 - **Auth is app-level, not SDK-level.** Tokens reach the HTTP client only via
-  `AuthProvider` on `initLux`. `@fenero/lux-react` has no identity-provider
+  `AuthProvider` on `initLux`. `@multiversal-ventures/lux-react` has no identity-provider
   hooks.
 - **No Redux, Mixpanel, or analytics in the SDK.** Consumer apps add those as
   needed.
@@ -409,7 +413,7 @@ implemented in app code, not in the SDK.
 - No prop drilling beyond 2 levels — use `SessionProvider` context.
 - Components render from server data + `display_hints`, not from local business logic.
 - Accessible by default: semantic HTML, ARIA attributes, keyboard navigation.
-- No CSS-in-JS. Use CSS custom properties from `@fenero/lux-themes`.
+- No CSS-in-JS. Use CSS custom properties from `@multiversal-ventures/lux-themes`.
 - Test with Vitest + Testing Library, not Enzyme or shallow rendering.
 
 ### Documentation
@@ -462,7 +466,7 @@ Shape (see generated `components["schemas"]["UserInputsSchemaResponse"]`):
 
 ```tsx
 import { DynamicUserInputsForm, applyContextChange, type RefinementContext }
-  from '@fenero/lux-react';
+  from '@multiversal-ventures/lux-react';
 
 const [context, setContext] = useState<RefinementContext>(initial);
 
@@ -529,16 +533,16 @@ Next refinement response carries the new field; the form renders it.
 
 ## Version Compatibility
 
-| `@fenero/lux-core` | Veritas API | Notes |
+| `@multiversal-ventures/lux-core` | Veritas API | Notes |
 |---------------------|-------------|-------|
-| 0.1.x | Current | Banking, transactions, portal tokens, upload orchestration, events/SSE, spec management |
+|  0.1.2+ | Current | Banking, transactions, portal tokens, upload orchestration, events/SSE, spec management |
 
 When upgrading Veritas:
 
 1. Export the new OpenAPI spec: `veritas api export --openapi -o ../lux/openapi.json`
 2. Regenerate types: `pnpm codegen` (in Lux repo root)
 3. Run `pnpm typecheck` in `packages/core` — fix any breaking changes
-4. Bump `@fenero/lux-core` version, rebuild, and update consumers
+4. Bump `@multiversal-ventures/lux-core` version, rebuild, and update consumers
 
 When Lux adds new SDK methods for endpoints that don't exist in Veritas yet,
 document the requirement in the method's JSDoc. Consumers calling those methods

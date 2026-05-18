@@ -7,6 +7,7 @@ export { useEvents } from "./useEvents.js";
 export {
 	OperatorProvider,
 	useOperatorClient,
+	useOperatorClientOptional,
 	useBearerToken,
 	useBaseUrl,
 } from "./providers/OperatorProvider.js";

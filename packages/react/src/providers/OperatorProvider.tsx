@@ -14,7 +14,7 @@ interface OperatorContextValue {
 	baseUrl: string;
 }
 
-const OperatorContext = createContext<OperatorContextValue | null>(null);
+export const OperatorContext = createContext<OperatorContextValue | null>(null);
 
 export interface OperatorProviderProps {
 	bearerToken: string;
@@ -85,6 +85,11 @@ function useContextOrThrow<T>(ctx: Context<T | null>, name: string): T {
 
 export function useOperatorClient(): OperatorClient {
 	return useContextOrThrow(OperatorContext, "useOperatorClient").client;
+}
+
+/** Returns null instead of throwing when used outside <OperatorProvider>. */
+export function useOperatorClientOptional(): OperatorClient | null {
+	return useContext(OperatorContext)?.client ?? null;
 }
 
 export function useBearerToken(): string {

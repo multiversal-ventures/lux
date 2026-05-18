@@ -43,6 +43,20 @@ export interface VeritasCaseDocument {
 	tax_year: number | null;
 }
 
+/**
+ * Relationship between two identity clusters.
+ * Manually typed — Veritas OpenAPI doesn't yet export RelationshipInfo.
+ */
+export interface RelationshipInfo {
+	relationship_id: string;
+	source: { id: string; kind: "person" | "entity" };
+	target: { id: string; kind: "person" | "entity" };
+	type: string;
+	ownership_pct: number | null;
+	effective_period: string | null;
+	is_primary: boolean;
+}
+
 /** Entity group returned by GET /api/cases/{case_id}/entities */
 export interface VeritasEntityGroup {
 	entity_group_id: string;
@@ -294,8 +308,44 @@ export class VeritasClient {
 		return this.requestJson<VeritasCaseDocument[]>(`/api/cases/${caseId}/documents`);
 	}
 
+	/**
+	 * Unified identity list: persons, entities, and financial institutions.
+	 * Replaces getCaseEntities which only returned entity groups.
+	 */
+	async getCaseIdentities(
+		caseId: string,
+	): Promise<components["schemas"]["IdentityInfo"][]> {
+		return this.requestJson<components["schemas"]["IdentityInfo"][]>(
+			`/api/cases/${encodeURIComponent(caseId)}/identities`,
+		);
+	}
+
+	async getCaseRelationships(
+		caseId: string,
+	): Promise<RelationshipInfo[]> {
+		return this.requestJson<RelationshipInfo[]>(
+			`/api/cases/${encodeURIComponent(caseId)}/relationships`,
+		);
+	}
+
+	/** @deprecated Use getCaseIdentities instead. Kept one release for backward compat. */
 	async getCaseEntities(caseId: string): Promise<VeritasEntityGroup[]> {
-		return this.requestJson<VeritasEntityGroup[]>(`/api/cases/${caseId}/entities`);
+		const all = await this.getCaseIdentities(caseId);
+		return all
+			.filter((i) => (i as { kind?: string }).kind === "entity")
+			.map((i) => ({
+				entity_group_id: i.id,
+				case_id: caseId,
+				entity_type: i.entity_type ?? "unknown",
+				identifier_type: "",
+				identifier_value: "",
+				label: i.name ?? "",
+				resolution_method: "auto",
+				status: i.status,
+				doc_ids: [],
+				parent_entity_group_id: null,
+				borrower_identity_id: null,
+			}));
 	}
 
 	async getCaseExtractions(caseId: string, docId?: string): Promise<components["schemas"]["ExtractionResponse"][]> {

@@ -8,6 +8,7 @@ export type { CaseDocumentRow, UseCaseDocumentsResult } from "./useCaseDocuments
 
 export {
   useCaseIdentities,
+  caseIdentitiesQueryKey,
   caseIdentitiesEntitiesQueryKey,
   caseIdentitiesScenarioQueryKey,
 } from "./useCaseIdentities.js";
@@ -16,6 +17,8 @@ export type {
   UseCaseIdentitiesOptions,
   UseCaseIdentitiesResult,
 } from "./useCaseIdentities.js";
+
+export { useCaseRelationships, caseRelationshipsQueryKey } from "./useCaseRelationships.js";
 
 export { useUploadCaseFiles } from "./useUploadCaseFiles.js";
 export type {

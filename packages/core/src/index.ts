@@ -58,6 +58,7 @@ export type {
 	VeritasCaseFile,
 	VeritasCaseDocument,
 	VeritasEntityGroup,
+	RelationshipInfo,
 	SampleFileInfo,
 	SampleInfo,
 	SampleListResponse,

@@ -228,6 +228,7 @@ export type {
 export {
   useCaseDocuments,
   useCaseIdentities,
+  useCaseRelationships,
   useUploadCaseFiles,
   useCreateScenarioWithRefinement,
   CaseFileUploadDropzone,
@@ -252,8 +253,10 @@ export {
   normalizeCaseDocument,
   caseDocumentsQueryKey,
   caseFilesQueryKey,
+  caseIdentitiesQueryKey,
   caseIdentitiesEntitiesQueryKey,
   caseIdentitiesScenarioQueryKey,
+  caseRelationshipsQueryKey,
 } from "./components/Case/index.js";
 export type {
   CaseDocumentRow,

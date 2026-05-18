@@ -9,8 +9,44 @@ import {
 	type DependencyList,
 } from "react";
 import type { CaseEvent } from "@multiversal-ventures/lux-core";
+import { getDefaultClient, isLuxInitialized } from "@multiversal-ventures/lux-core";
 import { useQueryClient } from "@tanstack/react-query";
-import { useOperatorClient } from "./OperatorProvider.js";
+import { useOperatorClientOptional } from "./OperatorProvider.js";
+
+/** Minimal interface that CaseEventsProvider needs from a client. */
+interface EventsStreamClient {
+	getEvents(caseId: string): Promise<{ data: CaseEvent[] | null; error: { message: string } | null }>;
+	streamEventsParsed(
+		caseId: string,
+		onEvent: (event: CaseEvent) => void,
+		onError?: (err: { message: string }) => void,
+	): { abort: () => void };
+}
+
+/**
+ * Adapts the VeritasClient singleton (gunnr-style initLux auth) to the
+ * EventsStreamClient interface so CaseEventsProvider works without OperatorProvider.
+ */
+function buildSingletonEventsClient(): EventsStreamClient {
+	return {
+		async getEvents(caseId) {
+			try {
+				const data = await getDefaultClient().getCaseEvents(caseId) as unknown as CaseEvent[];
+				return { data, error: null };
+			} catch (err) {
+				return { data: null, error: { message: err instanceof Error ? err.message : "Network error" } };
+			}
+		},
+		streamEventsParsed(caseId, onEvent, onError) {
+			const abort = getDefaultClient().streamCaseEvents(
+				caseId,
+				(ev) => onEvent(ev as unknown as CaseEvent),
+				onError ? (err) => onError({ message: err.message }) : undefined,
+			);
+			return { abort };
+		},
+	};
+}
 import {
 	applyScenarioRunSideEffects,
 	invalidationMap,
@@ -59,7 +95,19 @@ export function CaseEventsProvider({
 	autoStop = true,
 	children,
 }: CaseEventsProviderProps) {
-	const client = useOperatorClient();
+	const operatorClient = useOperatorClientOptional();
+	// Memoize so the client reference is stable between renders — an unstable
+	// client would cause the useEffect(deps=[caseId, client]) to re-fire on
+	// every render, creating an infinite reconnect loop.
+	const client = useMemo<EventsStreamClient>(() => {
+		if (operatorClient) return operatorClient;
+		if (!isLuxInitialized()) {
+			throw new Error(
+				"CaseEventsProvider requires either <OperatorProvider> or initLux() to be called first.",
+			);
+		}
+		return buildSingletonEventsClient();
+	}, [operatorClient]);
 	const queryClient = useQueryClient();
 
 	const [events, setEvents] = useState<CaseEvent[]>([]);
@@ -153,7 +201,7 @@ export function CaseEventsProvider({
 				setConnecting(false);
 				return;
 			}
-			for (const ev of res.data) ingestEvent.current(ev, false);
+			for (const ev of res.data ?? []) ingestEvent.current(ev, false);
 
 			// Open SSE stream.
 			const { abort } = client.streamEventsParsed(

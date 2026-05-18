@@ -11,3 +11,9 @@ export { useQualification } from "./useQualification.js";
 export type { UseQualificationReturn, QualificationState } from "./useQualification.js";
 export { usePortalSession } from "./usePortalSession.js";
 export type { UsePortalSessionReturn } from "./usePortalSession.js";
+export {
+  useCasePipelinePhase,
+  derivePipelinePhase,
+  PIPELINE_PHASE_PRIORITY,
+} from "./useCasePipelinePhase.js";
+export type { PipelinePhaseResult } from "./useCasePipelinePhase.js";

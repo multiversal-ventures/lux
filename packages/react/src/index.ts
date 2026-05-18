@@ -55,8 +55,11 @@ export {
 	useAuthedBlob,
 	useQualification,
 	usePortalSession,
+	useCasePipelinePhase,
+	derivePipelinePhase,
+	PIPELINE_PHASE_PRIORITY,
 } from "./hooks/index.js";
-export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn } from "./hooks/index.js";
+export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult } from "./hooks/index.js";
 
 // UI components
 export { AuthedImage } from "./components/AuthedImage/index.js";

@@ -40,6 +40,10 @@ export const invalidationMap: Record<
 		["case", caseId],
 	],
 	"case.system.completed": (caseId) => [["case", caseId]],
+	"identity.cluster.changed": (caseId) => [["lux", "case", caseId, "identities"]],
+	"identity.cluster.merged": (caseId) => [["lux", "case", caseId, "identities"]],
+	"identity.cluster.split": (caseId) => [["lux", "case", caseId, "identities"]],
+	"identity.relationship.changed": (caseId) => [["lux", "case", caseId, "relationships"]],
 };
 
 /** No event terminates the SSE stream server-side. Stream closes only on client disconnect.

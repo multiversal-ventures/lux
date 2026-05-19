@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { utils, write } from "xlsx";
+import { utils, write } from "@multiversal-ventures/xlsx";
 
 const generateReport = vi.fn();
 const downloadReport = vi.fn();

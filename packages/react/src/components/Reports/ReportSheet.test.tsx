@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { utils } from "xlsx";
+import { utils } from "@multiversal-ventures/xlsx";
 import { ReportSheet } from "./ReportSheet.js";
 
 describe("ReportSheet", () => {

@@ -3,7 +3,7 @@
  * Ported from gunnr-app/ui/src/lib/excelSheet.ts for @fenero/lux-react ReportSheet.
  */
 
-import { utils } from "xlsx";
+import { utils } from "@multiversal-ventures/xlsx";
 
 /** Map Excel cell style (.s) to CSS string for inline styles */
 export function cellStyleToCss(s: Record<string, unknown> | undefined): string {

@@ -1,4 +1,4 @@
-import type { WorkBook } from "xlsx";
+import type { WorkBook } from "@multiversal-ventures/xlsx";
 
 export interface ReportSheetTabsProps {
 	workbook: WorkBook;

@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties } from "react";
-import type { WorkSheet } from "xlsx";
+import type { WorkSheet } from "@multiversal-ventures/xlsx";
 import { sheetToHtmlWithStyles } from "../../lib/excelSheet.js";
 
 /**

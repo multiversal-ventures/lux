@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { read, type WorkBook } from "xlsx";
+import { read, type WorkBook } from "@multiversal-ventures/xlsx";
 import { getDefaultClient, type components } from "@multiversal-ventures/lux-core";
 
 export type ReportGenerateResponse = components["schemas"]["ReportGenerateResponse"];

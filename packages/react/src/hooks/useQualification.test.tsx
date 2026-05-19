@@ -17,6 +17,7 @@ vi.mock("../providers/OperatorProvider", async (importOriginal) => {
 			if (!fake) throw new Error("test: fake client missing");
 			return fake;
 		},
+		useOperatorClientOptional: () => useContext(FakeClientContext),
 	};
 });
 

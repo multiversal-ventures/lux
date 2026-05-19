@@ -58,6 +58,9 @@ vi.mock("./OperatorProvider", async (importOriginal) => {
 			if (!fake) throw new Error("test: FakeClientInjector missing");
 			return fake;
 		},
+		useOperatorClientOptional: () => {
+			return useContext(FakeClientContext);
+		},
 	};
 });
 

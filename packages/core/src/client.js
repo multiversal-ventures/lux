@@ -472,8 +472,8 @@ export function createPortalClient(config = {}) {
     const base = config.baseUrl ?? "";
     async function fetchSession(token) {
         try {
-            const res = await fetch(`${base}/api/portal/session?token=${encodeURIComponent(token)}`, {
-                headers: { [PORTAL_AUTH_HEADER]: token },
+            const res = await fetch(`${base}/api/portal/session`, {
+                headers: { "X-Portal-Token": token },
             });
             if (!res.ok) {
                 if (res.status === 401) {

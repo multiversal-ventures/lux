@@ -25,9 +25,17 @@ export function ScenarioCalcLogs({ className }: ScenarioCalcLogsProps) {
       ? audit.filter((a) => (a as { manifest_id?: string }).manifest_id === activeRefinementId)
       : audit;
 
-  const filteredAudit = agency
-    ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_"))
-    : [];
+  // Prefer exact spec_names from product_specs when available (covers
+  // Non-QM products like irs_1099_income whose specs start with "form_"
+  // not "non_qm_"). Fall back to agency prefix for QM products.
+  const productSpec = scenario.rendering_hints?.product_specs?.find(
+    (p) => p.product_id === activeProductId,
+  );
+  const filteredAudit = productSpec?.spec_names?.length
+    ? refinementAudit.filter((a) => productSpec.spec_names.includes(a.spec_name ?? ""))
+    : agency
+      ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_"))
+      : [];
 
   if (filteredAudit.length === 0) {
     if (typeof window !== "undefined") {

@@ -51,6 +51,8 @@ export {
 	useSpecDetail,
 	useDocuments,
 	useExtractions,
+	useDocTypeRegions,
+	useCreditReport,
 	useBanking,
 	useAudit,
 	useAuthedBlob,
@@ -81,6 +83,10 @@ export { ExtractionTable } from "./components/ExtractionTable/index.js";
 export type { ExtractionTableProps } from "./components/ExtractionTable/index.js";
 export { BankingSummary } from "./components/BankingSummary/index.js";
 export type { BankingSummaryProps } from "./components/BankingSummary/index.js";
+export { CreditSummary, CreditScoreDisplay, TradeAccountsTable } from "./components/CreditSummary/index.js";
+export type { CreditSummaryProps, CreditScoreDisplayProps, TradeAccountsTableProps } from "./components/CreditSummary/index.js";
+export { DtiPanel } from "./components/DtiPanel/index.js";
+export type { DtiPanelProps } from "./components/DtiPanel/index.js";
 export { Checklist } from "./components/Checklist/index.js";
 export type { ChecklistProps } from "./components/Checklist/index.js";
 export { ConsentBanner } from "./components/ConsentBanner/index.js";

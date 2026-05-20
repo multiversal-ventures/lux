@@ -1,6 +1,7 @@
 import type { AuthProvider } from "./auth.js";
 import type { components } from "./generated.js";
 import { normalizeVeritasStatus, normalizeRefinement, type NormalizedRefinement } from "./normalize.js";
+import type { StructuredExtractionsResponse } from "./extractions.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VeritasClient — typed HTTP client for Veritas / dashboard-style apps
@@ -365,6 +366,18 @@ export class VeritasClient {
 		);
 	}
 
+	async getStructuredExtractions(
+		caseId: string,
+		docType: string,
+		docId?: string,
+	): Promise<StructuredExtractionsResponse> {
+		const params = new URLSearchParams({ doc_type: docType });
+		if (docId) params.set("doc_id", docId);
+		return this.requestJson<StructuredExtractionsResponse>(
+			`/api/cases/${caseId}/extractions/structured?${params.toString()}`,
+		);
+	}
+
 	async uploadCasePdfs(
 		caseId: string,
 		files: File[] | FileList,
@@ -697,6 +710,13 @@ export class VeritasClient {
 			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}`,
 			{ method: "DELETE" },
 		);
+	}
+
+	// ─── Products ────────────────────────────────────────────────────────────────
+
+	async getProducts(includeDisabled = false): Promise<components["schemas"]["ProductResponse"][]> {
+		const qs = includeDisabled ? "?include_disabled=true" : "";
+		return this.requestJson<components["schemas"]["ProductResponse"][]>(`/api/products${qs}`);
 	}
 
 	// ─── Refinements ────────────────────────────────────────────────────────────

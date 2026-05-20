@@ -80,6 +80,12 @@ export interface ScenarioReferenceRow {
    * style / banner in default UIs.
    */
   derived?: boolean;
+  /**
+   * `true` when the source is a case-level aggregation (e.g. unified bank
+   * statement rollup) rather than a specific document page. No file_id or
+   * page_number is available — hosts should link to the analysis view instead.
+   */
+  isAggregate?: boolean;
 }
 
 export interface UseScenarioReferencesResult {
@@ -148,9 +154,17 @@ export function useScenarioReferences(): UseScenarioReferencesResult {
     [activeProductId, scenario.rendering_hints?.product_specs],
   );
 
+  const productSpec = scenario.rendering_hints?.product_specs?.find(
+    (p) => p.product_id === activeProductId,
+  );
   const filteredAudit = useMemo(
-    () => (agency ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_")) : []),
-    [agency, refinementAudit],
+    () =>
+      productSpec?.spec_names?.length
+        ? refinementAudit.filter((a) => productSpec.spec_names.includes(a.spec_name ?? ""))
+        : agency
+          ? refinementAudit.filter((a) => a.spec_name?.startsWith(agency + "_"))
+          : [],
+    [agency, refinementAudit, productSpec],
   );
 
   return useMemo<UseScenarioReferencesResult>(() => {
@@ -167,7 +181,11 @@ export function useScenarioReferences(): UseScenarioReferencesResult {
           const provenance = iv.provenance ?? [];
           for (const p of provenance) {
             totalProvenanceEntries += 1;
-            const rowKey = `${p.canonical_key}::${p.doc_id}`;
+            // Aggregation extractions (unified bank statements) have no
+            // canonical_key — use the input variable name as the field label.
+            const isAggregate = !p.canonical_key;
+            const effectiveKey = p.canonical_key || `aggregate::${iv.name}::${p.doc_id}`;
+            const rowKey = `${effectiveKey}::${p.doc_id}`;
             const existing = collected.get(rowKey);
             if (existing) {
               if (!existing.variables.includes(iv.name)) existing.variables.push(iv.name);
@@ -176,9 +194,14 @@ export function useScenarioReferences(): UseScenarioReferencesResult {
               }
               continue;
             }
-            const dot = p.canonical_key.indexOf(".");
-            const field = dot >= 0 ? p.canonical_key.slice(dot + 1) : p.canonical_key;
-            const docType = p.doc_type ?? (dot >= 0 ? p.canonical_key.slice(0, dot) : "");
+            const dot = (p.canonical_key ?? "").indexOf(".");
+            // For aggregates, use the input variable name as the display field.
+            const field = isAggregate
+              ? iv.name
+              : dot >= 0 ? p.canonical_key.slice(dot + 1) : p.canonical_key;
+            const docType = isAggregate
+              ? "Bank Statement Analysis"
+              : p.doc_type ?? (dot >= 0 ? p.canonical_key.slice(0, dot) : "");
             collected.set(rowKey, {
               rowKey,
               field,
@@ -191,6 +214,7 @@ export function useScenarioReferences(): UseScenarioReferencesResult {
               rawValue: p.raw_value ?? p.value,
               sources: p.sources ?? [],
               specs: spec.spec_name ? [spec.spec_name] : [],
+              isAggregate,
             });
           }
         }

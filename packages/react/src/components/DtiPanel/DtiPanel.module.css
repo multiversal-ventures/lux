@@ -1,0 +1,97 @@
+.root {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4, 16px);
+}
+
+.header {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.title {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-text-primary, #0f172a);
+	margin: 0;
+}
+
+.scenarioLabel {
+	font-size: 12px;
+	color: var(--color-text-muted, #64748b);
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: var(--space-3, 12px);
+}
+
+.card {
+	border: 1px solid var(--color-border, #e2e8f0);
+	border-radius: var(--radius-md, 12px);
+	background: var(--color-surface, #fff);
+	padding: 14px 16px;
+}
+
+.cardLabel {
+	font-size: 10px;
+	color: var(--color-text-muted, #64748b);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.cardValue {
+	font-size: 28px;
+	font-weight: 700;
+	color: var(--color-text-primary, #0f172a);
+	margin-top: 4px;
+	font-variant-numeric: tabular-nums;
+}
+
+.cardValueMuted {
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.cardSub {
+	font-size: 11px;
+	color: var(--color-text-muted, #64748b);
+	margin-top: 2px;
+}
+
+.emptyState {
+	border: 1px solid var(--color-border, #e2e8f0);
+	border-radius: var(--radius-md, 12px);
+	background: var(--color-surface, #fff);
+	padding: 32px 16px;
+	text-align: center;
+}
+
+.emptyText {
+	font-size: 13px;
+	color: var(--color-text-muted, #64748b);
+	margin: 0;
+}
+
+.skeleton {
+	background: var(--color-surface-muted, #f1f5f9);
+	border-radius: var(--radius-sm, 6px);
+	animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
+
+.skeletonCard {
+	border: 1px solid var(--color-border, #e2e8f0);
+	border-radius: var(--radius-md, 12px);
+	background: var(--color-surface, #fff);
+	padding: 14px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}

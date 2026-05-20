@@ -10,6 +10,7 @@ import type {
 	TransactionsResponse,
 } from "./operator-types.js";
 import type { components } from "./generated.js";
+import type { StructuredExtractionsResponse } from "./extractions.js";
 
 // Defined inline — not yet in the OpenAPI spec.
 type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
@@ -235,6 +236,19 @@ export function createCaseMethods(
 		}
 	}
 
+	async function getStructuredExtractions(
+		caseId: string,
+		docType: string,
+	): Promise<Result<StructuredExtractionsResponse>> {
+		try {
+			const url = `${base}/api/cases/${encodeURIComponent(caseId)}/extractions/structured?doc_type=${encodeURIComponent(docType)}`;
+			const res = await fetch(url, { headers: authHeaders() });
+			return await request<StructuredExtractionsResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	async function getBanking(caseId: string): Promise<Result<BankingResponse>> {
 		try {
 			const res = await fetch(`${base}/api/cases/${caseId}/banking`, { headers: authHeaders() });
@@ -307,6 +321,7 @@ export function createCaseMethods(
 		getAudit,
 		listDocuments,
 		listExtractions,
+		getStructuredExtractions,
 		getBanking,
 		listTransactions,
 		pagePngUrl,

@@ -41,7 +41,9 @@ const scenario = {
         product_id: "fannie_mae",
         display_name: "Fannie Mae",
         agency: "fnma",
-        spec_names: ["fnma_w2_wages_income"],
+        // Realistic shape: a product runs many specs. Filter is membership,
+        // not agency-prefix, so non-listed specs (e.g. fhlmc_*) won't bleed in.
+        spec_names: ["fnma_w2_wages_income", "fnma_total_income"],
         total_monthly: 0,
       },
     ],

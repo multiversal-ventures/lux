@@ -2434,6 +2434,13 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /**
+             * Category
+             * Approach category derived from agency: "qm" | "non_qm" | "consumer".
+             * Drives UI grouping without the frontend hardcoding agency strings.
+             * @default ""
+             */
+            category: string;
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {

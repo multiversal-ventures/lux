@@ -286,17 +286,27 @@ export function CreditSummary({ documents, isLoading, onPullCredit }: CreditSumm
 											{report_summary.collections_count ?? 0}
 										</div>
 									</div>
-									<div className={styles.statItem}>
-										<div className={styles.statLabel}>Public Records</div>
-										<div
-											className={`${styles.statValue} ${(report_summary.public_records_count ?? 0) > 0 ? styles.statWarn : ""}`}
-										>
-											{report_summary.public_records_count ?? 0}
-										</div>
+								<div className={styles.statItem}>
+									<div className={styles.statLabel}>Public Records</div>
+									<div
+										className={`${styles.statValue} ${(report_summary.public_records_count ?? 0) > 0 ? styles.statWarn : ""}`}
+									>
+										{report_summary.public_records_count ?? 0}
 									</div>
 								</div>
+								{report_summary.delinquencies_30_60_90 && (
+									<div className={styles.statItem}>
+										<div className={styles.statLabel}>Delinquencies</div>
+										<div
+											className={`${styles.statValue} ${report_summary.delinquencies_30_60_90 !== "0/0/0" ? styles.statWarn : ""}`}
+										>
+											{report_summary.delinquencies_30_60_90}
+										</div>
+									</div>
+								)}
 							</div>
-						)}
+						</div>
+					)}
 
 						{/* Trade accounts for this doc */}
 						{trade_accounts && trade_accounts.length > 0 && (

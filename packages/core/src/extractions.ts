@@ -65,6 +65,7 @@ export interface CreditReportSummary {
 	inquiries_count?: number;
 	collections_count?: number;
 	public_records_count?: number;
+	delinquencies_30_60_90?: string;
 }
 
 export interface CreditReportRegions {

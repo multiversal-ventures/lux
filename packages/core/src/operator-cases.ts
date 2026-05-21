@@ -15,6 +15,7 @@ import type { StructuredExtractionsResponse } from "./extractions.js";
 // Defined inline — not yet in the OpenAPI spec.
 type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
 type CreatePortalTokenResponse = { token: string; expires_at: string };
+type UpdateCaseRequest = { name?: string | null };
 
 /** Stream SSE case events from an authenticated URL, calling onEvent per parsed event. */
 async function consumeSseEventStream(
@@ -121,6 +122,20 @@ export function createCaseMethods(
 	async function getCase(caseId: string): Promise<Result<CaseResponse>> {
 		try {
 			const res = await fetch(`${base}/api/cases/${caseId}`, { headers: authHeaders() });
+			return await request<CaseResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
+	/** Update mutable case metadata (display name). Returns the updated CaseResponse. */
+	async function patchCase(caseId: string, body: UpdateCaseRequest): Promise<Result<CaseResponse>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}`, {
+				method: "PATCH",
+				headers: authHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify(body),
+			});
 			return await request<CaseResponse>(res);
 		} catch {
 			return { data: null, error: { status: 0, message: "Network error" } };
@@ -313,6 +328,7 @@ export function createCaseMethods(
 		createCase,
 		deleteCase,
 		getCase,
+		patchCase,
 		getCaseStatus,
 		qualifyCase,
 		uploadFiles,

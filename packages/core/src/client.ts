@@ -279,11 +279,11 @@ export class VeritasClient {
 		});
 	}
 
-	async createCase(body?: { spec_id?: string | null }): Promise<{ case_id: string; spec_id: string | null }> {
-		return this.requestJson(`/api/cases`, {
-			method: "POST",
-			body: JSON.stringify(body?.spec_id ? { spec_id: body.spec_id } : {}),
-		});
+	async createCase(body?: { spec_id?: string | null; spec_filter?: string[] }): Promise<{ case_id: string; spec_id: string | null }> {
+		const payload: Record<string, unknown> = {};
+		if (body?.spec_id) payload.spec_id = body.spec_id;
+		if (body?.spec_filter && body.spec_filter.length > 0) payload.spec_filter = body.spec_filter;
+		return this.requestJson(`/api/cases`, { method: "POST", body: JSON.stringify(payload) });
 	}
 
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {

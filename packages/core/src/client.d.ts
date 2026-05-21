@@ -119,6 +119,7 @@ export declare class VeritasClient {
     createTenant(name: string): Promise<CreateTenantResponse>;
     createCase(body?: {
         spec_id?: string | null;
+        spec_filter?: string[];
     }): Promise<{
         case_id: string;
         spec_id: string | null;

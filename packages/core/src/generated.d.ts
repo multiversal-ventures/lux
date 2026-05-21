@@ -2434,6 +2434,13 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /**
+             * Groups
+             * Product groups from the YAML: ["qm"], ["non_qm"], ["consumer"], etc.
+             * A product can belong to multiple groups. Drives UI grouping.
+             * @default []
+             */
+            groups: string[];
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {

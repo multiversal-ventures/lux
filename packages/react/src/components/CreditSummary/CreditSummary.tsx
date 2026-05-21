@@ -14,6 +14,57 @@ export interface CreditSummaryProps {
 	onPullCredit?: () => void;
 }
 
+/** Parse "3/1/1" → [{days:30,count:3},{days:60,count:1},{days:90,count:1}] */
+function parseDelinquencies(value: string): { label: string; count: number; color: string }[] {
+	const parts = value.split("/").map(Number);
+	const buckets = [
+		{ label: "30 days", color: "#f59e0b" },
+		{ label: "60 days", color: "#f97316" },
+		{ label: "90+ days", color: "#ef4444" },
+	];
+	return buckets
+		.map((b, i) => ({ ...b, count: parts[i] ?? 0 }))
+		.filter((b) => b.count > 0);
+}
+
+function DelinquencyBadges({ value }: { value: string }) {
+	const buckets = parseDelinquencies(value);
+	if (buckets.length === 0) return null;
+	return (
+		<div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem", alignItems: "center", paddingTop: "0.25rem" }}>
+			<span style={{ fontSize: "0.65rem", fontWeight: 600, textTransform: "uppercase", color: "#94a3b8", letterSpacing: "0.05em" }}>
+				Delinquencies (30/60/90+ days)
+			</span>
+			<div style={{ display: "flex", gap: "0.5rem" }}>
+				{buckets.map((b) => (
+					<span
+						key={b.label}
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							gap: "0.25rem",
+							fontSize: "0.75rem",
+							fontWeight: 600,
+							color: b.color,
+						}}
+					>
+						<span
+							style={{
+								width: "0.5rem",
+								height: "0.5rem",
+								borderRadius: "50%",
+								backgroundColor: b.color,
+								display: "inline-block",
+							}}
+						/>
+						{b.label}: {b.count}
+					</span>
+				))}
+			</div>
+		</div>
+	);
+}
+
 function fmtCurrency(n: number | undefined): string {
 	if (n == null) return "—";
 	return new Intl.NumberFormat("en-US", {
@@ -286,17 +337,20 @@ export function CreditSummary({ documents, isLoading, onPullCredit }: CreditSumm
 											{report_summary.collections_count ?? 0}
 										</div>
 									</div>
-									<div className={styles.statItem}>
-										<div className={styles.statLabel}>Public Records</div>
-										<div
-											className={`${styles.statValue} ${(report_summary.public_records_count ?? 0) > 0 ? styles.statWarn : ""}`}
-										>
-											{report_summary.public_records_count ?? 0}
-										</div>
+								<div className={styles.statItem}>
+									<div className={styles.statLabel}>Public Records</div>
+									<div
+										className={`${styles.statValue} ${(report_summary.public_records_count ?? 0) > 0 ? styles.statWarn : ""}`}
+									>
+										{report_summary.public_records_count ?? 0}
 									</div>
 								</div>
+							{report_summary.delinquencies_30_60_90 && report_summary.delinquencies_30_60_90 !== "0/0/0" && (
+								<DelinquencyBadges value={report_summary.delinquencies_30_60_90} />
+							)}
 							</div>
-						)}
+						</div>
+					)}
 
 						{/* Trade accounts for this doc */}
 						{trade_accounts && trade_accounts.length > 0 && (

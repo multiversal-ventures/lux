@@ -2435,12 +2435,12 @@ export interface components {
              */
             sort_order: number;
             /**
-             * Category
-             * Approach category derived from agency: "qm" | "non_qm" | "consumer".
-             * Drives UI grouping without the frontend hardcoding agency strings.
-             * @default ""
+             * Groups
+             * Product groups from the YAML: ["qm"], ["non_qm"], ["consumer"], etc.
+             * A product can belong to multiple groups. Drives UI grouping.
+             * @default []
              */
-            category: string;
+            groups: string[];
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {

@@ -50,8 +50,20 @@ function identityToRow(identity: IdentityInfo): CaseIdentityRow {
   };
 }
 
-export const caseIdentitiesQueryKey = (caseId: string | null) =>
-  ["lux", "case", caseId, "identities"] as const;
+/**
+ * Cache key. When ``scenarioId`` is supplied the response is scenario-
+ * pinned (it applies the active product borrower assembly server-side),
+ * so it MUST live in its own React-Query bucket — otherwise refining
+ * one scenario would visually mutate the flat case-level list shared
+ * with other consumers.
+ */
+export const caseIdentitiesQueryKey = (
+  caseId: string | null,
+  scenarioId?: string | null,
+) =>
+  scenarioId
+    ? (["lux", "case", caseId, "identities", { scenarioId }] as const)
+    : (["lux", "case", caseId, "identities"] as const);
 
 /** @deprecated Use caseIdentitiesQueryKey. Kept for backward compat. */
 export const caseIdentitiesEntitiesQueryKey = (caseId: string | null) =>
@@ -66,8 +78,10 @@ export const caseIdentitiesScenarioQueryKey = (
 
 export interface UseCaseIdentitiesOptions {
   /**
-   * Retained for API compatibility; no longer used internally.
-   * The hook now reads from the unified /identities endpoint.
+   * When set, forwarded to ``GET /api/cases/{id}/identities?scenario_id=``
+   * so the response is filtered through the scenario's active product
+   * borrower assembly. ``null``/undefined preserves the legacy flat
+   * case-level shape.
    */
   scenarioId?: string | null;
   refinementId?: string | null;
@@ -92,11 +106,16 @@ export interface UseCaseIdentitiesResult {
  */
 export function useCaseIdentities(
   caseId: string | null,
-  _options: UseCaseIdentitiesOptions = {},
+  options: UseCaseIdentitiesOptions = {},
 ): UseCaseIdentitiesResult {
+  const scenarioId = options.scenarioId ?? null;
   const query = useQuery({
-    queryKey: caseIdentitiesQueryKey(caseId),
-    queryFn: () => getDefaultClient().getCaseIdentities(caseId as string),
+    queryKey: caseIdentitiesQueryKey(caseId, scenarioId),
+    queryFn: () =>
+      getDefaultClient().getCaseIdentities(
+        caseId as string,
+        scenarioId ? { scenarioId } : undefined,
+      ),
     enabled: !!caseId,
     staleTime: 30_000,
     refetchOnWindowFocus: false,

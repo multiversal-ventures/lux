@@ -312,12 +312,21 @@ export class VeritasClient {
 	/**
 	 * Unified identity list: persons, entities, and financial institutions.
 	 * Replaces getCaseEntities which only returned entity groups.
+	 *
+	 * Pass ``opts.scenarioId`` to project the response through the
+	 * scenario's active product borrower assembly (see veritas
+	 * ``GET /cases/{id}/identities`` docstring). Omitting it returns
+	 * the legacy flat list, byte-identical with the previous release.
 	 */
 	async getCaseIdentities(
 		caseId: string,
+		opts?: { scenarioId?: string | null },
 	): Promise<components["schemas"]["IdentityInfo"][]> {
+		const qs = opts?.scenarioId
+			? `?scenario_id=${encodeURIComponent(opts.scenarioId)}`
+			: "";
 		return this.requestJson<components["schemas"]["IdentityInfo"][]>(
-			`/api/cases/${encodeURIComponent(caseId)}/identities`,
+			`/api/cases/${encodeURIComponent(caseId)}/identities${qs}`,
 		);
 	}
 

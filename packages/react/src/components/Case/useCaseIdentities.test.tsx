@@ -35,12 +35,17 @@ beforeEach(() => {
 
 function Probe({
   caseId,
+  scenarioId,
   captured,
 }: {
   caseId: string | null;
+  scenarioId?: string | null;
   captured: { value?: ReturnType<typeof useCaseIdentities> };
 }) {
-  captured.value = useCaseIdentities(caseId);
+  captured.value = useCaseIdentities(
+    caseId,
+    scenarioId === undefined ? {} : { scenarioId },
+  );
   return null;
 }
 
@@ -76,7 +81,41 @@ describe("useCaseIdentities", () => {
       entityType: "person",
       origin: "case",
     });
-    expect(mockClient.getCaseIdentities).toHaveBeenCalledWith("c1");
+    expect(mockClient.getCaseIdentities).toHaveBeenCalledWith("c1", undefined);
+  });
+
+  it("forwards scenarioId to the client and caches it separately", async () => {
+    // Scenario-pinned response (DSCR shape: property primary + folded landlords).
+    mockClient.getCaseIdentities.mockResolvedValue([
+      {
+        id: "prop-1",
+        name: "10540 Windsor Park Drive",
+        role: "Subject Property",
+        entity_type: "Subject Property",
+        status: "Included",
+        borrower_class: "borrower",
+        needs_review: false,
+      },
+    ]);
+
+    const captured: { value?: ReturnType<typeof useCaseIdentities> } = {};
+    render(
+      <RQ>
+        <Probe caseId="c1" scenarioId="s1" captured={captured} />
+      </RQ>,
+    );
+
+    await waitFor(() => {
+      expect(captured.value?.rows.length).toBe(1);
+    });
+
+    // Hook must thread the scenarioId option into the client call so the
+    // backend applies the scenario's borrower assembly.
+    expect(mockClient.getCaseIdentities).toHaveBeenCalledWith("c1", { scenarioId: "s1" });
+    expect(captured.value?.rows[0]).toMatchObject({
+      id: "prop-1",
+      entityType: "subject property",
+    });
   });
 
   it("returns empty source when no identities are returned", async () => {

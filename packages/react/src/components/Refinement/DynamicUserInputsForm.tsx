@@ -235,21 +235,39 @@ function unitSuffix(unit: string | null | undefined): string | null {
   }
 }
 
+// Map currency codes to locale + separator config.
+// Covers the currencies most commonly seen in mortgage / lending contexts.
+const CURRENCY_FORMAT: Record<string, { thousandSeparator: string; decimalSeparator: string; prefix?: string }> = {
+  USD: { thousandSeparator: ",", decimalSeparator: ".", prefix: "$" },
+  CAD: { thousandSeparator: ",", decimalSeparator: ".", prefix: "CA$" },
+  GBP: { thousandSeparator: ",", decimalSeparator: ".", prefix: "£" },
+  EUR: { thousandSeparator: ".", decimalSeparator: ",", prefix: "€" },
+  AUD: { thousandSeparator: ",", decimalSeparator: ".", prefix: "A$" },
+  NZD: { thousandSeparator: ",", decimalSeparator: ".", prefix: "NZ$" },
+};
+const DEFAULT_CURRENCY_FORMAT = CURRENCY_FORMAT.USD;
+
 /**
  * Currency field — uses ``react-number-format`` for thousand-separator
- * formatting (e.g. 500,000) with clean editing (no commas while typing).
+ * formatting (e.g. $500,000). The currency is inferred from ``field.unit``
+ * (e.g. "USD", "EUR"); defaults to USD. The suffix rendered by the outer
+ * wrapper shows the ISO code (USD / EUR) while the prefix inside the input
+ * shows the symbol ($, €) so operators see both.
  */
 function CurrencyField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
   const effectiveRaw = resolveEffectiveValue(field, value);
   const numericValue = typeof effectiveRaw === "number" ? effectiveRaw : undefined;
+  const unit = (field.unit ?? "USD").toUpperCase();
+  const fmt = CURRENCY_FORMAT[unit] ?? DEFAULT_CURRENCY_FORMAT;
   return (
     <NumericFormat
       value={numericValue ?? ""}
-      thousandSeparator=","
-      decimalSeparator="."
+      thousandSeparator={fmt.thousandSeparator}
+      decimalSeparator={fmt.decimalSeparator}
+      prefix={fmt.prefix}
       decimalScale={2}
       allowNegative={false}
-      placeholder="0"
+      placeholder={`${fmt.prefix ?? ""}0`}
       disabled={disabled}
       className={classNames?.input}
       aria-label={field.label}

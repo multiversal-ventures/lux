@@ -22,6 +22,12 @@ export interface CreateScenarioWithRefinementInput {
    * `false` if the host wants to defer running.
    */
   start?: boolean;
+  /**
+   * Operator-supplied input overrides namespaced by product.
+   * Shape: ``{ [productId]: { inputs: { [fieldName]: value } } }``
+   * Persisted on the manifest's context JSONB.
+   */
+  context?: Record<string, { inputs?: Record<string, unknown> }> | null;
 }
 
 export interface CreateScenarioWithRefinementResult {
@@ -74,6 +80,7 @@ export function useCreateScenarioWithRefinement(
         product_ids: input.productIds,
         spec_ids: input.specIds ?? null,
         note: input.note ?? null,
+        context: (input.context ?? null) as { [k: string]: { [k: string]: unknown } } | null,
       });
       const refinementId = refinementResp.refinement_id;
 

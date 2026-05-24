@@ -286,7 +286,14 @@ export interface paths {
         delete: operations["delete_case_api_cases__case_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Case
+         * @description Update mutable case metadata (currently: display name).
+         *
+         *     Only the fields present in the request body are modified.
+         *     Tenant/operator only — portal tokens cannot rename cases.
+         */
+        patch: operations["update_case_api_cases__case_id__patch"];
         trace?: never;
     };
     "/api/cases/{case_id}/reprocess": {
@@ -399,6 +406,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Identities
+         * @description List borrower identities for a case: persons + entities + financial institutions.
+         *
+         *     By default returns the flat case-level view. Pass
+         *     ``?scenario_id=...`` to filter through the active product's
+         *     ``borrowers:`` assembly so the response matches what the scenario's
+         *     Borrowers tab shows (e.g. DSCR returns a property primary with
+         *     landlord-person relationships, no tenants).
+         *
+         *     Results are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.
+         *     The cache key includes ``scenario_id`` when present so scenario-
+         *     pinned and unfiltered results don't share state.
+         */
+        get: operations["list_identities_api_cases__case_id__identities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Relationships
+         * @description List all relationships for a case with symmetric fan-out.
+         *
+         *     Each symmetric relationship type is emitted twice (A→B and B→A) so callers
+         *     can traverse the graph in either direction without client-side mirroring.
+         *     Results are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.
+         */
+        get: operations["list_relationships_api_cases__case_id__relationships_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/stages/{stage}/excel": {
         parameters: {
             query?: never;
@@ -463,6 +524,36 @@ export interface paths {
          * @description Stream the original PDF for a file.
          */
         get: operations["download_file_api_cases__case_id__files__file_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/files/download-zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Files Zip
+         * @description Download all uploaded files for a case as a single ZIP archive.
+         *
+         *     The archive is cached in Redis after the first build and served from
+         *     cache on subsequent requests. The cache is invalidated automatically
+         *     when new files are uploaded (``POST /files``). A TTL backstop (default
+         *     1 hour, override with ``ZIP_CACHE_TTL`` env var) ensures stale entries
+         *     never linger indefinitely.
+         *
+         *     Files are fetched from the file store by content hash. Files missing
+         *     from storage are skipped with a warning rather than failing the whole
+         *     download.
+         */
+        get: operations["download_files_zip_api_cases__case_id__files_download_zip_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -897,6 +988,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/extractions/structured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Structured Extractions
+         * @description Return extractions grouped into ontology regions for a document type.
+         *
+         *     Loads the ontology (DB-first, disk fallback) and assembles per-document
+         *     structured views that organise field/row extractions by region.
+         *
+         *     Filters:
+         *       ?doc_type=<str>         — required; selects all docs of this type
+         *       &doc_id=<uuid>          — optional; narrows to a single document
+         */
+        get: operations["list_structured_extractions_api_cases__case_id__extractions_structured_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/banking": {
         parameters: {
             query?: never;
@@ -935,6 +1053,53 @@ export interface paths {
         get: operations["get_banking_transactions_api_cases__case_id__banking_transactions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quarantine/{quarantine_id}/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rerun Quarantined Item
+         * @description Operator action: re-run the resolver on this case.
+         *
+         *     Transitions the quarantine item back to 'proposed' so the resolver
+         *     evaluates it fresh. Does not accept user edits — if direct editing is
+         *     needed, a support_admin uses the /decide endpoint.
+         */
+        post: operations["rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quarantine/{quarantine_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Quarantined Item
+         * @description Operator action: accept the resolver's output as correct.
+         *
+         *     Transitions the quarantine item to 'confirmed'. No re-resolution; the
+         *     operator is explicitly approving the existing result.
+         */
+        post: operations["confirm_quarantined_item_api_quarantine__quarantine_id__confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1599,6 +1764,8 @@ export interface components {
             tenant_id: string;
             /** Spec Id */
             spec_id?: string | null;
+            /** Name */
+            name?: string | null;
             /** Pool Version */
             pool_version: number;
             /** State */
@@ -1761,6 +1928,11 @@ export interface components {
         CreateCaseRequest: {
             /** Spec Id */
             spec_id?: string | null;
+            /**
+             * Spec Filter
+             * @default []
+             */
+            spec_filter: string[];
         };
         /** CreateCaseResponse */
         CreateCaseResponse: {
@@ -2084,6 +2256,9 @@ export interface components {
             /** Page Number */
             page_number?: number | null;
             bbox?: components["schemas"]["BboxResponse"] | null;
+            context_bbox?: components["schemas"]["BboxResponse"] | null;
+            /** Merge Method */
+            merge_method?: string | null;
             /** Ocr Text Snippet */
             ocr_text_snippet?: string | null;
             /** File Id */
@@ -2146,21 +2321,29 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** IdentityInfo */
+        /**
+         * IdentityInfo
+         * @description Unified case-identity read model. Discriminator field: kind.
+         */
         IdentityInfo: {
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "person" | "entity";
             /** Name */
             name: string | null;
             /** Role */
             role: string | null;
+            /** Role Hint */
+            role_hint?: string | null;
             /** Entity Type */
             entity_type: string | null;
-            /** Status */
-            status: string;
             /**
              * Borrower Class
              * @default other
@@ -2168,10 +2351,43 @@ export interface components {
              */
             borrower_class: "borrower" | "business_entity" | "employer" | "property" | "financial_institution" | "other";
             /**
+             * Status
+             * @default Included
+             */
+            status: string;
+            /**
              * Needs Review
              * @default false
              */
             needs_review: boolean;
+            /**
+             * Mention Count
+             * @default 0
+             */
+            mention_count: number;
+            /**
+             * Doc Count
+             * @default 0
+             */
+            doc_count: number;
+            /** Relationships */
+            relationships?: components["schemas"]["IdentityInfo"][] | null;
+        };
+        /**
+         * IdentityRef
+         * @description Lightweight reference to one end of a relationship.
+         */
+        IdentityRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "person" | "entity";
         };
         /**
          * InputProvenance
@@ -2435,6 +2651,11 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+            /**
+             * Groups
+             * @default []
+             */
+            groups: string[];
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {
@@ -2580,6 +2801,30 @@ export interface components {
             review_notes: string;
         };
         /**
+         * RelationshipInfo
+         * @description One directed edge in the case relationship graph.
+         */
+        RelationshipInfo: {
+            /**
+             * Relationship Id
+             * Format: uuid
+             */
+            relationship_id: string;
+            source: components["schemas"]["IdentityRef"];
+            target: components["schemas"]["IdentityRef"];
+            /** Type */
+            type: string;
+            /** Ownership Pct */
+            ownership_pct?: number | null;
+            /** Effective Period */
+            effective_period?: string | null;
+            /**
+             * Is Primary
+             * @default false
+             */
+            is_primary: boolean;
+        };
+        /**
          * RenderingHints
          * @description UI rendering decisions resolved server-side from scenario + manifest data.
          *
@@ -2666,6 +2911,16 @@ export interface components {
             last_report_id?: string | null;
             /** Last Storage Key */
             last_storage_key?: string | null;
+        };
+        /** RerunRequest */
+        RerunRequest: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /** Note */
+            note?: string | null;
         };
         /** SampleFileInfo */
         SampleFileInfo: {
@@ -2788,6 +3043,12 @@ export interface components {
              * @default []
              */
             sections: components["schemas"]["SummarySectionResponse"][];
+            /** Dti Front End */
+            dti_front_end?: number | null;
+            /** Dti Back End */
+            dti_back_end?: number | null;
+            /** Total Monthly Debt */
+            total_monthly_debt?: number | null;
         };
         /** SpecAuditResponse */
         SpecAuditResponse: {
@@ -2992,6 +3253,37 @@ export interface components {
             message: string;
         };
         /**
+         * StructuredDocument
+         * @description One document's extractions grouped into ontology regions.
+         *
+         *     ``regions`` maps region_id → value:
+         *       static          → dict[str, Any]   (canonical_key suffix → raw value)
+         *       table/adaptive  → list[dict]       (one dict per extracted row)
+         */
+        StructuredDocument: {
+            /**
+             * Doc Id
+             * Format: uuid
+             */
+            doc_id: string;
+            /** File Id */
+            file_id: string | null;
+            /** Regions */
+            regions: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * StructuredExtractionsResponse
+         * @description Response for GET /extractions/structured.
+         */
+        StructuredExtractionsResponse: {
+            /** Doc Type */
+            doc_type: string;
+            /** Documents */
+            documents: components["schemas"]["StructuredDocument"][];
+        };
+        /**
          * SuggestedProductsResponse
          * @description Document-driven product suggestion for a case.
          *
@@ -3154,6 +3446,11 @@ export interface components {
              * @default 0
              */
             total_rows: number;
+        };
+        /** UpdateCaseRequest */
+        UpdateCaseRequest: {
+            /** Name */
+            name?: string | null;
         };
         /** UploadConfig */
         UploadConfig: {
@@ -3767,6 +4064,41 @@ export interface operations {
             };
         };
     };
+    update_case_api_cases__case_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reprocess_case_api_cases__case_id__reprocess_post: {
         parameters: {
             query?: never;
@@ -3925,6 +4257,71 @@ export interface operations {
             };
         };
     };
+    list_identities_api_cases__case_id__identities_get: {
+        parameters: {
+            query?: {
+                /** @description When set, applies the scenario's active product borrower assembly (per ``loan_products.yaml``). Returns the same headline-property + folded-relationships shape the refinement detail endpoint emits. When omitted (default) the response is the legacy flat list of every person and entity on the case. */
+                scenario_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_relationships_api_cases__case_id__relationships_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     download_stage_excel_api_cases__case_id__stages__stage__excel_get: {
         parameters: {
             query?: {
@@ -4035,6 +4432,37 @@ export interface operations {
             path: {
                 case_id: string;
                 file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_files_zip_api_cases__case_id__files_download_zip_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
             };
             cookie?: never;
         };
@@ -4774,6 +5202,40 @@ export interface operations {
             };
         };
     };
+    list_structured_extractions_api_cases__case_id__extractions_structured_get: {
+        parameters: {
+            query: {
+                doc_type: string;
+                doc_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StructuredExtractionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_banking_api_cases__case_id__banking_get: {
         parameters: {
             query?: never;
@@ -4823,6 +5285,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClassifiedTransactionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-user-id": string;
+                "x-user-role"?: string;
+            };
+            path: {
+                quarantine_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RerunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_quarantined_item_api_quarantine__quarantine_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-user-id": string;
+                "x-user-role"?: string;
+            };
+            path: {
+                quarantine_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

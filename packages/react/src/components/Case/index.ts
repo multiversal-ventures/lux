@@ -139,3 +139,9 @@ export type {
   CaseWorkflowActions,
   CaseWorkflowStore,
 } from "../../state/caseWorkflowStore.js";
+
+export {
+  toRefinementContext,
+  useInitialRequiredInputs,
+} from "./useInitialRequiredInputs.js";
+export type { UseInitialRequiredInputsResult } from "./useInitialRequiredInputs.js";

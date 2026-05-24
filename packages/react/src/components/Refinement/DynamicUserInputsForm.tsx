@@ -248,9 +248,9 @@ function NumericField({ field, value, disabled, classNames, onChange }: DynamicU
       type="number"
       inputMode="decimal"
       value={display}
-      step={field.step ?? (isPercent ? 5 : undefined)}
-      min={field.minimum ?? (isPercent ? 0 : undefined)}
-      max={field.maximum ?? (isPercent ? 100 : undefined)}
+      step={field.step != null ? (isPercent ? field.step * 100 : field.step) : (isPercent ? 0.01 : undefined)}
+      min={field.minimum != null ? (isPercent ? field.minimum * 100 : field.minimum) : (isPercent ? 0 : undefined)}
+      max={field.maximum != null ? (isPercent ? field.maximum * 100 : field.maximum) : (isPercent ? 100 : undefined)}
       disabled={disabled}
       placeholder={`${field.type === "currency" ? "$" : field.type === "integer" ? "0" : field.type === "number" ? "0.0" : 
         isPercent ? "0%" : ""}`}

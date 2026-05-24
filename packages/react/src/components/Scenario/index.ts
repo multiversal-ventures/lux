@@ -95,3 +95,10 @@ export type {
   ScenarioRunningPanelClassNames,
   ScenarioRunningPanelSlots,
 } from "./ScenarioRunningPanel.js";
+export { useScenarioRequiredInputs } from "./useScenarioRequiredInputs.js";
+export type {
+  MissingProductInputs,
+  UseScenarioRequiredInputsResult,
+} from "./useScenarioRequiredInputs.js";
+export { ScenarioRequiredInputsBanner } from "./ScenarioRequiredInputsBanner.js";
+export type { ScenarioRequiredInputsBannerProps } from "./ScenarioRequiredInputsBanner.js";

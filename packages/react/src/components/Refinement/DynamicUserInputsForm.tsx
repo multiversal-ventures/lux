@@ -1,4 +1,4 @@
-import { useCallback, type CSSProperties, type ReactNode } from "react";
+import React, { useCallback, type CSSProperties, type ReactNode } from "react";
 import type { components } from "@multiversal-ventures/lux-core";
 
 /**
@@ -234,6 +234,52 @@ function unitSuffix(unit: string | null | undefined): string | null {
   }
 }
 
+function formatCurrency(n: number): string {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function CurrencyField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
+  const effectiveRaw = resolveEffectiveValue(field, value);
+  const effective = typeof effectiveRaw === "number" ? effectiveRaw : null;
+  // Track raw typing string separately so commas don't interfere mid-entry.
+  const [rawText, setRawText] = React.useState<string | null>(null);
+  const display =
+    rawText !== null
+      ? rawText
+      : effective == null
+        ? ""
+        : formatCurrency(effective);
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={display}
+      disabled={disabled}
+      placeholder="0"
+      onChange={(e) => {
+        const raw = e.target.value;
+        setRawText(raw);
+        const stripped = raw.replace(/,/g, "").trim();
+        if (stripped === "" || stripped === "-") { onChange(null); return; }
+        const parsed = Number(stripped);
+        if (!Number.isFinite(parsed)) return;
+        onChange(parsed);
+      }}
+      onBlur={() => {
+        // Format with commas on blur; clear rawText so formatted value shows.
+        setRawText(null);
+      }}
+      onFocus={(e) => {
+        // On focus, show raw number (no commas) so editing is clean.
+        if (effective != null) setRawText(String(effective));
+        e.target.select();
+      }}
+      className={classNames?.input}
+      aria-label={field.label}
+    />
+  );
+}
+
 function NumericField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
   const effective = resolveEffectiveValue(field, value);
   const isPercent = field.type === "percent" || field.type === "percentage";
@@ -252,7 +298,7 @@ function NumericField({ field, value, disabled, classNames, onChange }: DynamicU
       min={field.minimum != null ? (isPercent ? field.minimum * 100 : field.minimum) : (isPercent ? 0 : undefined)}
       max={field.maximum != null ? (isPercent ? field.maximum * 100 : field.maximum) : (isPercent ? 100 : undefined)}
       disabled={disabled}
-      placeholder={`${field.type === "currency" ? "$" : field.type === "integer" ? "0" : field.type === "number" ? "0.0" : 
+      placeholder={`${field.type === "integer" ? "0" : field.type === "number" ? "0.0" :
         isPercent ? "0%" : ""}`}
       onChange={(e) => {
         const raw = e.target.value.trim();
@@ -262,7 +308,7 @@ function NumericField({ field, value, disabled, classNames, onChange }: DynamicU
         }
         const parsed = Number(raw);
         if (!Number.isFinite(parsed)) return;
-        // Convert percent (UI shows 50) back to fraction (0.5) before storing.
+        // Convert percent (UI shows 6.5) back to fraction (0.065) before storing.
         onChange(isPercent ? parsed / 100 : parsed);
       }}
       className={classNames?.input}
@@ -338,9 +384,10 @@ function pickDefaultRenderer(field: UserInputField): DynamicUserInputFieldRender
   if (field.options && field.options.length > 0) return SelectField;
   if (field.derive_options_from === "case.document_years" || field.type === "year") return YearField;
   switch (field.type) {
+    case "currency":
+      return CurrencyField;
     case "percent":
     case "percentage":
-    case "currency":
     case "integer":
     case "number":
       return NumericField;

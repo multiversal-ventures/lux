@@ -1246,6 +1246,16 @@ export interface paths {
          *     seeded yet — see ``policy.product_registry.list_tenant_products``).
          *     The shape is rich enough for Lux to render the approach + product
          *     pickers without a separate config endpoint.
+         *
+         *     ``initial_required_inputs`` is folded in per row so the Create Case
+         *     modal can render its dynamic form straight from this fetch (no
+         *     second round-trip). Each row's schema comes from
+         *     ``initial_required_inputs_schema`` which is DB-first
+         *     (``spec_versions`` + ``product_specs`` join, with a YAML fallback
+         *     for unseeded dev DBs). Products without any ``required_at_create``
+         *     inputs return the empty
+         *     ``{groups: [], products: [{product_id, display_name, fields: []}]}``
+         *     shape so the frontend can do a uniform ``fields.length === 0`` check.
          */
         get: operations["list_products_api_products_get"];
         put?: never;
@@ -2600,6 +2610,15 @@ export interface components {
          *     every field that matters for runtime resolution + UI rendering, so
          *     the host never has to consult any other endpoint to render an
          *     accurate picker.
+         *
+         *     ``initial_required_inputs`` carries the operator-supplied schema for
+         *     fields flagged ``required_at_create: true`` on any of the product's
+         *     specs. The Create Case modal renders this directly via
+         *     ``<DynamicUserInputsFormFields>`` and blocks submission until every
+         *     listed field has a valid value — single round-trip, no separate
+         *     schema endpoint. Empty ``products[*].fields`` (and empty ``groups``)
+         *     means the product has no must-know-upfront values; the modal can
+         *     skip rendering the form altogether.
          */
         ProductResponse: {
             /** Product Id */
@@ -2656,6 +2675,7 @@ export interface components {
              * @default []
              */
             groups: string[];
+            initial_required_inputs?: components["schemas"]["UserInputsSchemaResponse"];
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {
@@ -3037,6 +3057,8 @@ export interface components {
             summary: string;
             /** Name */
             name?: string | null;
+            /** Subtitle */
+            subtitle?: string | null;
             eval?: components["schemas"]["SummaryEvalResponse"] | null;
             /**
              * Sections
@@ -3506,6 +3528,11 @@ export interface components {
              * @default false
              */
             required: boolean;
+            /**
+             * Required At Create
+             * @default false
+             */
+            required_at_create: boolean;
             /** Minimum */
             minimum?: number | null;
             /** Maximum */

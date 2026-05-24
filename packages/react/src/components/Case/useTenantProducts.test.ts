@@ -29,6 +29,9 @@ function makeProduct(overrides: Partial<TenantProduct> & { product_id: string })
     enabled: overrides.enabled ?? true,
     is_default: overrides.is_default ?? false,
     sort_order: overrides.sort_order ?? 0,
+    groups: overrides.groups ?? [],
+    initial_required_inputs:
+      overrides.initial_required_inputs ?? { groups: [], products: [] },
   };
 }
 
@@ -106,5 +109,56 @@ describe("toProductOptions", () => {
       { id: "fannie_mae", label: "Fannie Mae", enabled: true },
       { id: "disabled_thing", label: "Disabled Thing", enabled: false },
     ]);
+  });
+});
+
+describe("TenantProduct.initial_required_inputs", () => {
+  /**
+   * Pins the contract that the create-case modal can read the schema
+   * straight off the picked row — no second round-trip. Mirrors what the
+   * backend folds in via ``GET /api/products`` (DSCR carries 3 fields,
+   * QM products an empty section).
+   */
+  it("passes through the schema attached to a product row", () => {
+    const dscr = makeProduct({
+      product_id: "dscr",
+      display_name: "DSCR",
+      agency_path: "dscr_multiple_entities",
+      initial_required_inputs: {
+        groups: [],
+        products: [
+          {
+            product_id: "dscr",
+            display_name: "DSCR",
+            fields: [
+              {
+                name: "proposed_loan_amount",
+                type: "currency",
+                label: "Proposed Loan Amount",
+                required: true,
+                required_at_create: true,
+                unit: "usd",
+                minimum: 1,
+                maximum: 100000000,
+                spec_name: "dscr_ratio_calculation",
+                options: [],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(dscr.initial_required_inputs?.products[0]?.fields[0]?.name).toBe(
+      "proposed_loan_amount",
+    );
+    expect(
+      dscr.initial_required_inputs?.products[0]?.fields[0]?.required_at_create,
+    ).toBe(true);
+  });
+
+  it("defaults to an empty section for products without create-time inputs", () => {
+    const fnma = makeProduct({ product_id: "fannie_mae" });
+    expect(fnma.initial_required_inputs?.groups).toEqual([]);
+    expect(fnma.initial_required_inputs?.products).toEqual([]);
   });
 });

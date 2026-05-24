@@ -24,8 +24,9 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"zustand": "^5.0.13",
-		"@multiversal-ventures/xlsx": "github:multiversal-ventures/xlsx#v0.20.3-mv.2"
+		"@multiversal-ventures/xlsx": "github:multiversal-ventures/xlsx#v0.20.3-mv.2",
+		"react-number-format": "^5.4.5",
+		"zustand": "^5.0.13"
 	},
 	"peerDependencies": {
 		"@multiversal-ventures/lux-core": "workspace:*",

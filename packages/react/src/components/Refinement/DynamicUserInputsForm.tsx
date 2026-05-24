@@ -1,4 +1,5 @@
 import React, { useCallback, type CSSProperties, type ReactNode } from "react";
+import { NumericFormat } from "react-number-format";
 import type { components } from "@multiversal-ventures/lux-core";
 
 /**
@@ -234,85 +235,80 @@ function unitSuffix(unit: string | null | undefined): string | null {
   }
 }
 
-function formatCurrency(n: number): string {
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
-
+/**
+ * Currency field — uses ``react-number-format`` for thousand-separator
+ * formatting (e.g. 500,000) with clean editing (no commas while typing).
+ */
 function CurrencyField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
   const effectiveRaw = resolveEffectiveValue(field, value);
-  const effective = typeof effectiveRaw === "number" ? effectiveRaw : null;
-  // Track raw typing string separately so commas don't interfere mid-entry.
-  const [rawText, setRawText] = React.useState<string | null>(null);
-  const display =
-    rawText !== null
-      ? rawText
-      : effective == null
-        ? ""
-        : formatCurrency(effective);
+  const numericValue = typeof effectiveRaw === "number" ? effectiveRaw : undefined;
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={display}
-      disabled={disabled}
+    <NumericFormat
+      value={numericValue ?? ""}
+      thousandSeparator=","
+      decimalSeparator="."
+      decimalScale={2}
+      allowNegative={false}
       placeholder="0"
-      onChange={(e) => {
-        const raw = e.target.value;
-        setRawText(raw);
-        const stripped = raw.replace(/,/g, "").trim();
-        if (stripped === "" || stripped === "-") { onChange(null); return; }
-        const parsed = Number(stripped);
-        if (!Number.isFinite(parsed)) return;
-        onChange(parsed);
-      }}
-      onBlur={() => {
-        // Format with commas on blur; clear rawText so formatted value shows.
-        setRawText(null);
-      }}
-      onFocus={(e) => {
-        // On focus, show raw number (no commas) so editing is clean.
-        if (effective != null) setRawText(String(effective));
-        e.target.select();
-      }}
+      disabled={disabled}
       className={classNames?.input}
       aria-label={field.label}
+      onValueChange={({ floatValue }) => {
+        onChange(floatValue ?? null);
+      }}
     />
   );
 }
 
+/**
+ * Percent field — displays the stored fraction (0.065) as a human-readable
+ * percentage (6.5) and converts back on change. Uses ``react-number-format``
+ * for decimal-scale control.
+ *
+ * Plain integer/number fields also use this renderer.
+ */
 function NumericField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
   const effective = resolveEffectiveValue(field, value);
   const isPercent = field.type === "percent" || field.type === "percentage";
-  const display =
+  const isInt = field.type === "integer";
+
+  // Convert stored fraction → display percentage
+  const displayValue =
     effective == null
       ? ""
       : isPercent && typeof effective === "number"
-        ? String(Math.round(effective * 10000) / 100)
-        : String(effective);
+        ? Math.round(effective * 10000) / 100
+        : effective;
+
+  // Compute display-unit bounds from YAML fraction bounds
+  const displayMin = field.minimum != null ? (isPercent ? field.minimum * 100 : field.minimum) : undefined;
+  const displayMax = field.maximum != null ? (isPercent ? field.maximum * 100 : field.maximum) : undefined;
+  // Default step: 0.01% for percent, 1 for integer, none for plain number
+  const displayStep = field.step != null
+    ? (isPercent ? field.step * 100 : field.step)
+    : isPercent ? 0.01 : undefined;
+
   const input = (
-    <input
-      type="number"
-      inputMode="decimal"
-      value={display}
-      step={field.step != null ? (isPercent ? field.step * 100 : field.step) : (isPercent ? 0.01 : undefined)}
-      min={field.minimum != null ? (isPercent ? field.minimum * 100 : field.minimum) : (isPercent ? 0 : undefined)}
-      max={field.maximum != null ? (isPercent ? field.maximum * 100 : field.maximum) : (isPercent ? 100 : undefined)}
+    <NumericFormat
+      value={displayValue === "" ? "" : (displayValue as number)}
+      decimalScale={isInt ? 0 : isPercent ? 2 : undefined}
+      allowNegative={false}
+      placeholder={isInt ? "0" : isPercent ? "0" : "0.0"}
       disabled={disabled}
-      placeholder={`${field.type === "integer" ? "0" : field.type === "number" ? "0.0" :
-        isPercent ? "0%" : ""}`}
-      onChange={(e) => {
-        const raw = e.target.value.trim();
-        if (raw === "") {
-          onChange(null);
-          return;
-        }
-        const parsed = Number(raw);
-        if (!Number.isFinite(parsed)) return;
-        // Convert percent (UI shows 6.5) back to fraction (0.065) before storing.
-        onChange(isPercent ? parsed / 100 : parsed);
-      }}
       className={classNames?.input}
       aria-label={field.label}
+      isAllowed={({ floatValue }) => {
+        if (floatValue == null) return true;
+        if (displayMin != null && floatValue < displayMin) return false;
+        if (displayMax != null && floatValue > displayMax) return false;
+        return true;
+      }}
+      onValueChange={({ floatValue }) => {
+        if (floatValue == null) { onChange(null); return; }
+        onChange(isPercent ? floatValue / 100 : floatValue);
+      }}
+      // Expose step for accessibility / keyboard increment
+      {...(displayStep != null ? { step: displayStep } : {})}
     />
   );
 

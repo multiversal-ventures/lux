@@ -51,12 +51,16 @@ function Probe({
 
 describe("useCaseIdentities", () => {
   it("loads identities from the unified /identities endpoint", async () => {
+    // The backend now ships both the display label (``role``) and the
+    // stable slug (``role_hint``) on every IdentityInfo, so the hook
+    // doesn't need a local normalisation table.
     mockClient.getCaseIdentities.mockResolvedValue([
       {
         id: "e1",
         name: "Jane Borrower",
-        role: "taxpayer",
-        entity_type: "person",
+        role: "Borrower",
+        role_hint: "taxpayer",
+        entity_type: null,
         status: "Included",
         borrower_class: "borrower",
         needs_review: false,
@@ -74,14 +78,55 @@ describe("useCaseIdentities", () => {
       expect(captured.value?.rows.length).toBe(1);
     });
     expect(captured.value?.source).toBe("case");
+    // ``role`` is the API's stable slug (``role_hint``); the display
+    // label lives on ``roleLabel`` so the picker can render the badge
+    // without re-deriving anything.
     expect(captured.value?.rows[0]).toMatchObject({
       id: "e1",
       name: "Jane Borrower",
-      role: "borrower",
-      entityType: "person",
+      role: "taxpayer",
+      roleLabel: "Borrower",
+      // Person rows have no ``entity_type``; we fall back to the
+      // borrower_class so the Type column / filter still has something.
+      entityType: "borrower",
       origin: "case",
     });
     expect(mockClient.getCaseIdentities).toHaveBeenCalledWith("c1", undefined);
+  });
+
+  it("falls back to borrower_class when role_hint is absent", async () => {
+    // Financial-institution shims have neither a role_hint nor a curated
+    // display role. The hook still has to produce a non-empty slug so
+    // the picker's filter dropdown can group them.
+    mockClient.getCaseIdentities.mockResolvedValue([
+      {
+        id: "bank-1",
+        name: "Acme Bank",
+        role: null,
+        role_hint: null,
+        entity_type: "Financial Institution",
+        status: "Included",
+        borrower_class: "financial_institution",
+        needs_review: false,
+      },
+    ]);
+
+    const captured: { value?: ReturnType<typeof useCaseIdentities> } = {};
+    render(
+      <RQ>
+        <Probe caseId="c1" captured={captured} />
+      </RQ>,
+    );
+
+    await waitFor(() => {
+      expect(captured.value?.rows.length).toBe(1);
+    });
+    expect(captured.value?.rows[0]).toMatchObject({
+      id: "bank-1",
+      role: "financial_institution",
+      roleLabel: "",
+      entityType: "Financial Institution",
+    });
   });
 
   it("forwards scenarioId to the client and caches it separately", async () => {
@@ -91,6 +136,7 @@ describe("useCaseIdentities", () => {
         id: "prop-1",
         name: "10540 Windsor Park Drive",
         role: "Subject Property",
+        role_hint: null,
         entity_type: "Subject Property",
         status: "Included",
         borrower_class: "borrower",
@@ -112,9 +158,14 @@ describe("useCaseIdentities", () => {
     // Hook must thread the scenarioId option into the client call so the
     // backend applies the scenario's borrower assembly.
     expect(mockClient.getCaseIdentities).toHaveBeenCalledWith("c1", { scenarioId: "s1" });
+    // Display-ready entity_type passes through verbatim — no lowercasing,
+    // no humanizer. The backend's display_labels registry is the only
+    // place that decides on the rendering ("Subject Property", not
+    // "subject property").
     expect(captured.value?.rows[0]).toMatchObject({
       id: "prop-1",
-      entityType: "subject property",
+      entityType: "Subject Property",
+      roleLabel: "Subject Property",
     });
   });
 

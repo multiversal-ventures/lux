@@ -17,9 +17,35 @@ export interface CaseIdentityRow {
   id: string;
   /** Display name (`"Acme Corp"`, `"Jane Q. Public"`). */
   name: string;
-  /** Underwriter-facing role label (e.g. `borrower`, `employer`, `spouse`). */
+  /**
+   * Stable role slug used for filtering / grouping
+   * (e.g. `taxpayer`, `spouse`, `landlord_person`, `employer`).
+   *
+   * Sourced from the API's ``IdentityInfo.role_hint`` so the host and
+   * the backend agree on the same key. Falls back to ``borrower_class``
+   * when a row has no role_hint (financial institutions, generic
+   * entities). NEVER use this for display — render ``roleLabel`` or
+   * resolve via the picker's slot.
+   */
   role: string;
-  /** Coarse entity type slug (`person`, `partnership`, `scorp`, `employer`, …). */
+  /**
+   * Display label for the role
+   * (e.g. `"Borrower"`, `"Co-Borrower"`, `"Landlord"`, `"Employer"`).
+   *
+   * Sourced from the API's ``IdentityInfo.role`` which is computed
+   * server-side from ``policy/specs/display_labels.yaml``. Empty when
+   * the row carries no display role (most non-employer entities).
+   */
+  roleLabel: string;
+  /**
+   * Display-ready entity type label
+   * (e.g. `"S-Corp"`, `"Subject Property"`, `"Financial Institution"`).
+   *
+   * Sourced from the API's ``IdentityInfo.entity_type`` which is itself
+   * resolved server-side via ``entity_type_label()``. For persons the
+   * server returns ``None``; we fall back to ``borrower_class`` so the
+   * Type column / filter still has something useful to render.
+   */
   entityType: string;
   /** Whether this identity needs operator review before relying on it. */
   needsReview: boolean;
@@ -29,21 +55,21 @@ export interface CaseIdentityRow {
   raw: IdentityInfo | VeritasEntityGroup;
 }
 
-const _BORROWER_ROLE_LABELS: Record<string, string> = {
-  taxpayer: "borrower",
-  spouse: "co_borrower",
-  employer: "employer",
-  employee: "employee",
-};
-
 function identityToRow(identity: IdentityInfo): CaseIdentityRow {
-  const rawRole = identity.role ?? "";
-  const role = _BORROWER_ROLE_LABELS[rawRole.toLowerCase()] ?? rawRole.toLowerCase() ?? "unknown";
+  // ``role_hint`` is the stable filter slug — when the backend can't
+  // supply one (e.g. financial-institution shim) we fall back to
+  // ``borrower_class`` so the filter dropdown still groups rows by
+  // some meaningful category instead of collapsing them all into "".
+  const slug = (identity.role_hint ?? identity.borrower_class ?? "unknown").toString();
   return {
     id: identity.id,
     name: identity.name ?? "Unknown",
-    role: role || identity.borrower_class || "unknown",
-    entityType: (identity.entity_type ?? identity.borrower_class ?? "unknown").toLowerCase(),
+    role: slug || "unknown",
+    roleLabel: identity.role ?? "",
+    // Entity type is already display-ready when the backend resolved it
+    // through ``entity_type_label``. We keep the raw casing so values
+    // like "S-Corp" / "Subject Property" render verbatim.
+    entityType: identity.entity_type ?? identity.borrower_class ?? "",
     needsReview: identity.needs_review,
     origin: "case",
     raw: identity,

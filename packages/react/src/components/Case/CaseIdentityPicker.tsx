@@ -63,42 +63,18 @@ export interface CaseIdentityPickerProps {
   disabled?: boolean;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  borrower: "Borrower",
-  co_borrower: "Co-Borrower",
-  taxpayer: "Borrower",
-  spouse: "Co-Borrower",
-  employer: "Employer",
-  employee: "Employee",
-  partnership: "Partnership",
-  scorp: "S-Corp",
-  ccorp: "C-Corp",
-  sole_proprietorship: "Sole Proprietor",
-  farm: "Farm",
-  business: "Business",
-  financial_institution: "Financial Institution",
-  unknown: "Unknown",
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  person: "Individual",
-  partnership: "Partnership",
-  scorp: "S-Corp",
-  ccorp: "C-Corp",
-  sole_proprietorship: "Sole Proprietorship",
-  farm: "Farm",
-  employer: "Employer",
-  business: "Business",
-  financial_institution: "Financial Institution",
-  unknown: "Unknown",
-};
-
-function formatRole(role: string): string {
-  return ROLE_LABEL[role.toLowerCase()] ?? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatType(type: string): string {
-  return TYPE_LABEL[type.toLowerCase()] ?? type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+/**
+ * Generic slug → human-readable fallback.
+ *
+ * Used ONLY when the backend hasn't supplied a display string for a
+ * given row (e.g. an entity with no curated entity_type_label). The
+ * hand-maintained ROLE_LABEL / TYPE_LABEL dicts that used to live here
+ * have been removed — display labels come from the backend's
+ * ``policy/specs/display_labels.yaml`` registry via
+ * ``IdentityInfo.role`` / ``IdentityInfo.entity_type``.
+ */
+function humanizeSlug(slug: string): string {
+  return slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function CaseIdentityPicker({
@@ -122,12 +98,32 @@ export function CaseIdentityPicker({
   const [filterType, setFilterType] = useState<string>("");
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
 
-  const roles = useMemo(() => {
-    return Array.from(new Set(rows.map((r) => r.role).filter(Boolean))).sort();
+  // ``roleOptions`` carries both the stable slug (used as the <option>
+  // value and the filter predicate) and a display label resolved from
+  // the first row that exposes one. This keeps the dropdown labels
+  // backend-driven without losing the slug-as-source-of-truth filter
+  // semantics. Rows with no ``roleLabel`` (entities without a curated
+  // display role) fall back to a humanised slug so the dropdown never
+  // shows a bare key like ``business_entity``.
+  const roleOptions = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const row of rows) {
+      if (!row.role) continue;
+      const existing = labels.get(row.role);
+      if (existing && existing !== row.role) continue;
+      labels.set(row.role, row.roleLabel || humanizeSlug(row.role));
+    }
+    return Array.from(labels.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
-  const types = useMemo(() => {
-    return Array.from(new Set(rows.map((r) => r.entityType).filter(Boolean))).sort();
+  const typeOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if (row.entityType) seen.add(row.entityType);
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
   const filtered = useMemo(() => {
@@ -193,9 +189,9 @@ export function CaseIdentityPicker({
           disabled={disabled}
         >
           <option value="">All roles</option>
-          {roles.map((role) => (
-            <option key={role} value={role}>
-              {formatRole(role)}
+          {roleOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>
@@ -206,9 +202,9 @@ export function CaseIdentityPicker({
           disabled={disabled}
         >
           <option value="">All types</option>
-          {types.map((t) => (
+          {typeOptions.map((t) => (
             <option key={t} value={t}>
-              {formatType(t)}
+              {t}
             </option>
           ))}
         </select>
@@ -257,10 +253,17 @@ export function CaseIdentityPicker({
             const cls = [classNames?.row, isSelected ? classNames?.rowSelected : null]
               .filter(Boolean)
               .join(" ");
+            // Prefer the backend-supplied display label; fall back to a
+            // humanised slug so a brand-new role_hint without a YAML entry
+            // still renders something readable until the registry catches
+            // up.
             const roleBadge = slots?.roleBadge?.(row) ?? (
-              <span className={classNames?.badge}>{formatRole(row.role)}</span>
+              <span className={classNames?.badge}>
+                {row.roleLabel || humanizeSlug(row.role)}
+              </span>
             );
-            const typeCell = slots?.typeCell?.(row) ?? formatType(row.entityType);
+            const typeCell =
+              slots?.typeCell?.(row) ?? (row.entityType || humanizeSlug(row.role));
             return (
               <tr key={row.id} className={cls || undefined}>
                 <td className={classNames?.checkboxCell}>

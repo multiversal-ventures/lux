@@ -20,12 +20,14 @@ export type TenantProduct = components["schemas"]["ProductResponse"];
  * needed to render the approach + product pickers lives on the row, so
  * no second config endpoint is required.
  *
- * Each row also carries ``initial_required_inputs`` —
- * the operator-input schema for fields flagged ``required_at_create``
- * on any of that product's specs. Consumers can render
- * ``<DynamicUserInputsForm>`` directly from the picked row's schema in
- * a Create Case modal without making a second backend round-trip
- * (DSCR's three proposed-loan-term inputs are the canonical case).
+ * Each row also carries ``initial_required_inputs`` — a flat list of
+ * ``UserInputFieldResponse`` for any of the product's specs that flag
+ * ``required_at_create: true``. Consumers can render
+ * ``<DynamicUserInputsFormFields>`` directly from the picked row's
+ * fields in a Create Case modal without making a second backend round-
+ * trip (DSCR's three proposed-loan-term inputs are the canonical case).
+ * An empty list means the product has no must-know-upfront values; the
+ * modal can skip rendering the form altogether.
  *
  * The legacy ``non_qm`` catch-all is filtered out by default — it's a
  * back-compat alias that runs every Non-QM spec, and surfaces poorly in

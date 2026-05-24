@@ -1252,10 +1252,13 @@ export interface paths {
          *     second round-trip). Each row's schema comes from
          *     ``initial_required_inputs_schema`` which is DB-first
          *     (``spec_versions`` + ``product_specs`` join, with a YAML fallback
-         *     for unseeded dev DBs). Products without any ``required_at_create``
-         *     inputs return the empty
-         *     ``{groups: [], products: [{product_id, display_name, fields: []}]}``
-         *     shape so the frontend can do a uniform ``fields.length === 0`` check.
+         *     for unseeded dev DBs). The wire shape is a flat
+         *     ``list[UserInputFieldResponse]`` — every entry on this list is
+         *     already scoped to a single product, so the groups+products wrapper
+         *     used by the refine endpoint would degenerate to a single mirror
+         *     entry. Products without any ``required_at_create`` inputs return
+         *     ``[]`` so the frontend can do a uniform ``fields.length === 0``
+         *     check.
          */
         get: operations["list_products_api_products_get"];
         put?: never;
@@ -2616,9 +2619,8 @@ export interface components {
          *     specs. The Create Case modal renders this directly via
          *     ``<DynamicUserInputsFormFields>`` and blocks submission until every
          *     listed field has a valid value — single round-trip, no separate
-         *     schema endpoint. Empty ``products[*].fields`` (and empty ``groups``)
-         *     means the product has no must-know-upfront values; the modal can
-         *     skip rendering the form altogether.
+         *     schema endpoint. An empty list means the product has no must-know-
+         *     upfront values; the modal can skip rendering the form altogether.
          */
         ProductResponse: {
             /** Product Id */
@@ -2675,7 +2677,11 @@ export interface components {
              * @default []
              */
             groups: string[];
-            initial_required_inputs?: components["schemas"]["UserInputsSchemaResponse"];
+            /**
+             * Initial Required Inputs
+             * @default []
+             */
+            initial_required_inputs: components["schemas"]["UserInputFieldResponse"][];
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {

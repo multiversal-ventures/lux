@@ -347,6 +347,62 @@ function pickDefaultRenderer(field: UserInputField): DynamicUserInputFieldRender
   }
 }
 
+/**
+ * Render one schema-driven field with the standard label / required-glyph
+ * / renderer-dispatch / hint scaffolding. Shared between the scenario-
+ * scoped ``DynamicUserInputsForm`` (where ``productId`` comes from the
+ * section) and the create-case ``DynamicUserInputsFormFields`` (which
+ * doesn't carry a scenario context at all). Inline errors render below
+ * the input when an entry is present in the parent's ``errors`` map.
+ */
+function renderSchemaField({
+  field,
+  productId,
+  value,
+  documentYears,
+  disabled,
+  classNames,
+  slots,
+  error,
+  onChange,
+}: {
+  field: UserInputField;
+  productId: string;
+  value: unknown;
+  documentYears?: readonly string[];
+  disabled?: boolean;
+  classNames?: DynamicUserInputsFormClassNames;
+  slots?: DynamicUserInputsFormSlots;
+  error?: string;
+  onChange: (next: unknown) => void;
+}): ReactNode {
+  const renderer =
+    slots?.renderers?.[field.type] ?? slots?.defaultRenderer ?? pickDefaultRenderer(field);
+  return (
+    <div key={`${productId}.${field.name}`} className={classNames?.field?.root}>
+      <label className={classNames?.field?.label}>
+        {field.label}
+        {field.required && <span aria-label="required"> *</span>}
+      </label>
+      {renderer({
+        field,
+        productId,
+        value,
+        yearOptions: documentYears,
+        disabled,
+        classNames: classNames?.field,
+        onChange,
+      })}
+      {field.hint && <div className={classNames?.field?.hint}>{field.hint}</div>}
+      {error && (
+        <div className={classNames?.field?.error} role="alert">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Component -------------------------------------------------------------
 
 export function DynamicUserInputsForm({
@@ -375,65 +431,45 @@ export function DynamicUserInputsForm({
       const members = section.applies_to_products ?? [];
       const representative = members[0];
       const currentValue = representative != null ? value[representative]?.inputs?.[field.name] : undefined;
-      const renderer =
-        slots?.renderers?.[field.type] ?? slots?.defaultRenderer ?? pickDefaultRenderer(field);
       const onFieldChange = (next: unknown) => {
         for (const pid of members) {
           onContextChange(pid, field.name, next);
         }
       };
-      return (
-        <div key={`${section.group_id}.${field.name}`} className={classNames?.field?.root}>
-          <label className={classNames?.field?.label}>
-            {field.label}
-            {field.required && <span aria-label="required"> *</span>}
-          </label>
-          {renderer({
-            field,
-            // Pass the representative product so renderers that need a
-            // productId (e.g. custom renderers reaching into context) get
-            // a stable handle. Fan-out happens in onFieldChange above.
-            productId: representative ?? section.group_id,
-            value: currentValue,
-            yearOptions: documentYears,
-            disabled,
-            classNames: classNames?.field,
-            onChange: onFieldChange,
-          })}
-          {field.hint && <div className={classNames?.field?.hint}>{field.hint}</div>}
-        </div>
-      );
+      return renderSchemaField({
+        field,
+        // Pass the representative product so renderers that need a
+        // productId (e.g. custom renderers reaching into context) get
+        // a stable handle. Fan-out happens in onFieldChange above.
+        productId: representative ?? section.group_id,
+        value: currentValue,
+        documentYears,
+        disabled,
+        classNames,
+        slots,
+        onChange: onFieldChange,
+      });
     },
-    [value, onContextChange, documentYears, disabled, classNames?.field, slots?.renderers, slots?.defaultRenderer],
+    [value, onContextChange, documentYears, disabled, classNames, slots],
   );
 
   const renderField = useCallback(
     (section: UserInputsSection, field: UserInputField) => {
       const productId = section.product_id;
       const currentValue = value[productId]?.inputs?.[field.name];
-      const renderer =
-        slots?.renderers?.[field.type] ?? slots?.defaultRenderer ?? pickDefaultRenderer(field);
       const onFieldChange = (next: unknown) => onContextChange(productId, field.name, next);
-      return (
-        <div key={`${productId}.${field.name}`} className={classNames?.field?.root}>
-          <label className={classNames?.field?.label}>
-            {field.label}
-            {field.required && <span aria-label="required"> *</span>}
-          </label>
-          {renderer({
-            field,
-            productId,
-            value: currentValue,
-            yearOptions: documentYears,
-            disabled,
-            classNames: classNames?.field,
-            onChange: onFieldChange,
-          })}
-          {field.hint && <div className={classNames?.field?.hint}>{field.hint}</div>}
-        </div>
-      );
+      return renderSchemaField({
+        field,
+        productId,
+        value: currentValue,
+        documentYears,
+        disabled,
+        classNames,
+        slots,
+        onChange: onFieldChange,
+      });
     },
-    [value, onContextChange, documentYears, disabled, classNames?.field, slots?.renderers, slots?.defaultRenderer],
+    [value, onContextChange, documentYears, disabled, classNames, slots],
   );
 
   if (!hasAnyField) {
@@ -548,4 +584,147 @@ export function applyContextChange(
     delete next[productId];
   }
   return next;
+}
+
+// ─── Presentational variant for the create-case modal ──────────────────────
+//
+// ``DynamicUserInputsForm`` above is wired to the refine page's nested
+// ``RefinementContext`` blob (per-product ``inputs`` maps) because it
+// spans multiple products + shared override groups. The create-case
+// modal has a much simpler need: render the rows from a SINGLE
+// product's ``initial_required_inputs`` (a flat
+// ``UserInputFieldResponse[]`` on the tenant-products list response)
+// and let the operator fill them out before the case has any scenario
+// or refinement at all.
+//
+// Sharing the schema-field renderer means both surfaces dispatch on the
+// same YAML type slugs, honor the same per-type overrides, and show the
+// same unit suffixes / hints. The only divergence is the value shape:
+// the create-case form owns a flat ``Record<string, unknown>`` (it has
+// no productId-namespacing problem) and surfaces inline error strings
+// from the caller's validator. The wrapper that fetches a schema via
+// scenario context (see ``DynamicUserInputsForm`` above) keeps working
+// unchanged — it can keep its own context state and call this
+// presentational variant per-section if a future refactor wants to.
+
+export interface DynamicUserInputsFormFieldsProps {
+  /**
+   * Flat list of fields, typically
+   * ``tenantProduct.initial_required_inputs`` from
+   * ``useTenantProducts``. Empty list renders nothing — the caller
+   * decides whether to suppress the surrounding section heading.
+   */
+  fields: readonly UserInputField[];
+  /**
+   * Operator-supplied values keyed by ``field.name``. The caller owns
+   * the map; this component only emits change events.
+   */
+  value: Record<string, unknown>;
+  /** Emitted on every edit. ``key`` is ``field.name``. */
+  onChange: (key: string, value: unknown) => void;
+  /**
+   * Optional product id passed through to custom renderers' ``productId``
+   * prop. Defaults to ``"_"`` so the built-in renderers (which don't
+   * inspect it) keep working without ceremony. Hosts that wire in
+   * product-aware custom renderers should pass the real id.
+   */
+  productId?: string;
+  /**
+   * Per-field inline error message, keyed by ``field.name``. Typically
+   * the result of ``validateInitialRequiredInputs``. Falsy entries are
+   * not rendered.
+   */
+  errors?: Record<string, string | undefined>;
+  /** Available year options for fields with ``derive_options_from: case.document_years``. */
+  documentYears?: readonly string[];
+  disabled?: boolean;
+  classNames?: DynamicUserInputsFormClassNames;
+  slots?: DynamicUserInputsFormSlots;
+  style?: CSSProperties;
+}
+
+export function DynamicUserInputsFormFields({
+  fields,
+  value,
+  onChange,
+  productId = "_",
+  errors,
+  documentYears,
+  disabled = false,
+  classNames,
+  slots,
+  style,
+}: DynamicUserInputsFormFieldsProps) {
+  if (fields.length === 0) return null;
+  return (
+    <div className={classNames?.root} style={style}>
+      {fields.map((field) =>
+        renderSchemaField({
+          field,
+          productId,
+          value: value[field.name],
+          documentYears,
+          disabled,
+          classNames,
+          slots,
+          error: errors?.[field.name],
+          onChange: (next) => onChange(field.name, next),
+        }),
+      )}
+    </div>
+  );
+}
+
+/**
+ * Validate a ``DynamicUserInputsFormFields`` value blob against its
+ * schema. Returns a per-field error map keyed by ``field.name`` —
+ * ``Object.keys(...).length === 0`` means the blob is submission-ready.
+ *
+ * Rules, intentionally minimal because the wire types only declare
+ * ``required`` / ``required_at_create`` / ``minimum`` / ``maximum``:
+ *
+ *   1. ``field.required`` (or ``field.required_at_create`` when
+ *      ``requiredAtCreateOnly`` is true) with a missing value → "<Label>
+ *      is required".
+ *   2. Numeric value below ``field.minimum`` → "<Label> must be at least
+ *      <minimum>".
+ *   3. Numeric value above ``field.maximum`` → "<Label> must be at most
+ *      <maximum>".
+ *
+ * Living here (next to the renderer) so both lux and gunnr-app share
+ * the same definition of "valid" — invariant: a field that the renderer
+ * accepts is one this validator can score, and vice versa. The
+ * create-case modal calls this on every change to gate the "Create
+ * Case" button.
+ */
+export function validateInitialRequiredInputs(
+  fields: readonly UserInputField[],
+  value: Record<string, unknown>,
+  options?: { requiredAtCreateOnly?: boolean },
+): Record<string, string> {
+  const requiredAtCreateOnly = options?.requiredAtCreateOnly ?? true;
+  const errors: Record<string, string> = {};
+  for (const field of fields) {
+    const isRequired = requiredAtCreateOnly
+      ? Boolean(field.required_at_create)
+      : Boolean(field.required);
+    const raw = value[field.name];
+    const isMissing = raw === undefined || raw === null || raw === "";
+    if (isRequired && isMissing) {
+      errors[field.name] = `${field.label} is required`;
+      continue;
+    }
+    if (isMissing) continue;
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      if (field.minimum != null && raw < field.minimum) {
+        errors[field.name] = `${field.label} must be at least ${field.minimum}`;
+        continue;
+      }
+      if (field.maximum != null && raw > field.maximum) {
+        errors[field.name] = `${field.label} must be at most ${field.maximum}`;
+        continue;
+      }
+    }
+  }
+  return errors;
 }

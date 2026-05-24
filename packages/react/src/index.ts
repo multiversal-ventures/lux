@@ -187,7 +187,9 @@ export {
   RefinementTabs,
   RefinementExtractionTab,
   DynamicUserInputsForm,
+  DynamicUserInputsFormFields,
   applyContextChange,
+  validateInitialRequiredInputs,
 } from "./components/Refinement/index.js";
 export type {
   ProductCategory,
@@ -221,6 +223,7 @@ export type {
   RefinementExtractionTabClassNames,
   RefinementExtractionTabSlots,
   DynamicUserInputsFormProps,
+  DynamicUserInputsFormFieldsProps,
   DynamicUserInputsFormClassNames,
   DynamicUserInputsFormSlots,
   DynamicUserInputFieldRenderer,

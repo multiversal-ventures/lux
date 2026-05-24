@@ -2,7 +2,9 @@ import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   DynamicUserInputsForm,
+  DynamicUserInputsFormFields,
   applyContextChange,
+  validateInitialRequiredInputs,
   type RefinementContext,
 } from "./DynamicUserInputsForm.js";
 
@@ -241,5 +243,159 @@ describe("DynamicUserInputsForm", () => {
     expect(getByLabelText("Raw Count")).toBeTruthy();
     expect(queryByText("%")).toBeNull();
     expect(queryByText("USD")).toBeNull();
+  });
+});
+
+const DSCR_FIELDS = [
+  {
+    name: "proposed_loan_amount",
+    type: "currency",
+    label: "Proposed Loan Amount",
+    hint: null,
+    default: null,
+    required: true,
+    required_at_create: true,
+    minimum: 1,
+    maximum: 100_000_000,
+    step: 1,
+    unit: "usd",
+    options: [],
+    derive_options_from: null,
+    spec_name: "dscr_ratio_calculation",
+  },
+  {
+    name: "proposed_annual_rate",
+    type: "percent",
+    label: "Proposed Annual Rate",
+    hint: null,
+    default: null,
+    required: true,
+    required_at_create: true,
+    minimum: 0,
+    maximum: 1,
+    step: 0.001,
+    unit: "percent",
+    options: [],
+    derive_options_from: null,
+    spec_name: "dscr_ratio_calculation",
+  },
+  {
+    name: "proposed_term_months",
+    type: "integer",
+    label: "Proposed Term (months)",
+    hint: null,
+    default: null,
+    required: true,
+    required_at_create: true,
+    minimum: 1,
+    maximum: 600,
+    step: 1,
+    unit: "months",
+    options: [],
+    derive_options_from: null,
+    spec_name: "dscr_ratio_calculation",
+  },
+];
+
+describe("DynamicUserInputsFormFields", () => {
+  it("renders one input per field from a flat list", () => {
+    const onChange = vi.fn();
+    const { getByLabelText } = render(
+      <DynamicUserInputsFormFields
+        fields={DSCR_FIELDS as never}
+        value={{}}
+        onChange={onChange}
+      />,
+    );
+    expect(getByLabelText("Proposed Loan Amount")).toBeTruthy();
+    expect(getByLabelText("Proposed Annual Rate")).toBeTruthy();
+    expect(getByLabelText("Proposed Term (months)")).toBeTruthy();
+  });
+
+  it("emits (fieldName, value) on change", () => {
+    const onChange = vi.fn();
+    const { getByLabelText } = render(
+      <DynamicUserInputsFormFields
+        fields={DSCR_FIELDS as never}
+        value={{}}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.change(getByLabelText("Proposed Loan Amount"), {
+      target: { value: "500000" },
+    });
+    expect(onChange).toHaveBeenCalledWith("proposed_loan_amount", 500000);
+  });
+
+  it("renders inline error text from the errors map", () => {
+    const onChange = vi.fn();
+    const { getByText } = render(
+      <DynamicUserInputsFormFields
+        fields={DSCR_FIELDS as never}
+        value={{ proposed_loan_amount: 0 }}
+        onChange={onChange}
+        errors={{ proposed_loan_amount: "Proposed Loan Amount must be at least 1" }}
+      />,
+    );
+    expect(
+      getByText("Proposed Loan Amount must be at least 1"),
+    ).toBeTruthy();
+  });
+
+  it("renders nothing for an empty fields list", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <DynamicUserInputsFormFields fields={[]} value={{}} onChange={onChange} />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+});
+
+describe("validateInitialRequiredInputs", () => {
+  it("flags missing required-at-create fields", () => {
+    const errors = validateInitialRequiredInputs(DSCR_FIELDS as never, {});
+    expect(errors).toEqual({
+      proposed_loan_amount: "Proposed Loan Amount is required",
+      proposed_annual_rate: "Proposed Annual Rate is required",
+      proposed_term_months: "Proposed Term (months) is required",
+    });
+  });
+
+  it("flags out-of-range numeric values", () => {
+    const errors = validateInitialRequiredInputs(DSCR_FIELDS as never, {
+      proposed_loan_amount: 0,
+      proposed_annual_rate: 1.5,
+      proposed_term_months: 12,
+    });
+    expect(errors.proposed_loan_amount).toContain("at least 1");
+    expect(errors.proposed_annual_rate).toContain("at most 1");
+    expect(errors.proposed_term_months).toBeUndefined();
+  });
+
+  it("passes with all values in range", () => {
+    const errors = validateInitialRequiredInputs(DSCR_FIELDS as never, {
+      proposed_loan_amount: 500_000,
+      proposed_annual_rate: 0.075,
+      proposed_term_months: 360,
+    });
+    expect(errors).toEqual({});
+  });
+
+  it("respects ``requiredAtCreateOnly: false`` for non-create flows", () => {
+    const fields = [
+      {
+        ...DSCR_FIELDS[0],
+        required: true,
+        required_at_create: false,
+      },
+    ];
+    const create = validateInitialRequiredInputs(fields as never, {});
+    expect(create).toEqual({});
+    const refine = validateInitialRequiredInputs(fields as never, {}, {
+      requiredAtCreateOnly: false,
+    });
+    expect(refine).toEqual({
+      proposed_loan_amount: "Proposed Loan Amount is required",
+    });
   });
 });

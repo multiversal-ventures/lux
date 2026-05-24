@@ -78,6 +78,18 @@ export type {
 } from "./useTenantProducts.js";
 
 export {
+  getProductDisplayLabel,
+  validateRequiredDocuments,
+  getMissingDocsErrorMessage,
+} from "./productMetadata.js";
+export type {
+  ProductLabelSource,
+  ProductRequiredDocsSource,
+  MissingProductDocs,
+  ValidateRequiredDocumentsResult,
+} from "./productMetadata.js";
+
+export {
   useSuggestedProducts,
   suggestedProductsQueryKey,
 } from "./useSuggestedProducts.js";

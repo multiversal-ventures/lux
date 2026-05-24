@@ -2627,6 +2627,8 @@ export interface components {
             product_id: string;
             /** Display Name */
             display_name: string;
+            /** Display Label */
+            display_label: string;
             /** Agency */
             agency: string;
             /** Agency Path */
@@ -2648,6 +2650,11 @@ export interface components {
              * @default []
              */
             credit_document_types: string[];
+            /**
+             * Required Documents
+             * @default []
+             */
+            required_documents: string[];
             /** Default Calculation Track */
             default_calculation_track?: string | null;
             /**

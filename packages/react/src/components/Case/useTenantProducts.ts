@@ -1,10 +1,8 @@
-import { useMemo } from "react";
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import {
-  getDefaultClient,
-  type components,
-} from "@multiversal-ventures/lux-core";
+import { useEffect, useMemo } from "react";
+import type { UseQueryResult } from "@tanstack/react-query";
+import { type components } from "@multiversal-ventures/lux-core";
 
+import { luxStore } from "../../store/luxStore.js";
 import type { ApproachOption } from "./ApproachPicker.js";
 import type { ProductOption } from "./ProductPicker.js";
 
@@ -34,6 +32,14 @@ export type TenantProduct = components["schemas"]["ProductResponse"];
  * a chip picker that already exposes the granular ``non_qm_bank_statement``
  * and ``irs_1099_income`` siblings. Set ``includeLegacy: true`` to opt
  * in (e.g. on an admin page that audits the full catalog).
+ *
+ * Implementation note: the hook now reads from the module-level lux Zustand
+ * store rather than TanStack Query. The store always fetches the full catalog
+ * (includeDisabled: true) and this hook filters down to what the caller asked
+ * for. The ``staleTime`` option is accepted for API compatibility but silently
+ * ignored — the store owns cache freshness (60 s auto-refresh via a module-
+ * level timer). The ``query`` field is a compatibility shim for callers that
+ * destructure it; it carries ``{ data, isLoading, isError, error, status }``.
  */
 const LEGACY_CATCHALL_IDS = new Set(["non_qm"]);
 
@@ -42,9 +48,17 @@ export const tenantProductsQueryKey = ["lux", "tenant", "products"] as const;
 export interface UseTenantProductsOptions {
   /** When false (default), filters out legacy catch-all products. */
   includeLegacy?: boolean;
-  /** When true, includes products with ``enabled: false`` from the API. */
+  /**
+   * When true, includes products with ``enabled: false`` from the API.
+   * Note: this is now a UI-layer filter — the store always fetches the full
+   * catalog (includeDisabled: true internally), so two callers with different
+   * values here share the same underlying HTTP call.
+   */
   includeDisabled?: boolean;
-  /** Override the React Query staleTime (ms). Default 5 minutes. */
+  /**
+   * Previously overrode React Query staleTime. Now silently ignored — the
+   * store owns freshness (60 s module-level timer).
+   */
   staleTime?: number;
 }
 
@@ -64,18 +78,21 @@ export function useTenantProducts(
 ): UseTenantProductsResult {
   const includeLegacy = options?.includeLegacy ?? false;
   const includeDisabled = options?.includeDisabled ?? false;
-  const staleTime = options?.staleTime ?? 5 * 60 * 1000;
+  // staleTime is accepted for API compat but silently ignored (store owns freshness)
 
-  const query = useQuery({
-    queryKey: [...tenantProductsQueryKey, { includeDisabled }] as const,
-    queryFn: () => getDefaultClient().listTenantProducts({ includeDisabled }),
-    staleTime,
-  });
+  const rawProducts = luxStore((s) => s.products);
+  const productsStatus = luxStore((s) => s.productsStatus);
+  const productsError = luxStore((s) => s.productsError);
+
+  useEffect(() => {
+    luxStore.getState().fetchProducts();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const products = useMemo<TenantProduct[]>(() => {
-    const raw = query.data ?? [];
+    const raw = rawProducts ?? [];
     const filtered = raw.filter((p) => {
       if (!includeLegacy && LEGACY_CATCHALL_IDS.has(p.product_id)) return false;
+      if (!includeDisabled && !(p.enabled ?? true)) return false;
       return true;
     });
     filtered.sort((a, b) => {
@@ -84,7 +101,7 @@ export function useTenantProducts(
       return a.display_name.localeCompare(b.display_name);
     });
     return filtered;
-  }, [query.data, includeLegacy]);
+  }, [rawProducts, includeLegacy, includeDisabled]);
 
   const productById = useMemo(() => {
     const map = new Map<string, TenantProduct>();
@@ -92,12 +109,30 @@ export function useTenantProducts(
     return map;
   }, [products]);
 
+  const isLoading = productsStatus === "loading" || productsStatus === "idle";
+  const isError = productsStatus === "error";
+  const error = productsError ? new Error(productsError) : null;
+
+  // Compatibility shim for callers that destructure `query`.
+  // The shape mirrors the TanStack Query subset that existing consumers use.
+  const query = {
+    data: rawProducts as TenantProduct[] | undefined,
+    isLoading,
+    isError,
+    error,
+    status: productsStatus === "loaded"
+      ? "success"
+      : productsStatus === "error"
+        ? "error"
+        : "pending",
+  } as unknown as UseQueryResult<TenantProduct[], Error>;
+
   return {
     products,
     productById,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: (query.error as Error | null) ?? null,
+    isLoading,
+    isError,
+    error,
     query,
   };
 }

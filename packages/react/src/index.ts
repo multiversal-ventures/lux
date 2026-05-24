@@ -1,3 +1,14 @@
+// Global singleton store (health, version, products)
+export { luxStore, useHealth, useVersion } from "./store/index.js";
+export type {
+  LuxStoreState,
+  HealthSlice,
+  VersionSlice,
+  SliceStatus,
+  UseHealthResult,
+  UseVersionResult,
+} from "./store/index.js";
+
 // SDK session primitives (from refactor/lux-as-sdk architecture)
 export { SessionProvider } from "./SessionProvider.js";
 export { useSession } from "./useSession.js";

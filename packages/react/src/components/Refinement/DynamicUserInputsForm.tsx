@@ -236,10 +236,11 @@ function unitSuffix(unit: string | null | undefined): string | null {
 
 function NumericField({ field, value, disabled, classNames, onChange }: DynamicUserInputFieldRendererProps) {
   const effective = resolveEffectiveValue(field, value);
+  const isPercent = field.type === "percent" || field.type === "percentage";
   const display =
     effective == null
       ? ""
-      : field.type === "percent" && typeof effective === "number"
+      : isPercent && typeof effective === "number"
         ? String(Math.round(effective * 10000) / 100)
         : String(effective);
   const input = (
@@ -247,10 +248,12 @@ function NumericField({ field, value, disabled, classNames, onChange }: DynamicU
       type="number"
       inputMode="decimal"
       value={display}
-      step={field.step ?? (field.type === "percent" ? 5 : undefined)}
-      min={field.minimum ?? (field.type === "percent" ? 0 : undefined)}
-      max={field.maximum ?? (field.type === "percent" ? 100 : undefined)}
+      step={field.step ?? (isPercent ? 5 : undefined)}
+      min={field.minimum ?? (isPercent ? 0 : undefined)}
+      max={field.maximum ?? (isPercent ? 100 : undefined)}
       disabled={disabled}
+      placeholder={`${field.type === "currency" ? "$" : field.type === "integer" ? "0" : field.type === "number" ? "0.0" : 
+        isPercent ? "0%" : ""}`}
       onChange={(e) => {
         const raw = e.target.value.trim();
         if (raw === "") {
@@ -260,7 +263,7 @@ function NumericField({ field, value, disabled, classNames, onChange }: DynamicU
         const parsed = Number(raw);
         if (!Number.isFinite(parsed)) return;
         // Convert percent (UI shows 50) back to fraction (0.5) before storing.
-        onChange(field.type === "percent" ? parsed / 100 : parsed);
+        onChange(isPercent ? parsed / 100 : parsed);
       }}
       className={classNames?.input}
       aria-label={field.label}
@@ -336,6 +339,7 @@ function pickDefaultRenderer(field: UserInputField): DynamicUserInputFieldRender
   if (field.derive_options_from === "case.document_years" || field.type === "year") return YearField;
   switch (field.type) {
     case "percent":
+    case "percentage":
     case "currency":
     case "integer":
     case "number":

@@ -9,20 +9,6 @@ export type {
   UseVersionResult,
 } from "./store/index.js";
 
-// SSE event + review agent stores (moved from gunnr-app)
-export {
-  useCaseEventStore,
-  getStoredEventHead,
-  setStoredEventHead,
-  clearStoredEventHead,
-  useReviewAgentStore,
-} from "./store/index.js";
-export type {
-  TenantRestriction,
-  ReviewAgentStatus,
-  PageDecision,
-  ReviewMetadata,
-} from "./store/index.js";
 
 // SDK session primitives (from refactor/lux-as-sdk architecture)
 export { SessionProvider } from "./SessionProvider.js";

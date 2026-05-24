@@ -180,6 +180,11 @@ export interface DirectUploadOptions {
 	onProgress?: (progress: DirectUploadProgress) => void;
 	loanProductIds?: string[];
 	calculationTrack?: string;
+	/** Required-at-create operator inputs keyed by product id.
+	 *  Shape: ``{ [productId]: { inputs: { [fieldName]: value } } }``
+	 *  Stored on the case and threaded into the bootstrap manifest so the
+	 *  first qualify run never trips the pre-eval input gate. */
+	initialContext?: Record<string, { inputs?: Record<string, unknown> }>;
 }
 
 export interface AddFilesProgress {

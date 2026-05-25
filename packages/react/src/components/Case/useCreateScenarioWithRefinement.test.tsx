@@ -78,6 +78,7 @@ describe("useCreateScenarioWithRefinement", () => {
       product_ids: ["fannie_mae"],
       spec_ids: null,
       note: "first run",
+      context: null,
     });
     expect(mockClient.startCaseScenarioRefinement).toHaveBeenCalledWith("c1", "s1", "r1");
     expect(returned).toMatchObject({

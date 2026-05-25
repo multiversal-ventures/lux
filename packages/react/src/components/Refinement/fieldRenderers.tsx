@@ -85,7 +85,14 @@ export function CurrencyField({
   field, value, disabled, classNames, onChange,
 }: DynamicUserInputFieldRendererProps): ReactNode {
   const effectiveRaw = resolveEffectiveValue(field, value);
-  const numericValue = typeof effectiveRaw === "number" ? effectiveRaw : null;
+  const numericValue = (() => {
+    if (effectiveRaw == null || effectiveRaw === "") return null;
+    if (typeof effectiveRaw === "number") {
+      return Number.isFinite(effectiveRaw) ? effectiveRaw : null;
+    }
+    const n = Number(effectiveRaw);
+    return Number.isFinite(n) ? n : null;
+  })();
   const fmt = getCurrencyFormat(field.unit);
 
   // rawText: what the user is actively typing (no formatting).

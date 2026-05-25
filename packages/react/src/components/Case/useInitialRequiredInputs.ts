@@ -127,14 +127,33 @@ export function useInitialRequiredInputs(
         }
         next[pid] = seeded;
       }
-      // Stable reference when nothing actually changed — avoids downstream
-      // memo/effect churn caused by a new-object-same-value setState.
+      // Value-based equality check: if every product slice has the same
+      // keys and the same values, return `prev` so React bails out. A
+      // reference check (``prev[k] === next[k]``) never matched because
+      // ``seeded`` is freshly spread every iteration — the old bail-out
+      // never fired and downstream memos / effects churned on every
+      // selectedProductIds re-render.
       const prevKeys = Object.keys(prev).sort();
       const nextKeys = Object.keys(next).sort();
-      const same =
-        prevKeys.length === nextKeys.length &&
-        prevKeys.every((k, i) => k === nextKeys[i] && prev[k] === next[k]);
-      return same ? prev : next;
+      if (
+        prevKeys.length !== nextKeys.length ||
+        !prevKeys.every((k, i) => k === nextKeys[i])
+      ) {
+        return next;
+      }
+      for (const k of nextKeys) {
+        const pf = prev[k] ?? {};
+        const nf = next[k];
+        const pfk = Object.keys(pf).sort();
+        const nfk = Object.keys(nf).sort();
+        if (
+          pfk.length !== nfk.length ||
+          !pfk.every((fk, i) => fk === nfk[i] && pf[fk] === nf[fk])
+        ) {
+          return next;
+        }
+      }
+      return prev;
     });
   }, [selectedProductIds, productById]);
 

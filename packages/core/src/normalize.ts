@@ -113,11 +113,7 @@ export function normalizeRefinement(r: {
 	context?: Record<string, { inputs?: Record<string, unknown> }> | null;
 	user_inputs_schema?: unknown | null;
 }): NormalizedRefinement {
-	console.log(
-		"[FE-DEBUG] normalizeRefinement input:",
-		{ refinement_id: r.refinement_id, context: r.context, user_inputs_schema: r.user_inputs_schema },
-	);
-	const normalized: NormalizedRefinement = {
+	return {
 		refinement_id: r.refinement_id,
 		scenario_id: r.scenario_id,
 		refinement_num: r.refinement_num ?? null,
@@ -130,11 +126,6 @@ export function normalizeRefinement(r: {
 		context: r.context ?? null,
 		user_inputs_schema: r.user_inputs_schema ?? null,
 	};
-	console.log(
-		"[FE-DEBUG] normalizeRefinement output context_keys:",
-		normalized.context ? Object.keys(normalized.context) : "null",
-	);
-	return normalized;
 }
 
 /**

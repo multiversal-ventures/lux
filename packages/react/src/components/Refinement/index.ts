@@ -80,10 +80,13 @@ export type {
 
 export {
   DynamicUserInputsForm,
+  DynamicUserInputsFormFields,
   applyContextChange,
+  validateInitialRequiredInputs,
 } from "./DynamicUserInputsForm.js";
 export type {
   DynamicUserInputsFormProps,
+  DynamicUserInputsFormFieldsProps,
   DynamicUserInputsFormClassNames,
   DynamicUserInputsFormSlots,
   DynamicUserInputFieldRenderer,

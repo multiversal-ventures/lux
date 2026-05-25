@@ -628,6 +628,63 @@
           }
         }
       },
+      "patch": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Update Case",
+        "description": "Update mutable case metadata (currently: display name).\n\nOnly the fields present in the request body are modified.\nTenant/operator only \u2014 portal tokens cannot rename cases.",
+        "operationId": "update_case_api_cases__case_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": [
           "cases"
@@ -933,6 +990,131 @@
         }
       }
     },
+    "/api/cases/{case_id}/identities": {
+      "get": {
+        "tags": [
+          "identities"
+        ],
+        "summary": "List Identities",
+        "description": "List borrower identities for a case: persons + entities + financial institutions.\n\nBy default returns the flat case-level view. Pass\n``?scenario_id=...`` to filter through the active product's\n``borrowers:`` assembly so the response matches what the scenario's\nBorrowers tab shows (e.g. DSCR returns a property primary with\nlandlord-person relationships, no tenants).\n\nResults are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.\nThe cache key includes ``scenario_id`` when present so scenario-\npinned and unfiltered results don't share state.",
+        "operationId": "list_identities_api_cases__case_id__identities_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "When set, applies the scenario's active product borrower assembly (per ``loan_products.yaml``). Returns the same headline-property + folded-relationships shape the refinement detail endpoint emits. When omitted (default) the response is the legacy flat list of every person and entity on the case.",
+              "title": "Scenario Id"
+            },
+            "description": "When set, applies the scenario's active product borrower assembly (per ``loan_products.yaml``). Returns the same headline-property + folded-relationships shape the refinement detail endpoint emits. When omitted (default) the response is the legacy flat list of every person and entity on the case."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IdentityInfo"
+                  },
+                  "title": "Response List Identities Api Cases  Case Id  Identities Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/relationships": {
+      "get": {
+        "tags": [
+          "relationships"
+        ],
+        "summary": "List Relationships",
+        "description": "List all relationships for a case with symmetric fan-out.\n\nEach symmetric relationship type is emitted twice (A\u2192B and B\u2192A) so callers\ncan traverse the graph in either direction without client-side mirroring.\nResults are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.",
+        "operationId": "list_relationships_api_cases__case_id__relationships_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RelationshipInfo"
+                  },
+                  "title": "Response List Relationships Api Cases  Case Id  Relationships Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/stages/{stage}/excel": {
       "get": {
         "tags": [
@@ -1165,6 +1347,53 @@
               "type": "string",
               "format": "uuid",
               "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/files/download-zip": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Download Files Zip",
+        "description": "Download all uploaded files for a case as a single ZIP archive.\n\nThe archive is cached in Redis after the first build and served from\ncache on subsequent requests. The cache is invalidated automatically\nwhen new files are uploaded (``POST /files``). A TTL backstop (default\n1 hour, override with ``ZIP_CACHE_TTL`` env var) ensures stale entries\nnever linger indefinitely.\n\nFiles are fetched from the file store by content hash. Files missing\nfrom storage are skipped with a warning rather than failing the whole\ndownload.",
+        "operationId": "download_files_zip_api_cases__case_id__files_download_zip_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
             }
           }
         ],
@@ -2546,6 +2775,81 @@
         }
       }
     },
+    "/api/cases/{case_id}/extractions/structured": {
+      "get": {
+        "tags": [
+          "extractions"
+        ],
+        "summary": "List Structured Extractions",
+        "description": "Return extractions grouped into ontology regions for a document type.\n\nLoads the ontology (DB-first, disk fallback) and assembles per-document\nstructured views that organise field/row extractions by region.\n\nFilters:\n  ?doc_type=<str>         \u2014 required; selects all docs of this type\n  &doc_id=<uuid>          \u2014 optional; narrows to a single document",
+        "operationId": "list_structured_extractions_api_cases__case_id__extractions_structured_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "doc_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Doc Type"
+            }
+          },
+          {
+            "name": "doc_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructuredExtractionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/banking": {
       "get": {
         "tags": [
@@ -2627,6 +2931,148 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClassifiedTransactionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quarantine/{quarantine_id}/rerun": {
+      "post": {
+        "tags": [
+          "quarantine"
+        ],
+        "summary": "Rerun Quarantined Item",
+        "description": "Operator action: re-run the resolver on this case.\n\nTransitions the quarantine item back to 'proposed' so the resolver\nevaluates it fresh. Does not accept user edits \u2014 if direct editing is\nneeded, a support_admin uses the /decide endpoint.",
+        "operationId": "rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post",
+        "parameters": [
+          {
+            "name": "quarantine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Quarantine Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "operator",
+              "title": "X-User-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Rerun Quarantined Item Api Quarantine  Quarantine Id  Rerun Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quarantine/{quarantine_id}/confirm": {
+      "post": {
+        "tags": [
+          "quarantine"
+        ],
+        "summary": "Confirm Quarantined Item",
+        "description": "Operator action: accept the resolver's output as correct.\n\nTransitions the quarantine item to 'confirmed'. No re-resolution; the\noperator is explicitly approving the existing result.",
+        "operationId": "confirm_quarantined_item_api_quarantine__quarantine_id__confirm_post",
+        "parameters": [
+          {
+            "name": "quarantine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Quarantine Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "operator",
+              "title": "X-User-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Confirm Quarantined Item Api Quarantine  Quarantine Id  Confirm Post"
                 }
               }
             }
@@ -4361,6 +4807,17 @@
             ],
             "title": "Spec Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "pool_version": {
             "type": "integer",
             "title": "Pool Version"
@@ -4698,6 +5155,14 @@
               }
             ],
             "title": "Spec Id"
+          },
+          "spec_filter": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Spec Filter",
+            "default": []
           }
         },
         "type": "object",
@@ -5573,6 +6038,27 @@
               }
             ]
           },
+          "context_bbox": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BboxResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "merge_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merge Method"
+          },
           "ocr_text_snippet": {
             "anyOf": [
               {
@@ -5763,6 +6249,14 @@
             "format": "uuid",
             "title": "Id"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "entity"
+            ],
+            "title": "Kind"
+          },
           "name": {
             "anyOf": [
               {
@@ -5785,6 +6279,17 @@
             ],
             "title": "Role"
           },
+          "role_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Hint"
+          },
           "entity_type": {
             "anyOf": [
               {
@@ -5795,10 +6300,6 @@
               }
             ],
             "title": "Entity Type"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
           },
           "borrower_class": {
             "type": "string",
@@ -5813,21 +6314,75 @@
             "title": "Borrower Class",
             "default": "other"
           },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "Included"
+          },
           "needs_review": {
             "type": "boolean",
             "title": "Needs Review",
             "default": false
+          },
+          "mention_count": {
+            "type": "integer",
+            "title": "Mention Count",
+            "default": 0
+          },
+          "doc_count": {
+            "type": "integer",
+            "title": "Doc Count",
+            "default": 0
+          },
+          "relationships": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/IdentityInfo"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationships"
           }
         },
         "type": "object",
         "required": [
           "id",
+          "kind",
           "name",
           "role",
-          "entity_type",
-          "status"
+          "entity_type"
         ],
-        "title": "IdentityInfo"
+        "title": "IdentityInfo",
+        "description": "Unified case-identity read model. Discriminator field: kind."
+      },
+      "IdentityRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "entity"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind"
+        ],
+        "title": "IdentityRef",
+        "description": "Lightweight reference to one end of a relationship."
       },
       "InputProvenance": {
         "properties": {
@@ -6350,6 +6905,14 @@
             "type": "integer",
             "title": "Sort Order",
             "default": 0
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Groups",
+            "default": []
           }
         },
         "type": "object",
@@ -6720,6 +7283,61 @@
         ],
         "title": "RejectRequest"
       },
+      "RelationshipInfo": {
+        "properties": {
+          "relationship_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Relationship Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IdentityRef"
+          },
+          "target": {
+            "$ref": "#/components/schemas/IdentityRef"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "ownership_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ownership Pct"
+          },
+          "effective_period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Period"
+          },
+          "is_primary": {
+            "type": "boolean",
+            "title": "Is Primary",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "relationship_id",
+          "source",
+          "target",
+          "type"
+        ],
+        "title": "RelationshipInfo",
+        "description": "One directed edge in the case relationship graph."
+      },
       "RenderingHints": {
         "properties": {
           "is_non_qm": {
@@ -6964,6 +7582,31 @@
         ],
         "title": "ReportListItem",
         "description": "One entry in the GET /cases/{case_id}/reports list."
+      },
+      "RerunRequest": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Case Id"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "RerunRequest"
       },
       "SampleFileInfo": {
         "properties": {
@@ -7377,6 +8020,39 @@
             "type": "array",
             "title": "Sections",
             "default": []
+          },
+          "dti_front_end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dti Front End"
+          },
+          "dti_back_end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dti Back End"
+          },
+          "total_monthly_debt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Monthly Debt"
           }
         },
         "type": "object",
@@ -8023,6 +8699,62 @@
         ],
         "title": "StartScenarioResponse"
       },
+      "StructuredDocument": {
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Doc Id"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "regions": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc_id",
+          "file_id",
+          "regions"
+        ],
+        "title": "StructuredDocument",
+        "description": "One document's extractions grouped into ontology regions.\n\n``regions`` maps region_id \u2192 value:\n  static          \u2192 dict[str, Any]   (canonical_key suffix \u2192 raw value)\n  table/adaptive  \u2192 list[dict]       (one dict per extracted row)"
+      },
+      "StructuredExtractionsResponse": {
+        "properties": {
+          "doc_type": {
+            "type": "string",
+            "title": "Doc Type"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredDocument"
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc_type",
+          "documents"
+        ],
+        "title": "StructuredExtractionsResponse",
+        "description": "Response for GET /extractions/structured."
+      },
       "SuggestedProductsResponse": {
         "properties": {
           "case_id": {
@@ -8344,6 +9076,23 @@
           "doc_id"
         ],
         "title": "TransactionsResponse"
+      },
+      "UpdateCaseRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "UpdateCaseRequest"
       },
       "UploadConfig": {
         "properties": {

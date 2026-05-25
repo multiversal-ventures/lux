@@ -86,6 +86,13 @@ export interface NormalizedRefinement {
 	spec_ids: string[];
 	note: string | null;
 	identities: import("./generated.js").components["schemas"]["IdentityInfo"][];
+	/** Operator-supplied input overrides keyed by product id.
+	 *  Shape: ``{ [productId]: { inputs: { [fieldName]: value } } }``
+	 *  Persisted on the manifest and used to re-populate the operator form
+	 *  on the refine page. Preserved verbatim — no normalization. */
+	context: Record<string, { inputs?: Record<string, unknown> }> | null;
+	/** Schema for operator-adjustable inputs (when the detail endpoint returned one). */
+	user_inputs_schema: unknown | null;
 }
 
 /**
@@ -103,6 +110,8 @@ export function normalizeRefinement(r: {
 	spec_ids?: string[] | null;
 	note?: string | null;
 	identities?: import("./generated.js").components["schemas"]["IdentityInfo"][] | null;
+	context?: Record<string, { inputs?: Record<string, unknown> }> | null;
+	user_inputs_schema?: unknown | null;
 }): NormalizedRefinement {
 	return {
 		refinement_id: r.refinement_id,
@@ -114,6 +123,8 @@ export function normalizeRefinement(r: {
 		spec_ids: parseStringArray(r.spec_ids),
 		note: r.note ?? null,
 		identities: r.identities ?? [],
+		context: r.context ?? null,
+		user_inputs_schema: r.user_inputs_schema ?? null,
 	};
 }
 

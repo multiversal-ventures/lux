@@ -1,3 +1,15 @@
+// Global singleton store (health, version, products)
+export { luxStore, useHealth, useVersion } from "./store/index.js";
+export type {
+  LuxStoreState,
+  HealthSlice,
+  VersionSlice,
+  SliceStatus,
+  UseHealthResult,
+  UseVersionResult,
+} from "./store/index.js";
+
+
 // SDK session primitives (from refactor/lux-as-sdk architecture)
 export { SessionProvider } from "./SessionProvider.js";
 export { useSession } from "./useSession.js";
@@ -125,6 +137,8 @@ export {
   useScenarioRunningState,
   useMarkScenarioJustStarted,
   ScenarioRunningPanel,
+  useScenarioRequiredInputs,
+  ScenarioRequiredInputsBanner,
   useScenarioReferences,
   payloadFromRow,
   ScenarioReferenceTable,
@@ -187,7 +201,9 @@ export {
   RefinementTabs,
   RefinementExtractionTab,
   DynamicUserInputsForm,
+  DynamicUserInputsFormFields,
   applyContextChange,
+  validateInitialRequiredInputs,
 } from "./components/Refinement/index.js";
 export type {
   ProductCategory,
@@ -221,6 +237,7 @@ export type {
   RefinementExtractionTabClassNames,
   RefinementExtractionTabSlots,
   DynamicUserInputsFormProps,
+  DynamicUserInputsFormFieldsProps,
   DynamicUserInputsFormClassNames,
   DynamicUserInputsFormSlots,
   DynamicUserInputFieldRenderer,
@@ -251,6 +268,9 @@ export {
   groupProductsByApproach,
   toApproachOptions,
   toProductOptions,
+  getProductDisplayLabel,
+  validateRequiredDocuments,
+  getMissingDocsErrorMessage,
   useSuggestedProducts,
   suggestedProductsQueryKey,
   CaseWorkflowProvider,
@@ -297,6 +317,10 @@ export type {
   TenantProduct,
   UseTenantProductsOptions,
   UseTenantProductsResult,
+  ProductLabelSource,
+  ProductRequiredDocsSource,
+  MissingProductDocs,
+  ValidateRequiredDocumentsResult,
   SuggestedProducts,
   ProductSuggestion,
   UseSuggestedProductsOptions,
@@ -315,6 +339,11 @@ export type {
   CaseWorkflowState,
   CaseWorkflowActions,
   CaseWorkflowStore,
+  UseInitialRequiredInputsResult,
+} from "./components/Case/index.js";
+export {
+  toRefinementContext,
+  useInitialRequiredInputs,
 } from "./components/Case/index.js";
 export type {
   ReportRendererProps,
@@ -354,6 +383,9 @@ export type {
   ScenarioRunningPanelProps,
   ScenarioRunningPanelClassNames,
   ScenarioRunningPanelSlots,
+  MissingProductInputs,
+  UseScenarioRequiredInputsResult,
+  ScenarioRequiredInputsBannerProps,
   UseScenarioReferencesResult,
   ScenarioReferenceRow,
   ScenarioReferenceTableProps,

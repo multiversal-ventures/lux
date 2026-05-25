@@ -78,6 +78,18 @@ export type {
 } from "./useTenantProducts.js";
 
 export {
+  getProductDisplayLabel,
+  validateRequiredDocuments,
+  getMissingDocsErrorMessage,
+} from "./productMetadata.js";
+export type {
+  ProductLabelSource,
+  ProductRequiredDocsSource,
+  MissingProductDocs,
+  ValidateRequiredDocumentsResult,
+} from "./productMetadata.js";
+
+export {
   useSuggestedProducts,
   suggestedProductsQueryKey,
 } from "./useSuggestedProducts.js";
@@ -127,3 +139,9 @@ export type {
   CaseWorkflowActions,
   CaseWorkflowStore,
 } from "../../state/caseWorkflowStore.js";
+
+export {
+  toRefinementContext,
+  useInitialRequiredInputs,
+} from "./useInitialRequiredInputs.js";
+export type { UseInitialRequiredInputsResult } from "./useInitialRequiredInputs.js";

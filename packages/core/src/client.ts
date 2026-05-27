@@ -295,6 +295,16 @@ export class VeritasClient {
 		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
 	}
 
+	async listTenantCases(limit = 20): Promise<components["schemas"]["CaseResponse"][]> {
+		return this.requestJson<components["schemas"]["CaseResponse"][]>(
+			`/api/cases?limit=${limit}`,
+		);
+	}
+
+	async deleteCase(caseId: string): Promise<void> {
+		await this.requestJson<unknown>(`/api/cases/${caseId}`, { method: "DELETE" });
+	}
+
 	async listTenantProducts(options?: { includeDisabled?: boolean }): Promise<components["schemas"]["ProductResponse"][]> {
 		const qs = options?.includeDisabled ? "?include_disabled=true" : "";
 		return this.requestJson<components["schemas"]["ProductResponse"][]>(`/api/products${qs}`);

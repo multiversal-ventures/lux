@@ -1,5 +1,6 @@
 export { useCase } from "./useCase.js";
 export { useCases } from "./useCases.js";
+export { useCasesList, useDeleteCase, casesListQueryKey } from "./useCasesList.js";
 export { useSpecs } from "./useSpecs.js";
 export { useSpecDetail } from "./useSpecDetail.js";
 export { useDocuments } from "./useDocuments.js";

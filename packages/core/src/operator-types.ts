@@ -180,6 +180,8 @@ export interface DirectUploadOptions {
 	onProgress?: (progress: DirectUploadProgress) => void;
 	loanProductIds?: string[];
 	calculationTrack?: string;
+	/** Operator-supplied display name for the new case (create-case form). */
+	caseName?: string;
 	/** Required-at-create operator inputs keyed by product id.
 	 *  Shape: ``{ [productId]: { inputs: { [fieldName]: value } } }``
 	 *  Stored on the case and threaded into the bootstrap manifest so the

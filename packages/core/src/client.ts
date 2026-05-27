@@ -281,11 +281,13 @@ export class VeritasClient {
 
 	async createCase(body?: {
 		spec_id?: string | null;
+		name?: string | null;
 		spec_filter?: string[];
 		initial_context?: Record<string, Record<string, unknown>> | null;
 	}): Promise<{ case_id: string; spec_id: string | null }> {
 		const payload: Record<string, unknown> = {};
 		if (body?.spec_id) payload.spec_id = body.spec_id;
+		if (body?.name) payload.name = body.name;
 		if (body?.spec_filter && body.spec_filter.length > 0) payload.spec_filter = body.spec_filter;
 		if (body?.initial_context) payload.initial_context = body.initial_context;
 		return this.requestJson(`/api/cases`, { method: "POST", body: JSON.stringify(payload) });

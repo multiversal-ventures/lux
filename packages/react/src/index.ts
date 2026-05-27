@@ -59,6 +59,9 @@ export type {
 export {
 	useCase,
 	useCases,
+	useCasesList,
+	useDeleteCase,
+	casesListQueryKey,
 	useSpecs,
 	useSpecDetail,
 	useDocuments,

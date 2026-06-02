@@ -3518,6 +3518,17 @@ export interface components {
             label: string;
         };
         /**
+         * RequiredWhenConditionResponse
+         * @description Conditional-requirement predicate: the field is required only when
+         *     sibling input ``field`` equals ``equals``.
+         */
+        RequiredWhenConditionResponse: {
+            /** Field */
+            field: string;
+            /** Equals */
+            equals: unknown;
+        };
+        /**
          * UserInputFieldResponse
          * @description One operator-adjustable spec input declared by a policy spec.
          *
@@ -3546,6 +3557,7 @@ export interface components {
              * @default false
              */
             required_at_create: boolean;
+            required_when?: components["schemas"]["RequiredWhenConditionResponse"] | null;
             /** Minimum */
             minimum?: number | null;
             /** Maximum */

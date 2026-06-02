@@ -314,9 +314,16 @@ export function validateInitialRequiredInputs(
   const requiredAtCreateOnly = options?.requiredAtCreateOnly ?? true;
   const errors: Record<string, string> = {};
   for (const field of fields) {
-    const isRequired = requiredAtCreateOnly
-      ? Boolean(field.required_at_create)
-      : Boolean(field.required);
+    // Conditional requirement wins when declared: the field is required only
+    // when a sibling input matches the predicate (e.g. Purchase Price is
+    // required only for transaction_type == purchase). Otherwise fall back to
+    // the static required_at_create / required flag.
+    const requiredWhen = field.required_when;
+    const isRequired = requiredWhen?.field
+      ? value[requiredWhen.field] === requiredWhen.equals
+      : requiredAtCreateOnly
+        ? Boolean(field.required_at_create)
+        : Boolean(field.required);
     const raw = value[field.name];
     const isMissing = raw === undefined || raw === null || raw === "";
     if (isRequired && isMissing) { errors[field.name] = `${field.label} is required`; continue; }

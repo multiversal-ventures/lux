@@ -88,16 +88,23 @@ export function useScenarioRequiredInputs(
     return out;
   }, [selectedProductIds, productById]);
 
-  // Subset: products where existingContext is missing at least one field.
+  // Subset: products where existingContext is missing at least one field that
+  // is actually required given the current inputs. A field with a
+  // ``required_when`` predicate is required only when its sibling input matches
+  // (e.g. Purchase Price is required only for transaction_type == purchase) —
+  // refis must not be flagged for an absent purchase price.
   const missingProducts = useMemo(() => {
     return productsNeedingInputs.filter(({ product, fields }) => {
       const existing = existingContext?.[product.product_id]?.inputs ?? {};
-      return fields.some(
-        (f) =>
-          existing[f.name] === undefined ||
-          existing[f.name] === null ||
-          existing[f.name] === "",
-      );
+      return fields.some((f) => {
+        const requiredWhen = f.required_when;
+        const isRequired = requiredWhen?.field
+          ? existing[requiredWhen.field] === requiredWhen.equals
+          : Boolean(f.required_at_create);
+        if (!isRequired) return false;
+        const v = existing[f.name];
+        return v === undefined || v === null || v === "";
+      });
     });
   }, [productsNeedingInputs, existingContext]);
 

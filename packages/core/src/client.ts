@@ -558,18 +558,39 @@ export class VeritasClient {
 				return;
 			}
 
+			// Invalid upstream (502/500/HTML error page): never read the body as
+			// a stream — that holds a socket open against the browser's 6-conn
+			// per-host limit until the dev server appears to hang. Bail early.
+			if (!res.ok) {
+				onError?.(new Error(`Event stream HTTP ${res.status}`));
+				return;
+			}
+
 			if (!res.body) {
 				onError?.(new Error("No response body from event stream"));
 				return;
 			}
 
+			// Idle watchdog: a half-open/invalid upstream can accept the socket
+			// then send nothing — reader.read() awaits forever, leaking a
+			// connection slot. Abort if no bytes (incl. heartbeats) arrive in
+			// IDLE_TIMEOUT_MS so the socket is released and onError fires.
+			const IDLE_TIMEOUT_MS = 45_000;
+			let idleTimer: ReturnType<typeof setTimeout> | null = null;
+			const resetIdle = () => {
+				if (idleTimer != null) clearTimeout(idleTimer);
+				idleTimer = setTimeout(() => controller.abort(), IDLE_TIMEOUT_MS);
+			};
+
 			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
 			let buffer = "";
 			try {
+				resetIdle();
 				while (true) {
 					const { done, value } = await reader.read();
 					if (done) break;
+					resetIdle();
 					buffer += decoder.decode(value, { stream: true });
 					const lines = buffer.split("\n");
 					buffer = lines.pop() ?? "";
@@ -589,6 +610,8 @@ export class VeritasClient {
 				if (!controller.signal.aborted) {
 					onError?.(new Error("Event stream disconnected"));
 				}
+			} finally {
+				if (idleTimer != null) clearTimeout(idleTimer);
 			}
 		};
 

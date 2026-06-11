@@ -2,6 +2,7 @@ import type {
 	BankingResponse,
 	CaseEvent,
 	CaseResponse,
+	ClassifiedTransactionsResponse,
 	DocumentResponse,
 	ExtractionResponse,
 	OperatorClientError,
@@ -273,6 +274,19 @@ export function createCaseMethods(
 		}
 	}
 
+	async function getBankingTransactions(
+		caseId: string,
+	): Promise<Result<ClassifiedTransactionsResponse>> {
+		try {
+			const res = await fetch(`${base}/api/cases/${caseId}/banking/transactions`, {
+				headers: authHeaders(),
+			});
+			return await request<ClassifiedTransactionsResponse>(res);
+		} catch {
+			return { data: null, error: { status: 0, message: "Network error" } };
+		}
+	}
+
 	async function listTransactions(caseId: string, docId: string): Promise<Result<TransactionsResponse>> {
 		try {
 			const res = await fetch(
@@ -339,6 +353,7 @@ export function createCaseMethods(
 		listExtractions,
 		getStructuredExtractions,
 		getBanking,
+		getBankingTransactions,
 		listTransactions,
 		pagePngUrl,
 		createPortalToken,

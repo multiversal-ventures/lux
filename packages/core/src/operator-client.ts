@@ -23,6 +23,8 @@ export type {
 	BankingAccount,
 	BankingBorrowerRollup,
 	BankingResponse,
+	ClassifiedTransaction,
+	ClassifiedTransactionsResponse,
 	TransactionRow,
 	TransactionRegion,
 	TransactionsResponse,

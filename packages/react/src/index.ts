@@ -69,6 +69,7 @@ export {
 	useDocTypeRegions,
 	useCreditReport,
 	useBanking,
+	useBankingTransactions,
 	useAudit,
 	useAuthedBlob,
 	useQualification,

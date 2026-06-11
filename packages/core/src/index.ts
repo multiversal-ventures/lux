@@ -106,6 +106,8 @@ export type {
 	BankingResponse,
 	BankingAccount,
 	BankingBorrowerRollup,
+	ClassifiedTransaction,
+	ClassifiedTransactionsResponse,
 	BboxResponse,
 	TransactionsResponse,
 	TransactionRegion,

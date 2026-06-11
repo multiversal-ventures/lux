@@ -7,6 +7,7 @@ export { useDocuments } from "./useDocuments.js";
 export { useExtractions } from "./useExtractions.js";
 export { useDocTypeRegions, useCreditReport } from "./useDocTypeRegions.js";
 export { useBanking } from "./useBanking.js";
+export { useBankingTransactions } from "./useBankingTransactions.js";
 export { useAudit } from "./useAudit.js";
 export { useAuthedBlob } from "./useAuthedBlob.js";
 export { useQualification } from "./useQualification.js";

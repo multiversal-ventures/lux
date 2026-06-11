@@ -240,4 +240,28 @@ describe("createOperatorClient", () => {
 			expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/case-1/banking");
 		});
 	});
+
+	describe("getBankingTransactions", () => {
+		beforeEach(() => {
+			vi.stubGlobal("fetch", vi.fn());
+		});
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it("GETs /cases/{id}/banking/transactions with auth", async () => {
+			vi.mocked(fetch).mockResolvedValue({
+				ok: true,
+				json: async () => ({ case_id: "case-1", transactions: [], total_count: 0 }),
+			} as unknown as Response);
+			const res = await client.getBankingTransactions("case-1");
+			expect(res.error).toBeNull();
+			expect(res.data?.total_count).toBe(0);
+			expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
+				"/api/cases/case-1/banking/transactions",
+			);
+			const headers = vi.mocked(fetch).mock.calls[0][1]?.headers as Record<string, string>;
+			expect(headers["Authorization"]).toBe("Bearer tok");
+		});
+	});
 });

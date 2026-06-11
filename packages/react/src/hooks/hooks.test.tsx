@@ -12,6 +12,7 @@ import {
 	useDocuments,
 	useExtractions,
 	useBanking,
+	useBankingTransactions,
 	useAudit,
 } from "./index.js";
 import { useOperatorQuery } from "./_useOperatorQuery.js";
@@ -118,6 +119,20 @@ describe("query hooks", () => {
 		});
 		renderHook(() => useBanking("c"), { wrapper: makeWrapper(client) });
 		await waitFor(() => expect(client.getBanking).toHaveBeenCalledWith("c"));
+	});
+
+	it("useBankingTransactions calls getBankingTransactions", async () => {
+		const client = makeClient({
+			getBankingTransactions: vi.fn().mockResolvedValue({
+				data: { case_id: "c", transactions: [], total_count: 0 },
+				error: null,
+			}),
+		});
+		const { result } = renderHook(() => useBankingTransactions("c"), {
+			wrapper: makeWrapper(client),
+		});
+		await waitFor(() => expect(result.current.isSuccess).toBe(true));
+		expect(client.getBankingTransactions).toHaveBeenCalledWith("c");
 	});
 
 	it("useAudit calls getAudit", async () => {

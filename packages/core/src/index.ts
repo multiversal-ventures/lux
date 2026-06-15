@@ -94,6 +94,8 @@ export type {
 	OperatorClientError,
 	CaseEvent,
 	CaseEventType,
+	CaseEventData,
+	AgentEventMeta,
 	CaseResponse,
 	SpecResponse,
 	Result,

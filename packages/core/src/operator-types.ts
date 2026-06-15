@@ -101,12 +101,23 @@ export type CaseEventType =
 	| "case.system.completed"
 	| (string & Record<never, never>); // open: accepts unknown future types without losing inference on the known literals
 
-export interface CaseEvent {
-	event_id: number;
+/** Generated from the Veritas API (`CaseEventResponse`); see `pnpm codegen`. */
+type GeneratedCaseEvent = components["schemas"]["CaseEventResponse"];
+
+/** `_agent` meta on correction-agent events. Generated from the API. */
+export type AgentEventMeta = components["schemas"]["AgentEventMeta"];
+
+/** Typed `event_data` for a case event. Generated from the API. */
+export type CaseEventData = components["schemas"]["CaseEventData"];
+
+/**
+ * One case event. Shape is generated from the API (`CaseEventResponse`); the
+ * `event_type` is narrowed to the known SSE literals (still open to unknown
+ * future strings via `CaseEventType`).
+ */
+export type CaseEvent = Omit<GeneratedCaseEvent, "event_type"> & {
 	event_type: CaseEventType;
-	event_data: Record<string, unknown> | null;
-	created_at: string | null;
-}
+};
 
 export interface GenerateSpecResult {
 	yaml: string;

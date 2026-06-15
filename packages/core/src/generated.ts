@@ -761,6 +761,9 @@ export interface paths {
         /**
          * List Refinements
          * @description List refinements for a scenario.
+         *
+         *     By default, refinements replaced by an AI correction are hidden; pass
+         *     ``?include_superseded=true`` for the full history.
          */
         get: operations["list_refinements_api_cases__id__scenarios__sid__refinements_get"];
         put?: never;
@@ -1409,7 +1412,9 @@ export interface paths {
          *
          *     Available report names come from the reports/ YAML directory.
          *     When scenario_id is provided, last-generated data is merged from the
-         *     reports table for the scenario's latest manifest.
+         *     reports table for the scenario's latest manifest, and income_report_name
+         *     is resolved from actual SpecResult rows with qualifying income so callers
+         *     don't need to separately determine which income report template to use.
          */
         get: operations["list_case_reports_api_cases__case_id__reports_get"];
         put?: never;
@@ -1556,6 +1561,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_v1_health_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1590,10 +1612,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version */
+        get: operations["version_api_v1_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AgentEventMeta
+         * @description `_agent` meta stamped on every correction-agent event.
+         *
+         *     The correction harness attaches this to each emitted event's
+         *     ``event_data`` (see ``domains.corrections.base``/``queue``). ``reasoning``
+         *     is the full, uncapped model rationale; ``reasoning_preview`` a 240-char cut
+         *     for compact list rendering. ``tier`` is the model tier that produced the
+         *     decision (``fast``/``balanced``/``powerful``).
+         */
+        AgentEventMeta: {
+            /** Domain */
+            domain: string;
+            /** Tier */
+            tier: string;
+            /** Model */
+            model: string;
+            /** Prompt Version */
+            prompt_version?: string | null;
+            /** Reasoning */
+            reasoning?: string | null;
+            /** Reasoning Preview */
+            reasoning_preview?: string | null;
+            /** Approved Correction Id */
+            approved_correction_id?: string | null;
+        };
         /** ApproveRequest */
         ApproveRequest: {
             /** Approved By */
@@ -1762,6 +1827,50 @@ export interface components {
              * @default []
              */
             input_values: components["schemas"]["InputValueResponse"][];
+        };
+        /**
+         * CaseEventData
+         * @description Loose, open shape of a case event's ``event_data`` JSONB.
+         *
+         *     All fields optional and extra keys allowed — different event types carry
+         *     different payloads. The typed fields are the cross-cutting ones the UI
+         *     reads: the ``_agent`` meta, the correction op (``field``/``old_value``/
+         *     ``new_value``, ``reason``/``score_basis``/``reasoning``), the severity
+         *     badge, and a free-text ``message``.
+         */
+        CaseEventData: {
+            _agent?: components["schemas"]["AgentEventMeta"] | null;
+            /** Field */
+            field?: string | null;
+            /** Old Value */
+            old_value?: unknown;
+            /** New Value */
+            new_value?: unknown;
+            /** Reason */
+            reason?: string | null;
+            /** Score Basis */
+            score_basis?: string | null;
+            /** Reasoning */
+            reasoning?: string | null;
+            /** Severity */
+            severity?: ("error" | "warning" | "info") | null;
+            /** Message */
+            message?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * CaseEventResponse
+         * @description One audit/case event — history row and SSE stream payload share it.
+         */
+        CaseEventResponse: {
+            /** Event Id */
+            event_id: number;
+            /** Event Type */
+            event_type: string;
+            event_data?: components["schemas"]["CaseEventData"] | null;
+            /** Created At */
+            created_at?: string | null;
         };
         /** CaseResponse */
         CaseResponse: {
@@ -1941,11 +2050,19 @@ export interface components {
         CreateCaseRequest: {
             /** Spec Id */
             spec_id?: string | null;
+            /** Name */
+            name?: string | null;
             /**
              * Spec Filter
              * @default []
              */
             spec_filter: string[];
+            /** Initial Context */
+            initial_context?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
         };
         /** CreateCaseResponse */
         CreateCaseResponse: {
@@ -2333,6 +2450,24 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HeadlineMetric
+         * @description Big-number headline rendered above the scenario page metadata.
+         *
+         *     Populated when the active loan product declares a
+         *     ``summary.headline_metric`` block in ``loan_products.yaml`` (DSCR uses
+         *     this to surface the DSCR ratio in place of the default
+         *     ``$X,XXX/mo`` total_monthly_income chip). ``value`` is the
+         *     pre-formatted display string (e.g. ``"2.65x"``); the UI renders it
+         *     verbatim with ``label`` as the tooltip / accessibility text so
+         *     operators see which metric drove the headline.
+         */
+        HeadlineMetric: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
         };
         /**
          * IdentityInfo
@@ -2756,6 +2891,11 @@ export interface components {
             /** Refinement Num */
             refinement_num: number | null;
             /**
+             * Source
+             * @default operator
+             */
+            source: string;
+            /**
              * Identities
              * @default []
              */
@@ -2895,6 +3035,30 @@ export interface components {
             user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
         };
         /**
+         * ReportCatalogResponse
+         * @description Response from GET /cases/{case_id}/reports.
+         *
+         *     ``income_report_name`` is the resolved income report for the scenario's
+         *     products — callers should use this instead of guessing from product IDs,
+         *     because product data may not be loaded yet when the UI renders.
+         *
+         *     ``credit_available`` is true when the case has at least one uploaded
+         *     credit report document (CreditReport, SoftPullCreditReport, or
+         *     HardPullCreditReport). Used by the export modal to enable Credit/DTI
+         *     checkboxes without relying on a previously-generated credit report.
+         */
+        ReportCatalogResponse: {
+            /** Reports */
+            reports: components["schemas"]["ReportListItem"][];
+            /** Income Report Name */
+            income_report_name?: string | null;
+            /**
+             * Credit Available
+             * @default false
+             */
+            credit_available: boolean;
+        };
+        /**
          * ReportGenerateRequest
          * @description Body for POST /cases/{case_id}/reports/{report_name}.
          */
@@ -2905,6 +3069,8 @@ export interface components {
             tenant_slug?: string | null;
             /** Agencies */
             agencies?: string[] | null;
+            /** Include */
+            include?: string[] | null;
         };
         /**
          * ReportGenerateResponse
@@ -2944,6 +3110,24 @@ export interface components {
             last_report_id?: string | null;
             /** Last Storage Key */
             last_storage_key?: string | null;
+        };
+        /**
+         * RequiredWhenConditionResponse
+         * @description Conditional-requirement predicate for an operator input.
+         *
+         *     The field is required ONLY when sibling input ``field`` equals
+         *     ``equals``. Lets a spec express "Purchase Price is required when
+         *     transaction_type == purchase" without forcing it on refis. Read by
+         *     the create-case modal (lux ``validateInitialRequiredInputs``) and the
+         *     spec-engine pre-eval gate (``_validate_inputs_pre_eval``), which both
+         *     treat the field as required only when the predicate holds against the
+         *     current input values.
+         */
+        RequiredWhenConditionResponse: {
+            /** Field */
+            field: string;
+            /** Equals */
+            equals: unknown;
         };
         /** RerunRequest */
         RerunRequest: {
@@ -3072,6 +3256,7 @@ export interface components {
             name?: string | null;
             /** Subtitle */
             subtitle?: string | null;
+            headline?: components["schemas"]["HeadlineMetric"] | null;
             eval?: components["schemas"]["SummaryEvalResponse"] | null;
             /**
              * Sections
@@ -3516,17 +3701,6 @@ export interface components {
             value: unknown;
             /** Label */
             label: string;
-        };
-        /**
-         * RequiredWhenConditionResponse
-         * @description Conditional-requirement predicate: the field is required only when
-         *     sibling input ``field`` equals ``equals``.
-         */
-        RequiredWhenConditionResponse: {
-            /** Field */
-            field: string;
-            /** Equals */
-            equals: unknown;
         };
         /**
          * UserInputFieldResponse
@@ -4873,7 +5047,9 @@ export interface operations {
     };
     list_refinements_api_cases__id__scenarios__sid__refinements_get: {
         parameters: {
-            query?: never;
+            query?: {
+                include_superseded?: boolean;
+            };
             header?: never;
             path: {
                 id: string;
@@ -5139,9 +5315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["CaseEventResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -5931,7 +6105,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReportListItem"][];
+                    "application/json": components["schemas"]["ReportCatalogResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6137,6 +6311,28 @@ export interface operations {
             };
         };
     };
+    health_api_v1_health_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     health_health_get: {
         parameters: {
             query?: never;
@@ -6153,13 +6349,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        [key: string]: string;
+                        [key: string]: unknown;
                     };
                 };
             };
         };
     };
     health_api_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    version_api_v1_version_get: {
         parameters: {
             query?: never;
             header?: never;

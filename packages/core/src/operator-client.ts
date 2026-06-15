@@ -30,6 +30,8 @@ export type {
 	TransactionsResponse,
 	CaseEvent,
 	CaseEventType,
+	CaseEventData,
+	AgentEventMeta,
 	GenerateSpecResult,
 	OperatorClientConfig,
 	OperatorClientError,

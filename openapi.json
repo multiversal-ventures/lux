@@ -2062,7 +2062,7 @@
           "scenarios"
         ],
         "summary": "List Refinements",
-        "description": "List refinements for a scenario.",
+        "description": "List refinements for a scenario.\n\nBy default, refinements replaced by an AI correction are hidden; pass\n``?include_superseded=true`` for the full history.",
         "operationId": "list_refinements_api_cases__id__scenarios__sid__refinements_get",
         "security": [
           {
@@ -2088,6 +2088,16 @@
               "type": "string",
               "format": "uuid",
               "title": "Sid"
+            }
+          },
+          {
+            "name": "include_superseded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Superseded"
             }
           }
         ],
@@ -2542,8 +2552,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "$ref": "#/components/schemas/CaseEventResponse"
                   },
                   "title": "Response Get Events Api Cases  Case Id  Events Get"
                 }
@@ -3533,7 +3542,7 @@
           "products"
         ],
         "summary": "List Products",
-        "description": "List the caller's tenant-scoped loan products.\n\nReturns the full ``TenantProductView`` for each row in\n``tenant_products`` (or the YAML fallback when the tenant hasn't been\nseeded yet \u2014 see ``policy.product_registry.list_tenant_products``).\nThe shape is rich enough for Lux to render the approach + product\npickers without a separate config endpoint.",
+        "description": "List the caller's tenant-scoped loan products.\n\nReturns the full ``TenantProductView`` for each row in\n``tenant_products`` (or the YAML fallback when the tenant hasn't been\nseeded yet \u2014 see ``policy.product_registry.list_tenant_products``).\nThe shape is rich enough for Lux to render the approach + product\npickers without a separate config endpoint.\n\n``initial_required_inputs`` is folded in per row so the Create Case\nmodal can render its dynamic form straight from this fetch (no\nsecond round-trip). Each row's schema comes from\n``initial_required_inputs_schema`` which is DB-first\n(``spec_versions`` + ``product_specs`` join, with a YAML fallback\nfor unseeded dev DBs). The wire shape is a flat\n``list[UserInputFieldResponse]`` \u2014 every entry on this list is\nalready scoped to a single product, so the groups+products wrapper\nused by the refine endpoint would degenerate to a single mirror\nentry. Products without any ``required_at_create`` inputs return\n``[]`` so the frontend can do a uniform ``fields.length === 0``\ncheck.",
         "operationId": "list_products_api_products_get",
         "security": [
           {
@@ -3913,7 +3922,7 @@
           "reports"
         ],
         "summary": "List Case Reports",
-        "description": "List available report types and last-generated metadata.\n\nAvailable report names come from the reports/ YAML directory.\nWhen scenario_id is provided, last-generated data is merged from the\nreports table for the scenario's latest manifest.",
+        "description": "List available report types and last-generated metadata.\n\nAvailable report names come from the reports/ YAML directory.\nWhen scenario_id is provided, last-generated data is merged from the\nreports table for the scenario's latest manifest, and income_report_name\nis resolved from actual SpecResult rows with qualifying income so callers\ndon't need to separately determine which income report template to use.",
         "operationId": "list_case_reports_api_cases__case_id__reports_get",
         "security": [
           {
@@ -3955,11 +3964,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ReportListItem"
-                  },
-                  "title": "Response List Case Reports Api Cases  Case Id  Reports Get"
+                  "$ref": "#/components/schemas/ReportCatalogResponse"
                 }
               }
             }
@@ -4338,6 +4343,26 @@
         }
       }
     },
+    "/api/v1/health/live": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_v1_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api V1 Health Live Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -4348,9 +4373,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Health Health Get"
                 }
@@ -4370,11 +4393,31 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "summary": "Version",
+        "operationId": "version_api_v1_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
                   "additionalProperties": {
                     "type": "string"
                   },
                   "type": "object",
-                  "title": "Response Health Api Health Get"
+                  "title": "Response Version Api V1 Version Get"
                 }
               }
             }
@@ -4385,6 +4428,74 @@
   },
   "components": {
     "schemas": {
+      "AgentEventMeta": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "reasoning_preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Preview"
+          },
+          "approved_correction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Correction Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "tier",
+          "model"
+        ],
+        "title": "AgentEventMeta",
+        "description": "`_agent` meta stamped on every correction-agent event.\n\nThe correction harness attaches this to each emitted event's\n``event_data`` (see ``domains.corrections.base``/``queue``). ``reasoning``\nis the full, uncapped model rationale; ``reasoning_preview`` a 240-char cut\nfor compact list rendering. ``tier`` is the model tier that produced the\ndecision (``fast``/``balanced``/``powerful``)."
+      },
       "ApproveRequest": {
         "properties": {
           "approved_by": {
@@ -4783,6 +4894,141 @@
         ],
         "title": "CalculationStepResponse"
       },
+      "CaseEventData": {
+        "properties": {
+          "_agent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentEventMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "old_value": {
+            "title": "Old Value"
+          },
+          "new_value": {
+            "title": "New Value"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "score_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Basis"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "error",
+                  "warning",
+                  "info"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "CaseEventData",
+        "description": "Loose, open shape of a case event's ``event_data`` JSONB.\n\nAll fields optional and extra keys allowed \u2014 different event types carry\ndifferent payloads. The typed fields are the cross-cutting ones the UI\nreads: the ``_agent`` meta, the correction op (``field``/``old_value``/\n``new_value``, ``reason``/``score_basis``/``reasoning``), the severity\nbadge, and a free-text ``message``."
+      },
+      "CaseEventResponse": {
+        "properties": {
+          "event_id": {
+            "type": "integer",
+            "title": "Event Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "event_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CaseEventData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "event_type"
+        ],
+        "title": "CaseEventResponse",
+        "description": "One audit/case event \u2014 history row and SSE stream payload share it."
+      },
       "CaseResponse": {
         "properties": {
           "case_id": {
@@ -5156,6 +5402,17 @@
             ],
             "title": "Spec Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "spec_filter": {
             "items": {
               "type": "string"
@@ -5163,6 +5420,21 @@
             "type": "array",
             "title": "Spec Filter",
             "default": []
+          },
+          "initial_context": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Context"
           }
         },
         "type": "object",
@@ -6242,6 +6514,25 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HeadlineMetric": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "HeadlineMetric",
+        "description": "Big-number headline rendered above the scenario page metadata.\n\nPopulated when the active loan product declares a\n``summary.headline_metric`` block in ``loan_products.yaml`` (DSCR uses\nthis to surface the DSCR ratio in place of the default\n``$X,XXX/mo`` total_monthly_income chip). ``value`` is the\npre-formatted display string (e.g. ``\"2.65x\"``); the UI renders it\nverbatim with ``label`` as the tooltip / accessibility text so\noperators see which metric drove the headline."
+      },
       "IdentityInfo": {
         "properties": {
           "id": {
@@ -6831,6 +7122,10 @@
             "type": "string",
             "title": "Display Name"
           },
+          "display_label": {
+            "type": "string",
+            "title": "Display Label"
+          },
           "agency": {
             "type": "string",
             "title": "Agency"
@@ -6874,6 +7169,14 @@
             "title": "Credit Document Types",
             "default": []
           },
+          "required_documents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Documents",
+            "default": []
+          },
           "default_calculation_track": {
             "anyOf": [
               {
@@ -6913,17 +7216,26 @@
             "type": "array",
             "title": "Groups",
             "default": []
+          },
+          "initial_required_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/UserInputFieldResponse"
+            },
+            "type": "array",
+            "title": "Initial Required Inputs",
+            "default": []
           }
         },
         "type": "object",
         "required": [
           "product_id",
           "display_name",
+          "display_label",
           "agency",
           "agency_path"
         ],
         "title": "ProductResponse",
-        "description": "Tenant-scoped loan product configuration.\n\nReturned by ``GET /products`` (a tenant's own catalog) and consumed by\nLux to drive ``<ApproachPicker>`` / ``<ProductPicker>`` data-driven.\nThe shape mirrors ``policy.product_registry.TenantProductView`` \u2014\nevery field that matters for runtime resolution + UI rendering, so\nthe host never has to consult any other endpoint to render an\naccurate picker."
+        "description": "Tenant-scoped loan product configuration.\n\nReturned by ``GET /products`` (a tenant's own catalog) and consumed by\nLux to drive ``<ApproachPicker>`` / ``<ProductPicker>`` data-driven.\nThe shape mirrors ``policy.product_registry.TenantProductView`` \u2014\nevery field that matters for runtime resolution + UI rendering, so\nthe host never has to consult any other endpoint to render an\naccurate picker.\n\n``initial_required_inputs`` carries the operator-supplied schema for\nfields flagged ``required_at_create: true`` on any of the product's\nspecs. The Create Case modal renders this directly via\n``<DynamicUserInputsFormFields>`` and blocks submission until every\nlisted field has a valid value \u2014 single round-trip, no separate\nschema endpoint. An empty list means the product has no must-know-\nupfront values; the modal can skip rendering the form altogether."
       },
       "ProductSpecGroup": {
         "properties": {
@@ -7072,6 +7384,11 @@
               }
             ],
             "title": "Refinement Num"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "operator"
           },
           "identities": {
             "items": {
@@ -7430,6 +7747,39 @@
         "title": "RenderingHints",
         "description": "UI rendering decisions resolved server-side from scenario + manifest data.\n\nComputed once by Veritas so every consumer (React, Vue, agents) gets\nidentical behavior without re-implementing detection logic locally."
       },
+      "ReportCatalogResponse": {
+        "properties": {
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReportListItem"
+            },
+            "type": "array",
+            "title": "Reports"
+          },
+          "income_report_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Report Name"
+          },
+          "credit_available": {
+            "type": "boolean",
+            "title": "Credit Available",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "reports"
+        ],
+        "title": "ReportCatalogResponse",
+        "description": "Response from GET /cases/{case_id}/reports.\n\n``income_report_name`` is the resolved income report for the scenario's\nproducts \u2014 callers should use this instead of guessing from product IDs,\nbecause product data may not be loaded yet when the UI renders.\n\n``credit_available`` is true when the case has at least one uploaded\ncredit report document (CreditReport, SoftPullCreditReport, or\nHardPullCreditReport). Used by the export modal to enable Credit/DTI\ncheckboxes without relying on a previously-generated credit report."
+      },
       "ReportGenerateRequest": {
         "properties": {
           "scenario_id": {
@@ -7468,6 +7818,20 @@
               }
             ],
             "title": "Agencies"
+          },
+          "include": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include"
           }
         },
         "type": "object",
@@ -7582,6 +7946,24 @@
         ],
         "title": "ReportListItem",
         "description": "One entry in the GET /cases/{case_id}/reports list."
+      },
+      "RequiredWhenConditionResponse": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "equals": {
+            "title": "Equals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "equals"
+        ],
+        "title": "RequiredWhenConditionResponse",
+        "description": "Conditional-requirement predicate for an operator input.\n\nThe field is required ONLY when sibling input ``field`` equals\n``equals``. Lets a spec express \"Purchase Price is required when\ntransaction_type == purchase\" without forcing it on refis. Read by\nthe create-case modal (lux ``validateInitialRequiredInputs``) and the\nspec-engine pre-eval gate (``_validate_inputs_pre_eval``), which both\ntreat the field as required only when the predicate holds against the\ncurrent input values."
       },
       "RerunRequest": {
         "properties": {
@@ -8002,6 +8384,27 @@
               }
             ],
             "title": "Name"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
+          },
+          "headline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HeadlineMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "eval": {
             "anyOf": [
@@ -9176,6 +9579,21 @@
             "type": "boolean",
             "title": "Required",
             "default": false
+          },
+          "required_at_create": {
+            "type": "boolean",
+            "title": "Required At Create",
+            "default": false
+          },
+          "required_when": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequiredWhenConditionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "minimum": {
             "anyOf": [

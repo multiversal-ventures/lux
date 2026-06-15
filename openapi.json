@@ -6187,6 +6187,16 @@
             ],
             "title": "Summary"
           },
+          "change": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventDisplayOpChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "fields": {
             "items": {
               "$ref": "#/components/schemas/EventDisplayField"

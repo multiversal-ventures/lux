@@ -2351,6 +2351,7 @@ export interface components {
         EventDisplay: {
             /** Summary */
             summary?: string | null;
+            change?: components["schemas"]["EventDisplayOpChange"] | null;
             /**
              * Fields
              * @default []

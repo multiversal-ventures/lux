@@ -114,6 +114,7 @@ export type CaseEventData = components["schemas"]["CaseEventData"];
 export type EventDisplay = components["schemas"]["EventDisplay"];
 export type EventDisplayField = components["schemas"]["EventDisplayField"];
 export type EventDisplayOp = components["schemas"]["EventDisplayOp"];
+export type EventDisplayDoc = components["schemas"]["EventDisplayDoc"];
 
 /**
  * One case event. Shape is generated from the API (`CaseEventResponse`); the

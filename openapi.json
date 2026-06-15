@@ -6202,11 +6202,77 @@
             "type": "array",
             "title": "Ops",
             "default": []
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/EventDisplayDoc"
+            },
+            "type": "array",
+            "title": "Documents",
+            "default": []
           }
         },
         "type": "object",
         "title": "EventDisplay",
-        "description": "Server-driven, render-ready view of a correction-agent event.\n\nBuilt at the emit boundary (``domains.corrections.display.build_display``)\nso consumers render the audit event generically: a narrative ``summary``\n(the agent's own note with opaque refs resolved to names), humanized\n``fields``, and correction ``ops`` as cards. No client-side humanization,\nref/id resolution, or domain vocabulary required."
+        "description": "Server-driven, render-ready view of a correction-agent event.\n\nBuilt at the emit boundary (``domains.corrections.display.build_display``)\nso consumers render the audit event generically: a narrative ``summary``\n(the agent's own note with opaque refs resolved to names), humanized\n``fields``, correction ``ops`` as cards, and the ``documents`` it references\nas clickable viewer links. No client-side humanization, ref/id resolution,\nor domain vocabulary required."
+      },
+      "EventDisplayDoc": {
+        "properties": {
+          "doc_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "EventDisplayDoc",
+        "description": "A document this event references, as a clickable link into the viewer.\n\n``file_id`` + ``page`` are what the host needs to open the document viewer\n(``/case/{id}/view?file=&page=``); ``label`` is the human caption\n(``W-2 p.1``) and ``doc_type`` lets the host route bank statements, etc."
       },
       "EventDisplayField": {
         "properties": {

@@ -2344,8 +2344,9 @@ export interface components {
          *     Built at the emit boundary (``domains.corrections.display.build_display``)
          *     so consumers render the audit event generically: a narrative ``summary``
          *     (the agent's own note with opaque refs resolved to names), humanized
-         *     ``fields``, and correction ``ops`` as cards. No client-side humanization,
-         *     ref/id resolution, or domain vocabulary required.
+         *     ``fields``, correction ``ops`` as cards, and the ``documents`` it references
+         *     as clickable viewer links. No client-side humanization, ref/id resolution,
+         *     or domain vocabulary required.
          */
         EventDisplay: {
             /** Summary */
@@ -2360,6 +2361,31 @@ export interface components {
              * @default []
              */
             ops: components["schemas"]["EventDisplayOp"][];
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["EventDisplayDoc"][];
+        };
+        /**
+         * EventDisplayDoc
+         * @description A document this event references, as a clickable link into the viewer.
+         *
+         *     ``file_id`` + ``page`` are what the host needs to open the document viewer
+         *     (``/case/{id}/view?file=&page=``); ``label`` is the human caption
+         *     (``W-2 p.1``) and ``doc_type`` lets the host route bank statements, etc.
+         */
+        EventDisplayDoc: {
+            /** Doc Id */
+            doc_id?: string | null;
+            /** Label */
+            label: string;
+            /** File Id */
+            file_id?: string | null;
+            /** Page */
+            page?: number | null;
+            /** Doc Type */
+            doc_type?: string | null;
         };
         /**
          * EventDisplayField

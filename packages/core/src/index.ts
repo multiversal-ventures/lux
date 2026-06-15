@@ -99,6 +99,7 @@ export type {
 	EventDisplay,
 	EventDisplayField,
 	EventDisplayOp,
+	EventDisplayDoc,
 	CaseResponse,
 	SpecResponse,
 	Result,

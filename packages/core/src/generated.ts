@@ -1645,11 +1645,11 @@ export interface components {
          */
         AgentEventMeta: {
             /** Domain */
-            domain: string;
+            domain?: string | null;
             /** Tier */
-            tier: string;
+            tier?: string | null;
             /** Model */
-            model: string;
+            model?: string | null;
             /** Prompt Version */
             prompt_version?: string | null;
             /** Reasoning */
@@ -1658,6 +1658,8 @@ export interface components {
             reasoning_preview?: string | null;
             /** Approved Correction Id */
             approved_correction_id?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** ApproveRequest */
         ApproveRequest: {
@@ -1834,12 +1836,14 @@ export interface components {
          *
          *     All fields optional and extra keys allowed — different event types carry
          *     different payloads. The typed fields are the cross-cutting ones the UI
-         *     reads: the ``_agent`` meta, the correction op (``field``/``old_value``/
-         *     ``new_value``, ``reason``/``score_basis``/``reasoning``), the severity
-         *     badge, and a free-text ``message``.
+         *     reads: the ``_agent`` meta, the ``_display`` render-ready block, the
+         *     correction op (``field``/``old_value``/``new_value``,
+         *     ``reason``/``score_basis``/``reasoning``), the severity badge, and a
+         *     free-text ``message``.
          */
         CaseEventData: {
             _agent?: components["schemas"]["AgentEventMeta"] | null;
+            _display?: components["schemas"]["EventDisplay"] | null;
             /** Field */
             field?: string | null;
             /** Old Value */
@@ -1853,7 +1857,7 @@ export interface components {
             /** Reasoning */
             reasoning?: string | null;
             /** Severity */
-            severity?: ("error" | "warning" | "info") | null;
+            severity?: string | null;
             /** Message */
             message?: string | null;
         } & {
@@ -2332,6 +2336,82 @@ export interface components {
              * @default
              */
             role: string;
+        };
+        /**
+         * EventDisplay
+         * @description Server-driven, render-ready view of a correction-agent event.
+         *
+         *     Built at the emit boundary (``domains.corrections.display.build_display``)
+         *     so consumers render the audit event generically: a narrative ``summary``
+         *     (the agent's own note with opaque refs resolved to names), humanized
+         *     ``fields``, and correction ``ops`` as cards. No client-side humanization,
+         *     ref/id resolution, or domain vocabulary required.
+         */
+        EventDisplay: {
+            /** Summary */
+            summary?: string | null;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["EventDisplayField"][];
+            /**
+             * Ops
+             * @default []
+             */
+            ops: components["schemas"]["EventDisplayOp"][];
+        };
+        /**
+         * EventDisplayField
+         * @description One render-ready label/value row in an event's ``_display`` block.
+         *
+         *     ``value`` is already humanized server-side (refs resolved to names, doc-ids
+         *     to ``W-2 p.1`` labels, snake_case to words); it may be a scalar, a list, or
+         *     a nested object — the consumer renders it structurally without interpreting.
+         */
+        EventDisplayField: {
+            /** Label */
+            label: string;
+            /** Value */
+            value?: unknown;
+        };
+        /**
+         * EventDisplayOp
+         * @description One gated correction op, rendered as a card.
+         */
+        EventDisplayOp: {
+            /** Title */
+            title: string;
+            /**
+             * Route
+             * @default
+             */
+            route: string;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            change?: components["schemas"]["EventDisplayOpChange"] | null;
+            /**
+             * Extra
+             * @default []
+             */
+            extra: components["schemas"]["EventDisplayField"][];
+        };
+        /**
+         * EventDisplayOpChange
+         * @description A before→after value change on a correction op (humanized).
+         */
+        EventDisplayOpChange: {
+            /** Field */
+            field?: string | null;
+            /** From */
+            from?: string | null;
+            /** To */
+            to?: string | null;
         };
         /** ExtractionResponse */
         ExtractionResponse: {

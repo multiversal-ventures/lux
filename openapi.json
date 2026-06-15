@@ -4431,15 +4431,36 @@
       "AgentEventMeta": {
         "properties": {
           "domain": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Domain"
           },
           "tier": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tier"
           },
           "model": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Model"
           },
           "prompt_version": {
@@ -4487,12 +4508,8 @@
             "title": "Approved Correction Id"
           }
         },
+        "additionalProperties": true,
         "type": "object",
-        "required": [
-          "domain",
-          "tier",
-          "model"
-        ],
         "title": "AgentEventMeta",
         "description": "`_agent` meta stamped on every correction-agent event.\n\nThe correction harness attaches this to each emitted event's\n``event_data`` (see ``domains.corrections.base``/``queue``). ``reasoning``\nis the full, uncapped model rationale; ``reasoning_preview`` a 240-char cut\nfor compact list rendering. ``tier`` is the model tier that produced the\ndecision (``fast``/``balanced``/``powerful``)."
       },
@@ -4906,6 +4923,16 @@
               }
             ]
           },
+          "_display": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventDisplay"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "field": {
             "anyOf": [
               {
@@ -4959,12 +4986,7 @@
           "severity": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "error",
-                  "warning",
-                  "info"
-                ]
+                "type": "string"
               },
               {
                 "type": "null"
@@ -4987,7 +5009,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "CaseEventData",
-        "description": "Loose, open shape of a case event's ``event_data`` JSONB.\n\nAll fields optional and extra keys allowed \u2014 different event types carry\ndifferent payloads. The typed fields are the cross-cutting ones the UI\nreads: the ``_agent`` meta, the correction op (``field``/``old_value``/\n``new_value``, ``reason``/``score_basis``/``reasoning``), the severity\nbadge, and a free-text ``message``."
+        "description": "Loose, open shape of a case event's ``event_data`` JSONB.\n\nAll fields optional and extra keys allowed \u2014 different event types carry\ndifferent payloads. The typed fields are the cross-cutting ones the UI\nreads: the ``_agent`` meta, the ``_display`` render-ready block, the\ncorrection op (``field``/``old_value``/``new_value``,\n``reason``/``score_basis``/``reasoning``), the severity badge, and a\nfree-text ``message``."
       },
       "CaseEventResponse": {
         "properties": {
@@ -6151,6 +6173,150 @@
           "identity_id"
         ],
         "title": "EntityInfo"
+      },
+      "EventDisplay": {
+        "properties": {
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/EventDisplayField"
+            },
+            "type": "array",
+            "title": "Fields",
+            "default": []
+          },
+          "ops": {
+            "items": {
+              "$ref": "#/components/schemas/EventDisplayOp"
+            },
+            "type": "array",
+            "title": "Ops",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "EventDisplay",
+        "description": "Server-driven, render-ready view of a correction-agent event.\n\nBuilt at the emit boundary (``domains.corrections.display.build_display``)\nso consumers render the audit event generically: a narrative ``summary``\n(the agent's own note with opaque refs resolved to names), humanized\n``fields``, and correction ``ops`` as cards. No client-side humanization,\nref/id resolution, or domain vocabulary required."
+      },
+      "EventDisplayField": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "EventDisplayField",
+        "description": "One render-ready label/value row in an event's ``_display`` block.\n\n``value`` is already humanized server-side (refs resolved to names, doc-ids\nto ``W-2 p.1`` labels, snake_case to words); it may be a scalar, a list, or\na nested object \u2014 the consumer renders it structurally without interpreting."
+      },
+      "EventDisplayOp": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "route": {
+            "type": "string",
+            "title": "Route",
+            "default": ""
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "default": ""
+          },
+          "change": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventDisplayOpChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "extra": {
+            "items": {
+              "$ref": "#/components/schemas/EventDisplayField"
+            },
+            "type": "array",
+            "title": "Extra",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "EventDisplayOp",
+        "description": "One gated correction op, rendered as a card."
+      },
+      "EventDisplayOpChange": {
+        "properties": {
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "title": "EventDisplayOpChange",
+        "description": "A before\u2192after value change on a correction op (humanized)."
       },
       "ExtractionResponse": {
         "properties": {

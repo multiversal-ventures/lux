@@ -110,13 +110,21 @@ export type AgentEventMeta = components["schemas"]["AgentEventMeta"];
 /** Typed `event_data` for a case event. Generated from the API. */
 export type CaseEventData = components["schemas"]["CaseEventData"];
 
+/** Render-ready, humanized view of a correction-agent event (SDUI). */
+export type EventDisplay = components["schemas"]["EventDisplay"];
+export type EventDisplayField = components["schemas"]["EventDisplayField"];
+export type EventDisplayOp = components["schemas"]["EventDisplayOp"];
+
 /**
  * One case event. Shape is generated from the API (`CaseEventResponse`); the
  * `event_type` is narrowed to the known SSE literals (still open to unknown
- * future strings via `CaseEventType`).
+ * future strings via `CaseEventType`). `event_data` stays loose
+ * (`Record<string, unknown> | null`) so consumers index it freely; cast to the
+ * generated `CaseEventData` / `EventDisplay` for typed access to specific keys.
  */
-export type CaseEvent = Omit<GeneratedCaseEvent, "event_type"> & {
+export type CaseEvent = Omit<GeneratedCaseEvent, "event_type" | "event_data"> & {
 	event_type: CaseEventType;
+	event_data: Record<string, unknown> | null;
 };
 
 export interface GenerateSpecResult {

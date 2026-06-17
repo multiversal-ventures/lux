@@ -1,0 +1,15 @@
+# Pre-push only — fast main-merge readiness checks.
+# typecheck + build mirror the CI build-test gates (turbo-cached, fast).
+# biome runs only on the files in the push, so pre-existing lint debt never
+# blocks an unrelated push. `pnpm test` stays in CI — it needs a live server.
+# Hook auto-installs via the package.json "prepare" script on `pnpm install`.
+pre-push:
+  piped: true
+  commands:
+    biome:
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm exec biome check {push_files}
+    typecheck:
+      run: pnpm typecheck
+    build:
+      run: pnpm build

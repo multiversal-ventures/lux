@@ -166,6 +166,13 @@ export {
   reportWorkbookQueryKey,
 } from "./components/Reports/index.js";
 export {
+  sheetToHtmlWithStyles,
+  cellStyleToCss,
+  rgbToHex,
+  escapeHtml,
+  decodeHtmlEntities,
+} from "./lib/excelSheet.js";
+export {
   ReferenceFocusProvider,
   useReferenceFocus,
   ReferenceViewerPanel,

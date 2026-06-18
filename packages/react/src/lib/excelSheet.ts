@@ -166,7 +166,11 @@ export function sheetToHtmlWithStyles(ws: Record<string, unknown>): string {
 
 			let text = "";
 			if (cellObj && cellObj.v != null) {
-				text = cellObj.h || cellObj.w || String(cellObj.v);
+				// Prefer SheetJS's formatted text (.w) / raw value (.v) over .h.
+				// .h is the pre-HTML-escaped form, so an "&" arrives here as
+				// "&amp;" and renders literally as "&amp;" in the cell. escapeHtml
+				// below performs the single correct escaping pass for innerHTML.
+				text = cellObj.w || String(cellObj.v);
 			}
 			text = escapeHtml(text);
 

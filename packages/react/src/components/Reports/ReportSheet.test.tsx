@@ -16,4 +16,22 @@ describe("ReportSheet", () => {
 		expect(html).toContain("Hello");
 		expect(html).toContain("42");
 	});
+
+	it("renders a literal '&' once, never the double-escaped '&amp;'", () => {
+		// SheetJS sets cell.h to the pre-escaped 'Meals &amp; Entertainment';
+		// the renderer must use .w/.v so the visible text is a single '&'.
+		const ws: Record<string, unknown> = {};
+		ws["!ref"] = "A1:A1";
+		ws[utils.encode_cell({ r: 0, c: 0 })] = {
+			v: "Meals & Entertainment",
+			w: "Meals & Entertainment",
+			h: "Meals &amp; Entertainment",
+			t: "s",
+		};
+
+		const { container } = render(<ReportSheet worksheet={ws as never} />);
+		// textContent is the decoded, user-visible text.
+		expect(container.textContent).toContain("Meals & Entertainment");
+		expect(container.textContent).not.toContain("&amp;");
+	});
 });

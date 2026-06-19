@@ -3394,6 +3394,11 @@
           "entity": {
             "$ref": "#/components/schemas/EntityInfo"
           },
+          "identity_confirmed": {
+            "default": false,
+            "title": "Identity Confirmed",
+            "type": "boolean"
+          },
           "request_message": {
             "default": "",
             "title": "Request Message",
@@ -9933,7 +9938,7 @@
     },
     "/api/portal/session/{session_id}/intents": {
       "post": {
-        "description": "Execute a batch of typed intents and return the refreshed session.\n\nIntents execute in array order. If one fails, remaining intents\nare skipped and partial results are returned with the error.",
+        "description": "Execute a batch of typed intents and return the refreshed session.\n\nIntents execute in array order. If one fails, remaining intents\nare skipped and partial results are returned with the error. Auth is the\nportal token (X-Portal-Token header preferred) \u2014 the same direct-validation\npath as GET /session, so the public no-login portal works without tenant\ncontext (resolve_caller's within-tenant path 401s for borrower callers).",
         "operationId": "submit_intents_api_portal_session__session_id__intents_post",
         "parameters": [
           {
@@ -9943,6 +9948,40 @@
             "schema": {
               "title": "Session Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Portal token (legacy; prefer X-Portal-Token header)",
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Portal token (legacy; prefer X-Portal-Token header)",
+              "title": "Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Token"
             }
           }
         ],
@@ -9978,11 +10017,6 @@
             "description": "Validation Error"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Submit Intents",
         "tags": [
           "portal"

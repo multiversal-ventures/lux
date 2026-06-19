@@ -1333,7 +1333,10 @@ export interface paths {
          * @description Execute a batch of typed intents and return the refreshed session.
          *
          *     Intents execute in array order. If one fails, remaining intents
-         *     are skipped and partial results are returned with the error.
+         *     are skipped and partial results are returned with the error. Auth is the
+         *     portal token (X-Portal-Token header preferred) — the same direct-validation
+         *     path as GET /session, so the public no-login portal works without tenant
+         *     context (resolve_caller's within-tenant path 401s for borrower callers).
          */
         post: operations["submit_intents_api_portal_session__session_id__intents_post"];
         delete?: never;
@@ -3356,6 +3359,11 @@ export interface components {
              */
             consent: components["schemas"]["ConsentState"];
             entity: components["schemas"]["EntityInfo"];
+            /**
+             * Identity Confirmed
+             * @default false
+             */
+            identity_confirmed: boolean;
             /**
              * Request Message
              * @default
@@ -6662,8 +6670,13 @@ export interface operations {
     };
     submit_intents_api_portal_session__session_id__intents_post: {
         parameters: {
-            query?: never;
-            header?: never;
+            query?: {
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
             path: {
                 session_id: string;
             };

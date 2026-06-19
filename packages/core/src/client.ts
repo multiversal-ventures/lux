@@ -991,9 +991,13 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		try {
 			const form = new FormData();
 			for (const f of files) form.append("files", f);
+			// The files endpoint authenticates via resolve_caller, whose portal
+			// path is the 32-char-hex Bearer token (entity caller, single-case
+			// scope, no tenant context). The X-Portal-Token header path needs a
+			// tenant credential first, so it 401s for the public borrower.
 			const res = await fetch(`${base}/api/cases/${caseId}/files`, {
 				method: "POST",
-				headers: { [PORTAL_AUTH_HEADER]: token },
+				headers: { Authorization: `Bearer ${token}` },
 				body: form,
 			});
 			if (!res.ok) {

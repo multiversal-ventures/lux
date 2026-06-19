@@ -78,6 +78,7 @@ export {
 	derivePipelinePhase,
 	PIPELINE_PHASE_PRIORITY,
 	useCreatePortalLink,
+	usePortalSuggestions,
 	buildPortalUrl,
 } from "./hooks/index.js";
 export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem } from "./hooks/index.js";

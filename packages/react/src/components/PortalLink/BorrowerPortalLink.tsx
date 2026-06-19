@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	useCreatePortalLink,
+	usePortalSuggestions,
 	buildPortalUrl,
 	type PortalRequestItem,
 } from "../../hooks/useCreatePortalLink.js";
@@ -11,8 +12,6 @@ export interface BorrowerPortalLinkProps {
 	portalBaseUrl: string;
 	/** Veritas-suggested follow-up / completeness items the operator can check off. */
 	followUpItems?: PortalRequestItem[];
-	/** Called when the operator dismisses the modal. */
-	onClose?: () => void;
 	className?: string;
 }
 
@@ -25,12 +24,18 @@ export interface BorrowerPortalLinkProps {
 export function BorrowerPortalLink({
 	caseId,
 	portalBaseUrl,
-	followUpItems = [],
-	onClose,
+	followUpItems,
 	className,
 }: BorrowerPortalLinkProps) {
 	const mutation = useCreatePortalLink(caseId);
-	const [checked, setChecked] = useState<Set<number>>(new Set(followUpItems.map((_, i) => i)));
+	// Auto-fetch suggestions from veritas unless the host supplied its own items.
+	const suggestions = usePortalSuggestions(followUpItems ? null : caseId);
+	const items: PortalRequestItem[] = followUpItems ?? suggestions.data ?? [];
+	const [checked, setChecked] = useState<Set<number>>(new Set());
+	// Pre-check all suggestions once they load.
+	useEffect(() => {
+		setChecked(new Set(items.map((_, i) => i)));
+	}, [items.length]);
 	const [custom, setCustom] = useState<string[]>([]);
 	const [draft, setDraft] = useState("");
 	const [message, setMessage] = useState("");
@@ -55,11 +60,11 @@ export function BorrowerPortalLink({
 	}
 
 	function generate() {
-		const items: PortalRequestItem[] = [
-			...followUpItems.filter((_, i) => checked.has(i)),
+		const selected: PortalRequestItem[] = [
+			...items.filter((_, i) => checked.has(i)),
 			...custom.map((title) => ({ id: "", title, detail: "", action: "", source: "custom", priority: "medium" })),
 		];
-		mutation.mutate({ items, message: message.trim() || null });
+		mutation.mutate({ items: selected, message: message.trim() || null });
 	}
 
 	async function copy() {
@@ -74,18 +79,11 @@ export function BorrowerPortalLink({
 	}
 
 	return (
-		<div className={`bg-white rounded-2xl shadow-xl p-6 max-w-lg w-full${className ? ` ${className}` : ""}`}>
-			<div className="flex items-start justify-between mb-1">
-				<h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-					<span aria-hidden className="text-indigo-600">🔗</span>
-					Request documents from borrower
-				</h3>
-				{onClose && (
-					<button type="button" onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-600 text-xl leading-none">
-						×
-					</button>
-				)}
-			</div>
+		<div className={className}>
+			<h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900 mb-1">
+				<span aria-hidden className="text-indigo-600">🔗</span>
+				Request documents from borrower
+			</h3>
 			<p className="text-sm text-slate-500 mb-5">
 				Pick what to request, add a note, and we'll generate a secure 48-hour link
 				the borrower can open with no login.
@@ -93,12 +91,12 @@ export function BorrowerPortalLink({
 
 			{!link && (
 				<div className="space-y-5">
-					{followUpItems.length > 0 && (
+					{items.length > 0 && (
 						<fieldset className="space-y-2">
 							<legend className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
 								Suggested follow-ups
 							</legend>
-							{followUpItems.map((item, i) => (
+							{items.map((item, i) => (
 								<label key={i} className="flex gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
 									<input type="checkbox" checked={checked.has(i)} onChange={() => toggle(i)} className="mt-1" />
 									<span>

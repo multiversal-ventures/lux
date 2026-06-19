@@ -1,4 +1,4 @@
-import { useMutation, type UseMutationResult } from "@tanstack/react-query";
+import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
 import { getDefaultClient, type components } from "@multiversal-ventures/lux-core";
 
 export type PortalLink = components["schemas"]["PortalLinkResponse"];
@@ -23,6 +23,21 @@ export function useCreatePortalLink(
 			if (!caseId) throw new Error("caseId required");
 			return await getDefaultClient().createPortalLink(caseId, body || undefined);
 		},
+	});
+}
+
+/**
+ * Suggested follow-up / document items for the portal request modal, derived
+ * from the case's findings. Disabled when ``caseId`` is null (e.g. the caller
+ * supplies its own items).
+ */
+export function usePortalSuggestions(
+	caseId: string | null,
+): UseQueryResult<PortalRequestItem[], Error> {
+	return useQuery<PortalRequestItem[], Error>({
+		queryKey: ["portal-suggestions", caseId],
+		enabled: !!caseId,
+		queryFn: async () => getDefaultClient().getPortalSuggestions(caseId as string),
 	});
 }
 

@@ -8251,6 +8251,59 @@
         ]
       }
     },
+    "/api/cases/{case_id}/portal-suggestions": {
+      "get": {
+        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nDerived (cheaply, no LLM) from the case's spec findings \u2014 the things\nqualification flagged as needing follow-up or a missing document. The\noperator checks off which to request. Deduped by (code, title).",
+        "operationId": "portal_suggestions_api_cases__case_id__portal_suggestions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PortalRequestItem"
+                  },
+                  "title": "Response Portal Suggestions Api Cases  Case Id  Portal Suggestions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal Suggestions",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
     "/api/cases/{case_id}/qualify": {
       "post": {
         "description": "Trigger qualification on an already-extracted case.\n\nTenant/operator only \u2014 qualification is an underwriting decision, not a\nportal-user action. PORTAL_PERMS does not include any qualify capability.\n\nPass ?spec_id=<uuid> to run a specific DB-stored spec.\nWithout spec_id, runs all registered product specs.",

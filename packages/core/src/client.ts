@@ -306,6 +306,14 @@ export class VeritasClient {
 		);
 	}
 
+	/** Suggested follow-up / document items for the portal request modal
+	 * (derived from the case's findings; operator picks which to request). */
+	async getPortalSuggestions(caseId: string): Promise<components["schemas"]["PortalRequestItem"][]> {
+		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
+			`/api/cases/${caseId}/portal-suggestions`,
+		);
+	}
+
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {
 		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
 	}

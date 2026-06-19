@@ -969,5 +969,29 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		}
 	}
 
-	return { fetchSession, submitIntents };
+	/** Upload documents to the borrower's own case using portal-token auth.
+	 * The files endpoint accepts X-Portal-Token for the token's authorized case. */
+	async function uploadDocuments(
+		caseId: string,
+		token: string,
+		files: File[],
+	): Promise<{ ok: boolean; error: PortalClientError | null }> {
+		try {
+			const form = new FormData();
+			for (const f of files) form.append("files", f);
+			const res = await fetch(`${base}/api/cases/${caseId}/files`, {
+				method: "POST",
+				headers: { [PORTAL_AUTH_HEADER]: token },
+				body: form,
+			});
+			if (!res.ok) {
+				return { ok: false, error: { code: "server", message: `Upload failed (${res.status})`, status: res.status } };
+			}
+			return { ok: true, error: null };
+		} catch {
+			return { ok: false, error: { code: "network", message: "Upload failed" } };
+		}
+	}
+
+	return { fetchSession, submitIntents, uploadDocuments };
 }

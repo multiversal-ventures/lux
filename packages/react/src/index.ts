@@ -111,6 +111,8 @@ export { ConsentBanner } from "./components/ConsentBanner/index.js";
 export type { ConsentBannerProps } from "./components/ConsentBanner/index.js";
 export { BorrowerPortalLink } from "./components/PortalLink/index.js";
 export type { BorrowerPortalLinkProps } from "./components/PortalLink/index.js";
+export { BorrowerPortal } from "./components/PortalLink/index.js";
+export type { BorrowerPortalProps } from "./components/PortalLink/index.js";
 
 // Scenario compound component system
 export {

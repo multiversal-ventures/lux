@@ -7,6 +7,8 @@ export interface UsePortalSessionReturn {
 	loading: boolean;
 	error: PortalClientError | null;
 	submitIntent: (intents: Intent[]) => Promise<void>;
+	/** Upload documents to the case, then refresh the session. Returns success. */
+	uploadDocuments: (files: File[]) => Promise<boolean>;
 }
 
 /**
@@ -63,5 +65,24 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 		[client, session, token],
 	);
 
-	return { session, loading, error, submitIntent };
+	const uploadDocuments = useCallback(
+		async (files: File[]) => {
+			if (!session || !token) {
+				setError({ code: "not_ready", message: "Session not ready" });
+				return false;
+			}
+			setError(null);
+			const result = await client.uploadDocuments(session.case_id, token, files);
+			if (result.error) {
+				setError(result.error);
+				return false;
+			}
+			// Refresh so the checklist reflects the new documents.
+			await loadSession(token);
+			return true;
+		},
+		[client, session, token, loadSession],
+	);
+
+	return { session, loading, error, submitIntent, uploadDocuments };
 }

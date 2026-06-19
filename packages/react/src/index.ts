@@ -77,8 +77,10 @@ export {
 	useCasePipelinePhase,
 	derivePipelinePhase,
 	PIPELINE_PHASE_PRIORITY,
+	useCreatePortalLink,
+	buildPortalUrl,
 } from "./hooks/index.js";
-export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult } from "./hooks/index.js";
+export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink } from "./hooks/index.js";
 
 // UI components
 export { AuthedImage } from "./components/AuthedImage/index.js";
@@ -107,6 +109,8 @@ export { Checklist } from "./components/Checklist/index.js";
 export type { ChecklistProps } from "./components/Checklist/index.js";
 export { ConsentBanner } from "./components/ConsentBanner/index.js";
 export type { ConsentBannerProps } from "./components/ConsentBanner/index.js";
+export { BorrowerPortalLink } from "./components/PortalLink/index.js";
+export type { BorrowerPortalLinkProps } from "./components/PortalLink/index.js";
 
 // Scenario compound component system
 export {

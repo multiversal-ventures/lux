@@ -293,12 +293,16 @@ export class VeritasClient {
 		return this.requestJson(`/api/cases`, { method: "POST", body: JSON.stringify(payload) });
 	}
 
-	/** Issue a one-time, 48h borrower portal token for a case (operator-only).
+	/** Issue a one-time, 48h borrower portal token for a case (operator-only),
+	 * with an optional document/follow-up request the borrower portal renders.
 	 * Returns the token + expiry; the caller builds the shareable URL. */
-	async createPortalLink(caseId: string): Promise<components["schemas"]["PortalLinkResponse"]> {
+	async createPortalLink(
+		caseId: string,
+		body?: components["schemas"]["PortalLinkRequest"],
+	): Promise<components["schemas"]["PortalLinkResponse"]> {
 		return this.requestJson<components["schemas"]["PortalLinkResponse"]>(
 			`/api/cases/${caseId}/portal-link`,
-			{ method: "POST" },
+			{ method: "POST", body: body ? JSON.stringify(body) : undefined },
 		);
 	}
 

@@ -54,8 +54,15 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 					Welcome{session.entity?.name ? `, ${session.entity.name}` : ""}
 				</h1>
 				<p className="text-sm text-slate-500">
-					Upload your documents to move your application forward.
+					{session.requested_by
+						? `${session.requested_by} has requested some documents to move your application forward.`
+						: "Upload your documents to move your application forward."}
 				</p>
+				{session.request_message && (
+					<div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-sm text-slate-700">
+						{session.request_message}
+					</div>
+				)}
 			</header>
 
 			<ConsentBanner consent={session.consent} onSubmitIntent={submitIntent} className="mb-6" />

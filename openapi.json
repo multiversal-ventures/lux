@@ -3256,6 +3256,31 @@
         "title": "OperatorResponse",
         "type": "object"
       },
+      "PortalLinkRequest": {
+        "description": "Operator's request payload when generating a borrower portal link.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PortalRequestItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "title": "PortalLinkRequest",
+        "type": "object"
+      },
       "PortalLinkResponse": {
         "description": "A freshly issued borrower portal token for a case.\n\nVeritas stays URL-agnostic (per design): it returns the token + expiry; the\nclient builds the shareable link (``<app>/portal?token=<token>``). Single-use,\ntime-limited (default 48h); no borrower login required.",
         "properties": {
@@ -3298,6 +3323,45 @@
         "title": "PortalLinkResponse",
         "type": "object"
       },
+      "PortalRequestItem": {
+        "description": "One requested document/follow-up item the borrower will see.\n\n``source`` records where it came from: ``follow_up`` / ``completeness`` (a\nveritas-suggested item the operator checked off) or ``custom`` (free-typed).",
+        "properties": {
+          "action": {
+            "default": "",
+            "title": "Action",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "priority": {
+            "default": "medium",
+            "title": "Priority",
+            "type": "string"
+          },
+          "source": {
+            "default": "custom",
+            "title": "Source",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "PortalRequestItem",
+        "type": "object"
+      },
       "PortalSessionResponse": {
         "properties": {
           "case_id": {
@@ -3329,6 +3393,16 @@
           },
           "entity": {
             "$ref": "#/components/schemas/EntityInfo"
+          },
+          "request_message": {
+            "default": "",
+            "title": "Request Message",
+            "type": "string"
+          },
+          "requested_by": {
+            "default": "",
+            "title": "Requested By",
+            "type": "string"
           },
           "session_id": {
             "title": "Session Id",
@@ -8113,7 +8187,7 @@
     },
     "/api/cases/{case_id}/portal-link": {
       "post": {
-        "description": "Issue a single-use, 48h borrower portal token for a case.\n\nTenant/operator only \u2014 portal callers cannot mint links. Ties the token to\nthe case's primary borrower entity so the borrower opens a no-login portal\nscoped to their own case. Returns the token + expiry; the client builds the\nshareable URL (veritas stays URL-agnostic).",
+        "description": "Issue a single-use, 48h borrower portal token for a case, with an\noptional document/follow-up request the borrower portal renders.\n\nTenant/operator only \u2014 portal callers cannot mint links. Ties the token to\nthe case's primary borrower entity so the borrower opens a no-login portal\nscoped to their own case. The operator's selected follow-up/completeness\nitems + custom items + message are persisted as a ``portal_request`` and\nshown on the borrower portal, attributed to the requesting tenant. Returns\nthe token + expiry; the client builds the shareable URL.",
         "operationId": "create_portal_link_api_cases__case_id__portal_link_post",
         "parameters": [
           {
@@ -8127,6 +8201,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PortalLinkRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {
@@ -9721,18 +9812,41 @@
     },
     "/api/portal/session": {
       "get": {
-        "description": "Validate a portal token and return the composed session.\n\nThis is the primary entry point for entity-facing UIs. One call\nreturns everything the portal needs: entity info, checklist,\nconsent state, verification level, and upload config.\n\nToken is passed as a query parameter (not Authorization header)\nbecause browser-native SSE connections and simple GET-based portal\niframes cannot set custom headers.",
+        "description": "Validate a portal token and return the composed session.\n\nThis is the primary entry point for entity-facing UIs. One call\nreturns everything the portal needs: entity info, checklist,\nconsent state, verification level, and upload config.\n\nThe token is read from the ``X-Portal-Token`` header (preferred \u2014 keeps it\nout of access logs and browser history). The ``?token=`` query param is\naccepted as a legacy fallback for SSE / iframe surfaces that can't set\nheaders.",
         "operationId": "get_session_api_portal_session_get",
         "parameters": [
           {
-            "description": "Portal token UUID",
+            "description": "Portal token (legacy; prefer X-Portal-Token header)",
             "in": "query",
             "name": "token",
-            "required": true,
+            "required": false,
             "schema": {
-              "description": "Portal token UUID",
-              "title": "Token",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Portal token (legacy; prefer X-Portal-Token header)",
+              "title": "Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Token"
             }
           }
         ],

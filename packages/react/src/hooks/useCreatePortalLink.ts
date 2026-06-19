@@ -2,6 +2,8 @@ import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 import { getDefaultClient, type components } from "@multiversal-ventures/lux-core";
 
 export type PortalLink = components["schemas"]["PortalLinkResponse"];
+export type PortalLinkRequest = components["schemas"]["PortalLinkRequest"];
+export type PortalRequestItem = components["schemas"]["PortalRequestItem"];
 
 /**
  * Mutation that issues a one-time, expiring borrower portal token for a case
@@ -15,11 +17,11 @@ export type PortalLink = components["schemas"]["PortalLinkResponse"];
  */
 export function useCreatePortalLink(
 	caseId: string | null,
-): UseMutationResult<PortalLink, Error, void> {
-	return useMutation<PortalLink, Error, void>({
-		mutationFn: async () => {
+): UseMutationResult<PortalLink, Error, PortalLinkRequest | void> {
+	return useMutation<PortalLink, Error, PortalLinkRequest | void>({
+		mutationFn: async (body) => {
 			if (!caseId) throw new Error("caseId required");
-			return await getDefaultClient().createPortalLink(caseId);
+			return await getDefaultClient().createPortalLink(caseId, body || undefined);
 		},
 	});
 }

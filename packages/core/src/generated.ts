@@ -721,12 +721,15 @@ export interface paths {
         put?: never;
         /**
          * Create Portal Link
-         * @description Issue a single-use, 48h borrower portal token for a case.
+         * @description Issue a single-use, 48h borrower portal token for a case, with an
+         *     optional document/follow-up request the borrower portal renders.
          *
          *     Tenant/operator only — portal callers cannot mint links. Ties the token to
          *     the case's primary borrower entity so the borrower opens a no-login portal
-         *     scoped to their own case. Returns the token + expiry; the client builds the
-         *     shareable URL (veritas stays URL-agnostic).
+         *     scoped to their own case. The operator's selected follow-up/completeness
+         *     items + custom items + message are persisted as a ``portal_request`` and
+         *     shown on the borrower portal, attributed to the requesting tenant. Returns
+         *     the token + expiry; the client builds the shareable URL.
          */
         post: operations["create_portal_link_api_cases__case_id__portal_link_post"];
         delete?: never;
@@ -1278,9 +1281,10 @@ export interface paths {
          *     returns everything the portal needs: entity info, checklist,
          *     consent state, verification level, and upload config.
          *
-         *     Token is passed as a query parameter (not Authorization header)
-         *     because browser-native SSE connections and simple GET-based portal
-         *     iframes cannot set custom headers.
+         *     The token is read from the ``X-Portal-Token`` header (preferred — keeps it
+         *     out of access logs and browser history). The ``?token=`` query param is
+         *     accepted as a legacy fallback for SSE / iframe surfaces that can't set
+         *     headers.
          */
         get: operations["get_session_api_portal_session_get"];
         put?: never;
@@ -3227,6 +3231,16 @@ export interface components {
             tenant_id: string;
         };
         /**
+         * PortalLinkRequest
+         * @description Operator's request payload when generating a borrower portal link.
+         */
+        PortalLinkRequest: {
+            /** Items */
+            items?: components["schemas"]["PortalRequestItem"][];
+            /** Message */
+            message?: string | null;
+        };
+        /**
          * PortalLinkResponse
          * @description A freshly issued borrower portal token for a case.
          *
@@ -3257,6 +3271,42 @@ export interface components {
             /** Ttl Hours */
             ttl_hours: number;
         };
+        /**
+         * PortalRequestItem
+         * @description One requested document/follow-up item the borrower will see.
+         *
+         *     ``source`` records where it came from: ``follow_up`` / ``completeness`` (a
+         *     veritas-suggested item the operator checked off) or ``custom`` (free-typed).
+         */
+        PortalRequestItem: {
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Priority
+             * @default medium
+             */
+            priority: string;
+            /**
+             * Source
+             * @default custom
+             */
+            source: string;
+            /** Title */
+            title: string;
+        };
         /** PortalSessionResponse */
         PortalSessionResponse: {
             /**
@@ -3282,6 +3332,16 @@ export interface components {
              */
             consent: components["schemas"]["ConsentState"];
             entity: components["schemas"]["EntityInfo"];
+            /**
+             * Request Message
+             * @default
+             */
+            request_message: string;
+            /**
+             * Requested By
+             * @default
+             */
+            requested_by: string;
             /** Session Id */
             session_id: string;
             /**
@@ -5646,7 +5706,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PortalLinkRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             201: {
@@ -6509,11 +6573,13 @@ export interface operations {
     };
     get_session_api_portal_session_get: {
         parameters: {
-            query: {
-                /** @description Portal token UUID */
-                token: string;
+            query?: {
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
             };
-            header?: never;
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };

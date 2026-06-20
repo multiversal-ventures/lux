@@ -322,6 +322,66 @@ export class VeritasClient {
 		);
 	}
 
+	// -- Party Hub (operator) --------------------------------------------------
+
+	/** Full operator overview of a case's portal: parties, threads, verification,
+	 * shared uploaded documents. Drives the Party Hub page. */
+	async getPortalOverview(caseId: string): Promise<components["schemas"]["PortalOverview"]> {
+		return this.requestJson<components["schemas"]["PortalOverview"]>(`/api/cases/${caseId}/portal`);
+	}
+
+	/** Resolved case identities not yet engaged as a portal party ("add party"). */
+	async getPortalCandidates(caseId: string): Promise<components["schemas"]["PartyCandidate"][]> {
+		return this.requestJson<components["schemas"]["PartyCandidate"][]>(
+			`/api/cases/${caseId}/portal/candidates`,
+		);
+	}
+
+	/** Append a request to a party's thread (reuses the party's persistent link). */
+	async sendPortalRequest(
+		caseId: string,
+		body: components["schemas"]["SendRequestBody"],
+	): Promise<components["schemas"]["SendRequestResponse"]> {
+		return this.requestJson<components["schemas"]["SendRequestResponse"]>(
+			`/api/cases/${caseId}/portal/requests`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** AI-draft borrower-friendly request text (draft only — operator edits + sends). */
+	async draftPortalRequest(
+		caseId: string,
+		body: components["schemas"]["DraftRequestBody"],
+	): Promise<components["schemas"]["DraftResponse"]> {
+		return this.requestJson<components["schemas"]["DraftResponse"]>(
+			`/api/cases/${caseId}/portal/requests/draft`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** Create a portal party (individual or entity) for a case. */
+	async addParty(
+		caseId: string,
+		body: components["schemas"]["AddPartyBody"],
+	): Promise<components["schemas"]["PartyCreatedResponse"]> {
+		return this.requestJson<components["schemas"]["PartyCreatedResponse"]>(
+			`/api/cases/${caseId}/portal/parties`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** Link a party to a resolved case identity. */
+	async linkParty(
+		caseId: string,
+		partyId: string,
+		body: components["schemas"]["LinkPartyBody"],
+	): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/link`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {
 		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
 	}

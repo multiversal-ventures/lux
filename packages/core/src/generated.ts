@@ -710,14 +710,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal-link": {
+    "/api/cases/{case_id}/portal": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Portal Overview
+         * @description Full operator Party Hub view: parties, threads, verification, docs.
+         */
+        get: operations["portal_overview_api_cases__case_id__portal_get"];
         put?: never;
         /**
          * Create Portal Link
@@ -731,14 +735,118 @@ export interface paths {
          *     shown on the borrower portal, attributed to the requesting tenant. Returns
          *     the token + expiry; the client builds the shareable URL.
          */
-        post: operations["create_portal_link_api_cases__case_id__portal_link_post"];
+        post: operations["create_portal_link_api_cases__case_id__portal_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal-link/status": {
+    "/api/cases/{case_id}/portal/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Candidates
+         * @description Case borrowers not yet engaged as portal parties (add-party picker).
+         */
+        get: operations["portal_candidates_api_cases__case_id__portal_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Party
+         * @description Create a portal party on the case (optionally pre-linked to an identity).
+         */
+        post: operations["add_party_api_cases__case_id__portal_parties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Party
+         * @description Link a party to a resolved case identity (the confidence link).
+         */
+        post: operations["link_party_api_cases__case_id__portal_parties__party_id__link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Portal Request
+         * @description Append a request to a party's portal thread, reusing its active token.
+         *
+         *     The token identity MUST equal the party's linked identity so the borrower
+         *     resolves to their own party. A party with no linked identity can't be
+         *     messaged through the portal (409) — link it first.
+         */
+        post: operations["send_portal_request_api_cases__case_id__portal_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/requests/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Portal Request
+         * @description AI-draft a borrower-friendly request message. Creates no message/event.
+         */
+        post: operations["draft_portal_request_api_cases__case_id__portal_requests_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -753,7 +861,7 @@ export interface paths {
          *     borrower finalized (portal.borrower.submitted event); ``waiting`` while a
          *     request is outstanding; ``none`` if no link was ever issued.
          */
-        get: operations["portal_link_status_api_cases__case_id__portal_link_status_get"];
+        get: operations["portal_link_status_api_cases__case_id__portal_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -762,7 +870,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal-suggestions": {
+    "/api/cases/{case_id}/portal/suggestions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1797,6 +1905,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddPartyBody */
+        AddPartyBody: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /** Party Type */
+            party_type: string;
+            /** Role */
+            role?: string | null;
+            /** Signer Party Id */
+            signer_party_id?: string | null;
+        };
         /**
          * AgentEventMeta
          * @description `_agent` meta stamped on every correction-agent event.
@@ -2708,6 +2831,27 @@ export interface components {
             /** Tax Year */
             tax_year?: number | null;
         };
+        /**
+         * DraftRequestBody
+         * @description Draft-only — turns selected items into borrower-friendly text.
+         */
+        DraftRequestBody: {
+            /**
+             * Context
+             * @default
+             */
+            context: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["PortalRequestItem"][];
+        };
+        /** DraftResponse */
+        DraftResponse: {
+            /** Text */
+            text: string;
+        };
         /** EntityGroupResponse */
         EntityGroupResponse: {
             /**
@@ -3194,6 +3338,8 @@ export interface components {
             level?: number | null;
             /** Signature */
             signature?: string | null;
+            /** Text */
+            text?: string | null;
         };
         /** IntentResult */
         IntentResult: {
@@ -3272,6 +3418,14 @@ export interface components {
             /** Prompt */
             prompt: string;
         };
+        /** LinkPartyBody */
+        LinkPartyBody: {
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+        };
         /** MergeRequest */
         MergeRequest: {
             /** Reason */
@@ -3305,6 +3459,93 @@ export interface components {
              * Format: uuid
              */
             tenant_id: string;
+        };
+        /** PartyCandidate */
+        PartyCandidate: {
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            /**
+             * Party Type
+             * @default individual
+             */
+            party_type: string;
+            /**
+             * Role
+             * @default borrower
+             */
+            role: string;
+        };
+        /** PartyCreatedResponse */
+        PartyCreatedResponse: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /** Party Type */
+            party_type: string;
+            /** Role */
+            role?: string | null;
+            /** Signer Party Id */
+            signer_party_id?: string | null;
+        };
+        /** PartyView */
+        PartyView: {
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /** Party Type */
+            party_type: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /** Signer Party Id */
+            signer_party_id?: string | null;
+            /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /**
          * PortalLinkRequest
@@ -3376,6 +3617,24 @@ export interface components {
              * @default 0
              */
             uploaded_count: number;
+        };
+        /** PortalOverview */
+        PortalOverview: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /**
+             * Parties
+             * @default []
+             */
+            parties: components["schemas"]["PartyView"][];
+            /**
+             * Uploaded Files
+             * @default []
+             */
+            uploaded_files: string[];
         };
         /**
          * PortalRequestItem
@@ -4021,6 +4280,34 @@ export interface components {
             total_monthly_debt?: number | null;
         };
         /**
+         * SendRequestBody
+         * @description Append a request to a party's portal thread.
+         */
+        SendRequestBody: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["PortalRequestItem"][];
+            /** Message */
+            message?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+        };
+        /** SendRequestResponse */
+        SendRequestResponse: {
+            /**
+             * Message Id
+             * Format: uuid
+             */
+            message_id: string;
+            /** Token */
+            token: string;
+        };
+        /**
          * SignedTreeHeadPredicate
          * @description The in-toto predicate body: the Signed Tree Head over a case's audit log.
          * @example {
@@ -4452,6 +4739,37 @@ export interface components {
             severity: string;
             /** Title */
             title: string;
+        };
+        /** ThreadMessage */
+        ThreadMessage: {
+            /** Author Kind */
+            author_kind: string;
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /** Kind */
+            kind: string;
+            /**
+             * Message Id
+             * Format: uuid
+             */
+            message_id: string;
+            /** Status */
+            status?: string | null;
         };
         /**
          * TransactionRegion
@@ -5823,7 +6141,38 @@ export interface operations {
             };
         };
     };
-    create_portal_link_api_cases__case_id__portal_link_post: {
+    portal_overview_api_cases__case_id__portal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_portal_link_api_cases__case_id__portal_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5858,7 +6207,181 @@ export interface operations {
             };
         };
     };
-    portal_link_status_api_cases__case_id__portal_link_status_get: {
+    portal_candidates_api_cases__case_id__portal_candidates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_party_api_cases__case_id__portal_parties_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPartyBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyCreatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_party_api_cases__case_id__portal_parties__party_id__link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkPartyBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_portal_request_api_cases__case_id__portal_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    draft_portal_request_api_cases__case_id__portal_requests_draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_link_status_api_cases__case_id__portal_status_get: {
         parameters: {
             query?: never;
             header?: never;

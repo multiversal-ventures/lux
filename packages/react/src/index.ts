@@ -416,3 +416,32 @@ export type {
   FormatScenarioSummaryOptions,
   HasSummaryResult,
 } from "./components/Scenario/index.js";
+
+// Party Hub (operator) + friendly labels
+export {
+  PartyHub,
+  PartyCard,
+  PortalThread,
+  VerificationSummary,
+  UploadedDocuments,
+  RequestComposer,
+} from "./components/PartyHub/index.js";
+export type { PartyHubProps } from "./components/PartyHub/index.js";
+export {
+  usePortalOverview,
+  usePortalCandidates,
+  useDraftRequest,
+  useSendRequest,
+  useAddParty,
+  useLinkParty,
+} from "./hooks/usePartyHub.js";
+export type {
+  PortalOverview,
+  PartyView,
+  ThreadMessage,
+  PartyCandidate,
+  SendRequestBody,
+  DraftRequestBody,
+  AddPartyBody,
+} from "./hooks/usePartyHub.js";
+export { roleLabel, partyTypeLabel, statusLabel, eventLabel } from "./labels.js";

@@ -1,6 +1,76 @@
 {
   "components": {
     "schemas": {
+      "AddPartyBody": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "linked_identity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Identity Id"
+          },
+          "party_type": {
+            "title": "Party Type",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "signer_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Party Id"
+          }
+        },
+        "required": [
+          "party_type"
+        ],
+        "title": "AddPartyBody",
+        "type": "object"
+      },
       "AgentEventMeta": {
         "additionalProperties": true,
         "description": "`_agent` meta stamped on every correction-agent event.\n\nThe correction harness attaches this to each emitted event's\n``event_data`` (see ``domains.corrections.base``/``queue``). ``reasoning``\nis the full, uncapped model rationale; ``reasoning_preview`` a 240-char cut\nfor compact list rendering. ``tier`` is the model tier that produced the\ndecision (``fast``/``balanced``/``powerful``).",
@@ -1971,6 +2041,39 @@
         "title": "DocumentResponse",
         "type": "object"
       },
+      "DraftRequestBody": {
+        "description": "Draft-only \u2014 turns selected items into borrower-friendly text.",
+        "properties": {
+          "context": {
+            "default": "",
+            "title": "Context",
+            "type": "string"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PortalRequestItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "DraftRequestBody",
+        "type": "object"
+      },
+      "DraftResponse": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "DraftResponse",
+        "type": "object"
+      },
       "EntityGroupResponse": {
         "properties": {
           "case_id": {
@@ -3072,6 +3175,17 @@
               }
             ],
             "title": "Signature"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
           }
         },
         "title": "IntentParams",
@@ -3239,6 +3353,20 @@
         "title": "KbaQuestion",
         "type": "object"
       },
+      "LinkPartyBody": {
+        "properties": {
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id"
+        ],
+        "title": "LinkPartyBody",
+        "type": "object"
+      },
       "MergeRequest": {
         "properties": {
           "reason": {
@@ -3297,6 +3425,188 @@
           "status"
         ],
         "title": "OperatorResponse",
+        "type": "object"
+      },
+      "PartyCandidate": {
+        "properties": {
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "party_type": {
+            "default": "individual",
+            "title": "Party Type",
+            "type": "string"
+          },
+          "role": {
+            "default": "borrower",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id"
+        ],
+        "title": "PartyCandidate",
+        "type": "object"
+      },
+      "PartyCreatedResponse": {
+        "properties": {
+          "case_id": {
+            "format": "uuid",
+            "title": "Case Id",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "linked_identity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Identity Id"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_type": {
+            "title": "Party Type",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "signer_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Party Id"
+          }
+        },
+        "required": [
+          "party_id",
+          "case_id",
+          "party_type"
+        ],
+        "title": "PartyCreatedResponse",
+        "type": "object"
+      },
+      "PartyView": {
+        "properties": {
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "linked_identity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Identity Id"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_type": {
+            "title": "Party Type",
+            "type": "string"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          },
+          "signed": {
+            "default": false,
+            "title": "Signed",
+            "type": "boolean"
+          },
+          "signer_party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Party Id"
+          },
+          "thread": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ThreadMessage"
+            },
+            "title": "Thread",
+            "type": "array"
+          },
+          "verified": {
+            "default": false,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_type"
+        ],
+        "title": "PartyView",
         "type": "object"
       },
       "PortalLinkRequest": {
@@ -3421,6 +3731,36 @@
           }
         },
         "title": "PortalLinkStatusResponse",
+        "type": "object"
+      },
+      "PortalOverview": {
+        "properties": {
+          "case_id": {
+            "format": "uuid",
+            "title": "Case Id",
+            "type": "string"
+          },
+          "parties": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PartyView"
+            },
+            "title": "Parties",
+            "type": "array"
+          },
+          "uploaded_files": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Uploaded Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "case_id"
+        ],
+        "title": "PortalOverview",
         "type": "object"
       },
       "PortalRequestItem": {
@@ -4913,6 +5253,59 @@
         "title": "ScenarioSummaryResponse",
         "type": "object"
       },
+      "SendRequestBody": {
+        "description": "Append a request to a party's portal thread.",
+        "properties": {
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PortalRequestItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id"
+        ],
+        "title": "SendRequestBody",
+        "type": "object"
+      },
+      "SendRequestResponse": {
+        "properties": {
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "message_id"
+        ],
+        "title": "SendRequestResponse",
+        "type": "object"
+      },
       "SignedTreeHeadPredicate": {
         "description": "The in-toto predicate body: the Signed Tree Head over a case's audit log.",
         "example": {
@@ -5949,6 +6342,61 @@
           "title"
         ],
         "title": "SummarySectionResponse",
+        "type": "object"
+      },
+      "ThreadMessage": {
+        "properties": {
+          "author_kind": {
+            "title": "Author Kind",
+            "type": "string"
+          },
+          "body": {
+            "default": "",
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "message_id",
+          "kind",
+          "author_kind",
+          "created_at"
+        ],
+        "title": "ThreadMessage",
         "type": "object"
       },
       "TransactionRegion": {
@@ -8311,10 +8759,57 @@
         ]
       }
     },
-    "/api/cases/{case_id}/portal-link": {
+    "/api/cases/{case_id}/portal": {
+      "get": {
+        "description": "Full operator Party Hub view: parties, threads, verification, docs.",
+        "operationId": "portal_overview_api_cases__case_id__portal_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal Overview",
+        "tags": [
+          "party"
+        ]
+      },
       "post": {
         "description": "Issue a single-use, 48h borrower portal token for a case, with an\noptional document/follow-up request the borrower portal renders.\n\nTenant/operator only \u2014 portal callers cannot mint links. Ties the token to\nthe case's primary borrower entity so the borrower opens a no-login portal\nscoped to their own case. The operator's selected follow-up/completeness\nitems + custom items + message are persisted as a ``portal_request`` and\nshown on the borrower portal, attributed to the requesting tenant. Returns\nthe token + expiry; the client builds the shareable URL.",
-        "operationId": "create_portal_link_api_cases__case_id__portal_link_post",
+        "operationId": "create_portal_link_api_cases__case_id__portal_post",
         "parameters": [
           {
             "in": "path",
@@ -8373,14 +8868,315 @@
         ],
         "summary": "Create Portal Link",
         "tags": [
-          "cases"
+          "party"
         ]
       }
     },
-    "/api/cases/{case_id}/portal-link/status": {
+    "/api/cases/{case_id}/portal/candidates": {
+      "get": {
+        "description": "Case borrowers not yet engaged as portal parties (add-party picker).",
+        "operationId": "portal_candidates_api_cases__case_id__portal_candidates_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PartyCandidate"
+                  },
+                  "title": "Response Portal Candidates Api Cases  Case Id  Portal Candidates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal Candidates",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/parties": {
+      "post": {
+        "description": "Create a portal party on the case (optionally pre-linked to an identity).",
+        "operationId": "add_party_api_cases__case_id__portal_parties_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPartyBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyCreatedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Party",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/parties/{party_id}/link": {
+      "post": {
+        "description": "Link a party to a resolved case identity (the confidence link).",
+        "operationId": "link_party_api_cases__case_id__portal_parties__party_id__link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkPartyBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Link Party Api Cases  Case Id  Portal Parties  Party Id  Link Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Link Party",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/requests": {
+      "post": {
+        "description": "Append a request to a party's portal thread, reusing its active token.\n\nThe token identity MUST equal the party's linked identity so the borrower\nresolves to their own party. A party with no linked identity can't be\nmessaged through the portal (409) \u2014 link it first.",
+        "operationId": "send_portal_request_api_cases__case_id__portal_requests_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Send Portal Request",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/requests/draft": {
+      "post": {
+        "description": "AI-draft a borrower-friendly request message. Creates no message/event.",
+        "operationId": "draft_portal_request_api_cases__case_id__portal_requests_draft_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Draft Portal Request",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/status": {
       "get": {
         "description": "Operator view of the borrower portal link: none / waiting / submitted.\n\nDrives the operator's Portal Link button state. ``submitted`` once the\nborrower finalized (portal.borrower.submitted event); ``waiting`` while a\nrequest is outstanding; ``none`` if no link was ever issued.",
-        "operationId": "portal_link_status_api_cases__case_id__portal_link_status_get",
+        "operationId": "portal_link_status_api_cases__case_id__portal_status_get",
         "parameters": [
           {
             "in": "path",
@@ -8422,11 +9218,11 @@
         ],
         "summary": "Portal Link Status",
         "tags": [
-          "cases"
+          "party"
         ]
       }
     },
-    "/api/cases/{case_id}/portal-suggestions": {
+    "/api/cases/{case_id}/portal/suggestions": {
       "get": {
         "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nDerived (cheaply, no LLM) from the case's spec findings \u2014 the things\nqualification flagged as needing follow-up or a missing document. The\noperator checks off which to request. Deduped by (code, title).",
         "operationId": "portal_suggestions_api_cases__case_id__portal_suggestions_get",
@@ -8475,7 +9271,7 @@
         ],
         "summary": "Portal Suggestions",
         "tags": [
-          "cases"
+          "party"
         ]
       }
     },

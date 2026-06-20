@@ -1,0 +1,81 @@
+import {
+	useMutation,
+	useQuery,
+	useQueryClient,
+	type UseMutationResult,
+	type UseQueryResult,
+} from "@tanstack/react-query";
+import { getDefaultClient, type components } from "@multiversal-ventures/lux-core";
+
+export type PortalOverview = components["schemas"]["PortalOverview"];
+export type PartyView = components["schemas"]["PartyView"];
+export type ThreadMessage = components["schemas"]["ThreadMessage"];
+export type PartyCandidate = components["schemas"]["PartyCandidate"];
+export type SendRequestBody = components["schemas"]["SendRequestBody"];
+export type DraftRequestBody = components["schemas"]["DraftRequestBody"];
+export type AddPartyBody = components["schemas"]["AddPartyBody"];
+
+const overviewKey = (caseId: string | null) => ["portal-overview", caseId];
+
+/** Operator overview of a case's portal (parties, threads, verification, docs). */
+export function usePortalOverview(caseId: string | null): UseQueryResult<PortalOverview, Error> {
+	return useQuery<PortalOverview, Error>({
+		queryKey: overviewKey(caseId),
+		enabled: !!caseId,
+		refetchInterval: 30_000,
+		queryFn: async () => getDefaultClient().getPortalOverview(caseId as string),
+	});
+}
+
+/** Resolved case identities not yet engaged as a party ("add party"). */
+export function usePortalCandidates(caseId: string | null): UseQueryResult<PartyCandidate[], Error> {
+	return useQuery<PartyCandidate[], Error>({
+		queryKey: ["portal-candidates", caseId],
+		enabled: !!caseId,
+		queryFn: async () => getDefaultClient().getPortalCandidates(caseId as string),
+	});
+}
+
+/** AI-draft request text — returns text only; the operator edits + sends it. */
+export function useDraftRequest(
+	caseId: string,
+): UseMutationResult<string, Error, DraftRequestBody> {
+	return useMutation<string, Error, DraftRequestBody>({
+		mutationFn: async (body) => (await getDefaultClient().draftPortalRequest(caseId, body)).text ?? "",
+	});
+}
+
+/** Append a request to a party's thread; refreshes the overview. */
+export function useSendRequest(
+	caseId: string,
+): UseMutationResult<unknown, Error, SendRequestBody> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, SendRequestBody>({
+		mutationFn: async (body) => getDefaultClient().sendPortalRequest(caseId, body),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
+/** Create a party for a case; refreshes overview + candidates. */
+export function useAddParty(caseId: string): UseMutationResult<unknown, Error, AddPartyBody> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, AddPartyBody>({
+		mutationFn: async (body) => getDefaultClient().addParty(caseId, body),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: overviewKey(caseId) });
+			qc.invalidateQueries({ queryKey: ["portal-candidates", caseId] });
+		},
+	});
+}
+
+/** Link a party to a case identity; refreshes overview. */
+export function useLinkParty(
+	caseId: string,
+): UseMutationResult<unknown, Error, { partyId: string; identityId: string }> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, { partyId: string; identityId: string }>({
+		mutationFn: async ({ partyId, identityId }) =>
+			getDefaultClient().linkParty(caseId, partyId, { identity_id: identityId }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}

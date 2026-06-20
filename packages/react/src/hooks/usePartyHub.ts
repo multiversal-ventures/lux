@@ -14,6 +14,16 @@ export type PartyCandidate = components["schemas"]["PartyCandidate"];
 export type SendRequestBody = components["schemas"]["SendRequestBody"];
 export type DraftRequestBody = components["schemas"]["DraftRequestBody"];
 export type AddPartyBody = components["schemas"]["AddPartyBody"];
+export type MyCaseLink = components["schemas"]["MyCaseLink"];
+
+/** Cases the signed-in borrower (magic-link account) can access, with tokens. */
+export function useMyCases(enabled = true): UseQueryResult<MyCaseLink[], Error> {
+	return useQuery<MyCaseLink[], Error>({
+		queryKey: ["my-cases"],
+		enabled,
+		queryFn: async () => getDefaultClient().getMyCases(),
+	});
+}
 
 const overviewKey = (caseId: string | null) => ["portal-overview", caseId];
 

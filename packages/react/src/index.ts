@@ -434,6 +434,7 @@ export {
   useSendRequest,
   useAddParty,
   useLinkParty,
+  useMyCases,
 } from "./hooks/usePartyHub.js";
 export type {
   PortalOverview,
@@ -443,5 +444,6 @@ export type {
   SendRequestBody,
   DraftRequestBody,
   AddPartyBody,
+  MyCaseLink,
 } from "./hooks/usePartyHub.js";
 export { roleLabel, partyTypeLabel, statusLabel, eventLabel } from "./labels.js";

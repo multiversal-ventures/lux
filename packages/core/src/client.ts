@@ -324,6 +324,12 @@ export class VeritasClient {
 
 	// -- Party Hub (operator) --------------------------------------------------
 
+	/** Cases the signed-in borrower (magic-link account) can access, each with a
+	 * fresh portal token. Authed by the borrower's Firebase JWT. */
+	async getMyCases(): Promise<components["schemas"]["MyCaseLink"][]> {
+		return this.requestJson<components["schemas"]["MyCaseLink"][]>(`/api/portal/my-cases`);
+	}
+
 	/** Full operator overview of a case's portal: parties, threads, verification,
 	 * shared uploaded documents. Drives the Party Hub page. */
 	async getPortalOverview(caseId: string): Promise<components["schemas"]["PortalOverview"]> {
@@ -1077,5 +1083,28 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		}
 	}
 
-	return { fetchSession, submitIntents, uploadDocuments };
+	/** Attach a Firebase account to this borrower's portal (token-gated). The
+	 * Firebase id token (from a magic-link sign-in) is verified server-side only
+	 * to capture a trusted uid; auth is the portal token. */
+	async function claimAccount(
+		token: string,
+		firebaseIdToken: string,
+	): Promise<{ ok: boolean; accountUserId?: string; error: PortalClientError | null }> {
+		try {
+			const res = await fetch(`${base}/api/portal/claim-account`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", [PORTAL_AUTH_HEADER]: token },
+				body: JSON.stringify({ firebase_id_token: firebaseIdToken }),
+			});
+			if (!res.ok) {
+				return { ok: false, error: { code: "server", message: `Couldn't create account (${res.status})`, status: res.status } };
+			}
+			const data = (await res.json()) as { account_user_id?: string };
+			return { ok: true, accountUserId: data.account_user_id, error: null };
+		} catch {
+			return { ok: false, error: { code: "network", message: "Couldn't create account" } };
+		}
+	}
+
+	return { fetchSession, submitIntents, uploadDocuments, claimAccount };
 }

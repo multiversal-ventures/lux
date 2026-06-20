@@ -1092,6 +1092,33 @@
         "title": "ChecklistItem",
         "type": "object"
       },
+      "ClaimAccountRequest": {
+        "description": "Borrower attaches a Firebase account to their portal (token-gated).",
+        "properties": {
+          "firebase_id_token": {
+            "title": "Firebase Id Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "firebase_id_token"
+        ],
+        "title": "ClaimAccountRequest",
+        "type": "object"
+      },
+      "ClaimAccountResponse": {
+        "properties": {
+          "account_user_id": {
+            "title": "Account User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_user_id"
+        ],
+        "title": "ClaimAccountResponse",
+        "type": "object"
+      },
       "ClassifiedTransaction": {
         "description": "One classified transaction row from the banking pipeline.",
         "properties": {
@@ -3392,6 +3419,31 @@
         "title": "MergeRequest",
         "type": "object"
       },
+      "MyCaseLink": {
+        "description": "A case the signed-in borrower can access, plus a fresh portal token.",
+        "properties": {
+          "case_id": {
+            "format": "uuid",
+            "title": "Case Id",
+            "type": "string"
+          },
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "token"
+        ],
+        "title": "MyCaseLink",
+        "type": "object"
+      },
       "OperatorResponse": {
         "properties": {
           "operator_email": {
@@ -3544,6 +3596,11 @@
             "default": "",
             "title": "Display Name",
             "type": "string"
+          },
+          "has_account": {
+            "default": false,
+            "title": "Has Account",
+            "type": "boolean"
           },
           "linked_identity_id": {
             "anyOf": [
@@ -10839,6 +10896,113 @@
         "summary": "Revoke Operator",
         "tags": [
           "operators"
+        ]
+      }
+    },
+    "/api/portal/claim-account": {
+      "post": {
+        "description": "Attach a Firebase account to the borrower's portal \u2014 token-gated.\n\nAuth is the borrower's CURRENT portal token (proves they're the borrower for\nthis party); the Firebase id token is verified only to capture a trusted uid.\nUpserts a ``users`` row with role=borrower and links the party's\naccount_user_id, so future magic-link logins resolve to this account. NOT a\nJWT-authed endpoint, so it never hits the operator auto-provision path.",
+        "operationId": "claim_account_api_portal_claim_account_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimAccountResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim Account",
+        "tags": [
+          "portal"
+        ]
+      }
+    },
+    "/api/portal/my-cases": {
+      "get": {
+        "description": "Cases the signed-in borrower (magic-link account) can access, each with a\nfresh/reused portal token so the existing token-based portal still drives it.",
+        "operationId": "my_cases_api_portal_my_cases_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyCaseLink"
+                  },
+                  "title": "Response My Cases Api Portal My Cases Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Cases",
+        "tags": [
+          "portal"
         ]
       }
     },

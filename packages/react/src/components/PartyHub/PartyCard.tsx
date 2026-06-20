@@ -19,9 +19,14 @@ export function PartyCard({ caseId, party }: { caseId: string; party: PartyView 
 					<h3 className="font-semibold text-slate-900">{party.display_name || roleLabel(party.role)}</h3>
 					<p className="text-xs text-slate-500">{subtitle}</p>
 				</div>
-				<span className={`text-xs ${linked ? "text-slate-500" : "text-amber-600"}`}>
-					{linked ? "Linked to a case identity" : "Not linked to an identity"}
-				</span>
+				<div className="text-right">
+					<span className={`block text-xs ${linked ? "text-slate-500" : "text-amber-600"}`}>
+						{linked ? "Linked to a case identity" : "Not linked to an identity"}
+					</span>
+					<span className={`block text-xs ${party.has_account ? "text-green-700" : "text-slate-400"}`}>
+						{party.has_account ? "✓ Account created" : "No account yet"}
+					</span>
+				</div>
 			</div>
 
 			<VerificationSummary party={party} />

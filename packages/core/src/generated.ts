@@ -1422,6 +1422,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/claim-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Account
+         * @description Attach a Firebase account to the borrower's portal — token-gated.
+         *
+         *     Auth is the borrower's CURRENT portal token (proves they're the borrower for
+         *     this party); the Firebase id token is verified only to capture a trusted uid.
+         *     Upserts a ``users`` row with role=borrower and links the party's
+         *     account_user_id, so future magic-link logins resolve to this account. NOT a
+         *     JWT-authed endpoint, so it never hits the operator auto-provision path.
+         */
+        post: operations["claim_account_api_portal_claim_account_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/my-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Cases
+         * @description Cases the signed-in borrower (magic-link account) can access, each with a
+         *     fresh/reused portal token so the existing token-based portal still drives it.
+         */
+        get: operations["my_cases_api_portal_my_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/portal/session": {
         parameters: {
             query?: never;
@@ -2445,6 +2492,19 @@ export interface components {
             title: string;
         };
         /**
+         * ClaimAccountRequest
+         * @description Borrower attaches a Firebase account to their portal (token-gated).
+         */
+        ClaimAccountRequest: {
+            /** Firebase Id Token */
+            firebase_id_token: string;
+        };
+        /** ClaimAccountResponse */
+        ClaimAccountResponse: {
+            /** Account User Id */
+            account_user_id: string;
+        };
+        /**
          * ClassifiedTransaction
          * @description One classified transaction row from the banking pipeline.
          */
@@ -3441,6 +3501,24 @@ export interface components {
              */
             target_id: string;
         };
+        /**
+         * MyCaseLink
+         * @description A case the signed-in borrower can access, plus a fresh portal token.
+         */
+        MyCaseLink: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /** Token */
+            token: string;
+        };
         /** OperatorResponse */
         OperatorResponse: {
             /** Operator Email */
@@ -3515,6 +3593,11 @@ export interface components {
              * @default
              */
             display_name: string;
+            /**
+             * Has Account
+             * @default false
+             */
+            has_account: boolean;
             /** Linked Identity Id */
             linked_identity_id?: string | null;
             /**
@@ -7283,6 +7366,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_account_api_portal_claim_account_post: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimAccountResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_cases_api_portal_my_cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCaseLink"][];
                 };
             };
         };

@@ -3061,6 +3061,17 @@
               }
             ],
             "title": "Level"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
           }
         },
         "title": "IntentParams",
@@ -3355,6 +3366,63 @@
         "title": "PortalLinkResponse",
         "type": "object"
       },
+      "PortalLinkStatusResponse": {
+        "description": "Operator-facing status of a case's borrower portal link.\n\n``status``: ``none`` (never issued), ``waiting`` (issued, borrower hasn't\nsubmitted), ``submitted`` (borrower finished \u2014 link consumed).",
+        "properties": {
+          "item_count": {
+            "default": 0,
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "status": {
+            "default": "none",
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "uploaded_count": {
+            "default": 0,
+            "title": "Uploaded Count",
+            "type": "integer"
+          }
+        },
+        "title": "PortalLinkStatusResponse",
+        "type": "object"
+      },
       "PortalRequestItem": {
         "description": "One requested document/follow-up item the borrower will see.\n\n``source`` records where it came from: ``follow_up`` / ``completeness`` (a\nveritas-suggested item the operator checked off) or ``custom`` (free-typed).",
         "properties": {
@@ -3448,6 +3516,16 @@
             "title": "Session Id",
             "type": "string"
           },
+          "signed": {
+            "default": false,
+            "title": "Signed",
+            "type": "boolean"
+          },
+          "submitted": {
+            "default": false,
+            "title": "Submitted",
+            "type": "boolean"
+          },
           "upload_config": {
             "$ref": "#/components/schemas/UploadConfig",
             "default": {
@@ -3457,6 +3535,14 @@
               "endpoint": "",
               "max_file_size_mb": 25
             }
+          },
+          "uploaded_files": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Uploaded Files",
+            "type": "array"
           },
           "verification": {
             "$ref": "#/components/schemas/VerificationState",
@@ -8286,6 +8372,55 @@
           }
         ],
         "summary": "Create Portal Link",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal-link/status": {
+      "get": {
+        "description": "Operator view of the borrower portal link: none / waiting / submitted.\n\nDrives the operator's Portal Link button state. ``submitted`` once the\nborrower finalized (portal.borrower.submitted event); ``waiting`` while a\nrequest is outstanding; ``none`` if no link was ever issued.",
+        "operationId": "portal_link_status_api_cases__case_id__portal_link_status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalLinkStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal Link Status",
         "tags": [
           "cases"
         ]

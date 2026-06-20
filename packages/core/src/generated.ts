@@ -738,6 +738,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal-link/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Link Status
+         * @description Operator view of the borrower portal link: none / waiting / submitted.
+         *
+         *     Drives the operator's Portal Link button state. ``submitted`` once the
+         *     borrower finalized (portal.borrower.submitted event); ``waiting`` while a
+         *     request is outstanding; ``none`` if no link was ever issued.
+         */
+        get: operations["portal_link_status_api_cases__case_id__portal_link_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal-suggestions": {
         parameters: {
             query?: never;
@@ -3168,6 +3192,8 @@ export interface components {
             granted?: boolean | null;
             /** Level */
             level?: number | null;
+            /** Signature */
+            signature?: string | null;
         };
         /** IntentResult */
         IntentResult: {
@@ -3322,6 +3348,36 @@ export interface components {
             ttl_hours: number;
         };
         /**
+         * PortalLinkStatusResponse
+         * @description Operator-facing status of a case's borrower portal link.
+         *
+         *     ``status``: ``none`` (never issued), ``waiting`` (issued, borrower hasn't
+         *     submitted), ``submitted`` (borrower finished — link consumed).
+         */
+        PortalLinkStatusResponse: {
+            /**
+             * Item Count
+             * @default 0
+             */
+            item_count: number;
+            /** Requested At */
+            requested_at?: string | null;
+            /** Requested By */
+            requested_by?: string | null;
+            /**
+             * Status
+             * @default none
+             */
+            status: string;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /**
+             * Uploaded Count
+             * @default 0
+             */
+            uploaded_count: number;
+        };
+        /**
          * PortalRequestItem
          * @description One requested document/follow-up item the borrower will see.
          *
@@ -3400,6 +3456,16 @@ export interface components {
             /** Session Id */
             session_id: string;
             /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /**
+             * Submitted
+             * @default false
+             */
+            submitted: boolean;
+            /**
              * @default {
              *       "accepted_types": [
              *         ".pdf"
@@ -3409,6 +3475,11 @@ export interface components {
              *     }
              */
             upload_config: components["schemas"]["UploadConfig"];
+            /**
+             * Uploaded Files
+             * @default []
+             */
+            uploaded_files: string[];
             /**
              * @default {
              *       "level": 0,
@@ -5774,6 +5845,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortalLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_link_status_api_cases__case_id__portal_link_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalLinkStatusResponse"];
                 };
             };
             /** @description Validation Error */

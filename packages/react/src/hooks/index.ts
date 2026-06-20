@@ -20,5 +20,5 @@ export {
   PIPELINE_PHASE_PRIORITY,
 } from "./useCasePipelinePhase.js";
 export type { PipelinePhaseResult } from "./useCasePipelinePhase.js";
-export { useCreatePortalLink, usePortalSuggestions, buildPortalUrl } from "./useCreatePortalLink.js";
-export type { PortalLink, PortalLinkRequest, PortalRequestItem } from "./useCreatePortalLink.js";
+export { useCreatePortalLink, usePortalSuggestions, usePortalLinkStatus, buildPortalUrl } from "./useCreatePortalLink.js";
+export type { PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus } from "./useCreatePortalLink.js";

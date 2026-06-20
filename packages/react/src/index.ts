@@ -79,9 +79,10 @@ export {
 	PIPELINE_PHASE_PRIORITY,
 	useCreatePortalLink,
 	usePortalSuggestions,
+	usePortalLinkStatus,
 	buildPortalUrl,
 } from "./hooks/index.js";
-export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem } from "./hooks/index.js";
+export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus } from "./hooks/index.js";
 
 // UI components
 export { AuthedImage } from "./components/AuthedImage/index.js";

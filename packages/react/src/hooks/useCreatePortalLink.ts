@@ -4,6 +4,23 @@ import { getDefaultClient, type components } from "@multiversal-ventures/lux-cor
 export type PortalLink = components["schemas"]["PortalLinkResponse"];
 export type PortalLinkRequest = components["schemas"]["PortalLinkRequest"];
 export type PortalRequestItem = components["schemas"]["PortalRequestItem"];
+export type PortalLinkStatus = components["schemas"]["PortalLinkStatusResponse"];
+
+/**
+ * Operator-facing status of a case's borrower portal link
+ * (none / waiting / submitted) for rendering the Portal Link button. Polls so
+ * the button flips to "submitted" when the borrower finishes.
+ */
+export function usePortalLinkStatus(
+	caseId: string | null,
+): UseQueryResult<PortalLinkStatus, Error> {
+	return useQuery<PortalLinkStatus, Error>({
+		queryKey: ["portal-link-status", caseId],
+		enabled: !!caseId,
+		refetchInterval: 30_000,
+		queryFn: async () => getDefaultClient().getPortalLinkStatus(caseId as string),
+	});
+}
 
 /**
  * Mutation that issues a one-time, expiring borrower portal token for a case

@@ -306,6 +306,14 @@ export class VeritasClient {
 		);
 	}
 
+	/** Operator status of the case's borrower portal link (none/waiting/submitted),
+	 * for rendering the Portal Link button state. */
+	async getPortalLinkStatus(caseId: string): Promise<components["schemas"]["PortalLinkStatusResponse"]> {
+		return this.requestJson<components["schemas"]["PortalLinkStatusResponse"]>(
+			`/api/cases/${caseId}/portal-link/status`,
+		);
+	}
+
 	/** Suggested follow-up / document items for the portal request modal
 	 * (derived from the case's findings; operator picks which to request). */
 	async getPortalSuggestions(caseId: string): Promise<components["schemas"]["PortalRequestItem"][]> {

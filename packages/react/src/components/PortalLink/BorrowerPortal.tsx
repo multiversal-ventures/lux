@@ -4,6 +4,7 @@ import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
 type KbaQuestion = components["schemas"]["KbaQuestion"];
+type ThreadMessage = components["schemas"]["ThreadMessage"];
 
 export interface BorrowerPortalProps {
 	/** Portal token from the URL (`?token=…`), or null for an immediate error. */
@@ -42,25 +43,11 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 
 	const name = session.entity?.name || "the borrower";
 
-	// Once submitted, the link is done — show a thank-you (a reload 401s).
-	if (session.submitted) {
-		return (
-			<div className={wrap(className)}>
-				<div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-					<div className="text-3xl mb-2" aria-hidden>✓</div>
-					<h2 className="font-semibold text-green-900 mb-1">Thank you{session.entity?.name ? `, ${session.entity.name}` : ""}!</h2>
-					<p className="text-sm text-green-700">
-						Your documents were submitted. Your loan officer will follow up — you can close this page.
-					</p>
-				</div>
-			</div>
-		);
-	}
-
 	const kycRequired = session.kba_questions.length > 0;
 	const verified = !kycRequired || session.verification.verified;
 	const signed = session.signed;
 	const step = !verified ? 1 : !signed ? 2 : 3;
+	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
 
 	async function onFiles(files: FileList | null) {
 		if (!files || files.length === 0) return;
@@ -110,50 +97,116 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 			)}
 
 			{step === 3 && (
-				<section>
-					<StepHeading n={3} title="Upload & submit" />
-					<div className="mb-6">
-						<Checklist items={session.checklist} />
-					</div>
-					<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-						<input
-							ref={fileRef}
-							type="file"
-							multiple
-							accept=".pdf,.png,.jpg,.jpeg"
-							disabled={uploading}
-							onChange={(e) => onFiles(e.target.files)}
-							className="block text-sm text-slate-600"
-						/>
-						{uploading && <p className="text-xs text-slate-500">Uploading…</p>}
-						{session.uploaded_files.length > 0 && (
-							<div>
-								<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
-									Uploaded ({session.uploaded_files.length})
-								</p>
-								<ul className="space-y-1">
-									{session.uploaded_files.map((f, i) => (
-										<li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-											<span className="text-green-600" aria-hidden>✓</span>{f}
-										</li>
-									))}
-								</ul>
-							</div>
-						)}
-						<button
-							type="button"
-							onClick={submit}
-							disabled={finishing || session.uploaded_files.length === 0}
-							className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
-						>
-							{finishing ? "Submitting…" : "Submit documents"}
-						</button>
-						{session.uploaded_files.length === 0 && (
-							<p className="text-xs text-amber-600 text-center">Upload at least one document to submit.</p>
-						)}
-					</div>
+				<section className="space-y-6">
+					<Conversation thread={session.thread} />
+
+					{openRequests.length === 0 ? (
+						<div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center text-sm text-green-800">
+							You're all caught up — nothing pending right now. We'll let your loan officer know
+							if anything else is needed.
+						</div>
+					) : (
+						<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+							<h2 className="font-semibold text-slate-800">Upload documents</h2>
+							<input
+								ref={fileRef}
+								type="file"
+								multiple
+								accept=".pdf,.png,.jpg,.jpeg"
+								disabled={uploading}
+								onChange={(e) => onFiles(e.target.files)}
+								className="block text-sm text-slate-600"
+							/>
+							{uploading && <p className="text-xs text-slate-500">Uploading…</p>}
+							{session.uploaded_files.length > 0 && (
+								<div>
+									<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+										Uploaded ({session.uploaded_files.length})
+									</p>
+									<ul className="space-y-1">
+										{session.uploaded_files.map((f, i) => (
+											<li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+												<span className="text-green-600" aria-hidden>✓</span>{f}
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+							<button
+								type="button"
+								onClick={submit}
+								disabled={finishing || session.uploaded_files.length === 0}
+								className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
+							>
+								{finishing ? "Submitting…" : "Submit documents"}
+							</button>
+							{session.uploaded_files.length === 0 && (
+								<p className="text-xs text-amber-600 text-center">Upload at least one document to submit.</p>
+							)}
+						</div>
+					)}
+
+					<ReplyBox onReply={(text) => submitIntent([{ type: "reply", params: { text } }])} />
 				</section>
 			)}
+		</div>
+	);
+}
+
+/** The conversation so far — officer requests and the borrower's replies. */
+function Conversation({ thread }: { thread: ThreadMessage[] }) {
+	if (thread.length === 0) return null;
+	return (
+		<div className="space-y-2">
+			<h2 className="font-semibold text-slate-800">Your requests</h2>
+			{thread.map((m) => {
+				const fromOfficer = m.author_kind === "operator";
+				const items = (m.items ?? []) as Array<{ title?: string }>;
+				return (
+					<div key={m.message_id} className={`rounded-lg p-3 text-sm ${fromOfficer ? "bg-indigo-50" : "bg-slate-50"}`}>
+						<p className="text-xs text-slate-400 mb-1">{fromOfficer ? "Your loan officer" : "You"}</p>
+						{m.body && <p className="text-slate-700">{m.body}</p>}
+						{items.length > 0 && (
+							<ul className="mt-1 ml-4 list-disc text-slate-600">
+								{items.map((it, i) => <li key={i}>{it.title}</li>)}
+							</ul>
+						)}
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+/** Free-text reply back to the loan officer. */
+function ReplyBox({ onReply }: { onReply: (text: string) => Promise<void> }) {
+	const [text, setText] = useState("");
+	const [sending, setSending] = useState(false);
+	async function send() {
+		if (!text.trim()) return;
+		setSending(true);
+		await onReply(text.trim());
+		setSending(false);
+		setText("");
+	}
+	return (
+		<div className="bg-white border border-slate-200 rounded-xl p-4">
+			<label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Message your loan officer</label>
+			<textarea
+				value={text}
+				onChange={(e) => setText(e.target.value)}
+				rows={2}
+				placeholder="Add a note or ask a question…"
+				className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+			/>
+			<button
+				type="button"
+				onClick={send}
+				disabled={sending || !text.trim()}
+				className="mt-2 rounded-full bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2"
+			>
+				{sending ? "Sending…" : "Send"}
+			</button>
 		</div>
 	);
 }

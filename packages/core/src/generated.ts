@@ -3725,6 +3725,11 @@ export interface components {
              */
             submitted: boolean;
             /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
+            /**
              * @default {
              *       "accepted_types": [
              *         ".pdf"

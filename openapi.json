@@ -3866,6 +3866,14 @@
             "title": "Submitted",
             "type": "boolean"
           },
+          "thread": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ThreadMessage"
+            },
+            "title": "Thread",
+            "type": "array"
+          },
           "upload_config": {
             "$ref": "#/components/schemas/UploadConfig",
             "default": {

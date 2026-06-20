@@ -301,7 +301,7 @@ export class VeritasClient {
 		body?: components["schemas"]["PortalLinkRequest"],
 	): Promise<components["schemas"]["PortalLinkResponse"]> {
 		return this.requestJson<components["schemas"]["PortalLinkResponse"]>(
-			`/api/cases/${caseId}/portal-link`,
+			`/api/cases/${caseId}/portal`,
 			{ method: "POST", body: body ? JSON.stringify(body) : undefined },
 		);
 	}
@@ -310,7 +310,7 @@ export class VeritasClient {
 	 * for rendering the Portal Link button state. */
 	async getPortalLinkStatus(caseId: string): Promise<components["schemas"]["PortalLinkStatusResponse"]> {
 		return this.requestJson<components["schemas"]["PortalLinkStatusResponse"]>(
-			`/api/cases/${caseId}/portal-link/status`,
+			`/api/cases/${caseId}/portal/status`,
 		);
 	}
 
@@ -318,7 +318,7 @@ export class VeritasClient {
 	 * (derived from the case's findings; operator picks which to request). */
 	async getPortalSuggestions(caseId: string): Promise<components["schemas"]["PortalRequestItem"][]> {
 		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
-			`/api/cases/${caseId}/portal-suggestions`,
+			`/api/cases/${caseId}/portal/suggestions`,
 		);
 	}
 

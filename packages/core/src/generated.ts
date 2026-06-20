@@ -3223,6 +3223,29 @@ export interface components {
             /** User Id */
             user_id: string;
         };
+        /**
+         * KbaQuestion
+         * @description A knowledge-based-auth question derived from the case's identity facts.
+         *
+         *     Only the prompt is sent — never the expected answer. The borrower's answer
+         *     is checked server-side (see veritas.domains.identity.kba).
+         */
+        KbaQuestion: {
+            /**
+             * Choices
+             * @default []
+             */
+            choices: string[];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default text
+             */
+            kind: string;
+            /** Prompt */
+            prompt: string;
+        };
         /** MergeRequest */
         MergeRequest: {
             /** Reason */
@@ -3360,10 +3383,10 @@ export interface components {
             consent: components["schemas"]["ConsentState"];
             entity: components["schemas"]["EntityInfo"];
             /**
-             * Identity Confirmed
-             * @default false
+             * Kba Questions
+             * @default []
              */
-            identity_confirmed: boolean;
+            kba_questions: components["schemas"]["KbaQuestion"][];
             /**
              * Request Message
              * @default

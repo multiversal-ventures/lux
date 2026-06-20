@@ -2,6 +2,9 @@ import { useRef, useState } from "react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { ConsentBanner } from "../ConsentBanner/index.js";
 import { Checklist } from "../Checklist/index.js";
+import type { components } from "@multiversal-ventures/lux-core";
+
+type KbaQuestion = components["schemas"]["KbaQuestion"];
 
 export interface BorrowerPortalProps {
 	/** Portal token from the URL (`?token=…`), or null for an immediate error. */
@@ -10,10 +13,10 @@ export interface BorrowerPortalProps {
 }
 
 /**
- * Borrower-facing portal page, composed entirely from lux pieces:
- * `usePortalSession` (token → session, consent, checklist, upload) +
- * `ConsentBanner` + `Checklist` + an upload control. No login — the token is the
- * auth. Hosts (gunnr) render this at their `/portal` route and pass the token.
+ * Borrower-facing portal page, composed from lux pieces. A sequential 3-step
+ * flow — **Identity (KBA) → Consent → Upload** — where each gate unlocks the
+ * next: the borrower answers identity questions (verified server-side), grants
+ * consent, then uploads. No login; the token is the auth.
  */
 export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 	const { session, loading, error, submitIntent, uploadDocuments } = usePortalSession(token);
@@ -38,8 +41,12 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 	}
 
 	const accept = ".pdf,.png,.jpg,.jpeg";
-	const name = session.entity?.name;
-	const canUpload = session.identity_confirmed && session.consent.doc_sharing;
+	const name = session.entity?.name || "the borrower";
+	// KYC is only required when veritas produced identity questions.
+	const kycRequired = session.kba_questions.length > 0;
+	const verified = !kycRequired || session.verification.verified;
+	const consented = session.consent.doc_sharing;
+	const step = !verified ? 1 : !consented ? 2 : 3;
 
 	async function onFiles(files: FileList | null) {
 		if (!files || files.length === 0) return;
@@ -67,50 +74,143 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 				)}
 			</header>
 
-			<ConsentBanner consent={session.consent} onSubmitIntent={submitIntent} className="mb-6" />
+			<Stepper current={step} />
 
-			{!session.identity_confirmed && (
-				<section className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
-					<h2 className="font-semibold text-slate-800 mb-1">Confirm your identity</h2>
-					<p className="text-sm text-slate-500 mb-3">
-						Confirm you are {name || "the borrower"} on this application before uploading.
-					</p>
-					<button
-						type="button"
-						onClick={() => submitIntent([{ type: "confirm_identity", params: {} }])}
-						className="rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-sm font-medium px-4 py-2"
-					>
-						I confirm I am {name || "the borrower"}
-					</button>
+			{step === 1 && (
+				<KbaStep
+					questions={session.kba_questions}
+					name={name}
+					verified={session.verification.verified}
+					onVerify={(claims) => submitIntent([{ type: "verify", params: { claims } }])}
+				/>
+			)}
+
+			{step === 2 && (
+				<section>
+					<StepHeading n={2} title="Confirm consent" />
+					<ConsentBanner consent={session.consent} onSubmitIntent={submitIntent} />
 				</section>
 			)}
 
-			<section className="mb-6">
-				<h2 className="font-semibold text-slate-800 mb-3">Documents needed</h2>
-				<Checklist items={session.checklist} />
-			</section>
-
-			<section className="bg-white border border-slate-200 rounded-xl p-6">
-				<h2 className="font-semibold text-slate-800 mb-2">Upload documents</h2>
-				<input
-					ref={fileRef}
-					type="file"
-					multiple
-					accept={accept}
-					disabled={uploading || !canUpload}
-					onChange={(e) => onFiles(e.target.files)}
-					className="block text-sm text-slate-600"
-				/>
-				{!session.identity_confirmed && (
-					<p className="text-xs text-amber-600 mt-2">Confirm your identity above before uploading.</p>
-				)}
-				{session.identity_confirmed && !session.consent.doc_sharing && (
-					<p className="text-xs text-amber-600 mt-2">Grant consent above before uploading.</p>
-				)}
-				{uploading && <p className="text-xs text-slate-500 mt-2">Uploading…</p>}
-			</section>
+			{step === 3 && (
+				<section>
+					<StepHeading n={3} title="Upload your documents" />
+					<div className="mb-6">
+						<Checklist items={session.checklist} />
+					</div>
+					<div className="bg-white border border-slate-200 rounded-xl p-6">
+						<input
+							ref={fileRef}
+							type="file"
+							multiple
+							accept={accept}
+							disabled={uploading}
+							onChange={(e) => onFiles(e.target.files)}
+							className="block text-sm text-slate-600"
+						/>
+						{uploading && <p className="text-xs text-slate-500 mt-2">Uploading…</p>}
+					</div>
+				</section>
+			)}
 		</div>
 	);
+}
+
+/** KBA identity step — answer questions derived from the borrower's documents. */
+function KbaStep({
+	questions,
+	name,
+	verified,
+	onVerify,
+}: {
+	questions: KbaQuestion[];
+	name: string;
+	verified: boolean;
+	onVerify: (claims: Record<string, string>) => Promise<void>;
+}) {
+	const [answers, setAnswers] = useState<Record<string, string>>({});
+	const [submitting, setSubmitting] = useState(false);
+	const [failed, setFailed] = useState(false);
+
+	async function submit() {
+		setSubmitting(true);
+		setFailed(false);
+		await onVerify(answers);
+		setSubmitting(false);
+		// If the refreshed session still isn't verified, the answers were wrong.
+		if (!verified) setFailed(true);
+	}
+
+	return (
+		<section>
+			<StepHeading n={1} title="Confirm your identity" />
+			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+				<p className="text-sm text-slate-500">
+					To protect {name}, answer these from your records before continuing.
+				</p>
+				{questions.map((q) => (
+					<div key={q.id}>
+						<label className="block text-sm font-medium text-slate-700 mb-1">{q.prompt}</label>
+						<input
+							type="text"
+							value={answers[q.id] ?? ""}
+							onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+							className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+						/>
+					</div>
+				))}
+				{failed && (
+					<p className="text-sm text-red-600" role="alert">
+						Those answers didn't match our records. Please try again.
+					</p>
+				)}
+				<button
+					type="button"
+					onClick={submit}
+					disabled={submitting || Object.keys(answers).length === 0}
+					className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
+				>
+					{submitting ? "Verifying…" : "Verify my identity"}
+				</button>
+			</div>
+		</section>
+	);
+}
+
+const STEPS = ["Identity", "Consent", "Upload"];
+
+function Stepper({ current }: { current: number }) {
+	return (
+		<ol className="flex items-center gap-2 mb-6">
+			{STEPS.map((label, i) => {
+				const n = i + 1;
+				const state = n < current ? "done" : n === current ? "active" : "todo";
+				return (
+					<li key={label} className="flex items-center gap-2 flex-1">
+						<span
+							className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+								state === "done"
+									? "bg-green-600 text-white"
+									: state === "active"
+										? "bg-indigo-600 text-white"
+										: "bg-slate-200 text-slate-500"
+							}`}
+						>
+							{state === "done" ? "✓" : n}
+						</span>
+						<span className={`text-xs ${state === "active" ? "text-slate-900 font-medium" : "text-slate-400"}`}>
+							{label}
+						</span>
+						{n < STEPS.length && <span className="flex-1 h-px bg-slate-200" />}
+					</li>
+				);
+			})}
+		</ol>
+	);
+}
+
+function StepHeading({ n, title }: { n: number; title: string }) {
+	return <h2 className="font-semibold text-slate-800 mb-3">Step {n}: {title}</h2>;
 }
 
 function wrap(className?: string): string {

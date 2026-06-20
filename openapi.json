@@ -3196,6 +3196,38 @@
         "title": "JoinTenantResponse",
         "type": "object"
       },
+      "KbaQuestion": {
+        "description": "A knowledge-based-auth question derived from the case's identity facts.\n\nOnly the prompt is sent \u2014 never the expected answer. The borrower's answer\nis checked server-side (see veritas.domains.identity.kba).",
+        "properties": {
+          "choices": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "text",
+            "title": "Kind",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "prompt"
+        ],
+        "title": "KbaQuestion",
+        "type": "object"
+      },
       "MergeRequest": {
         "properties": {
           "reason": {
@@ -3394,10 +3426,13 @@
           "entity": {
             "$ref": "#/components/schemas/EntityInfo"
           },
-          "identity_confirmed": {
-            "default": false,
-            "title": "Identity Confirmed",
-            "type": "boolean"
+          "kba_questions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/KbaQuestion"
+            },
+            "title": "Kba Questions",
+            "type": "array"
           },
           "request_message": {
             "default": "",

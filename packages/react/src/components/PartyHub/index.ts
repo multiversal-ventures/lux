@@ -5,3 +5,4 @@ export { PortalThread } from "./PortalThread.js";
 export { VerificationSummary } from "./VerificationSummary.js";
 export { UploadedDocuments } from "./UploadedDocuments.js";
 export { RequestComposer } from "./RequestComposer.js";
+export { PartyDetail } from "./PartyDetail.js";

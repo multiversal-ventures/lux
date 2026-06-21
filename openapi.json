@@ -3623,6 +3623,17 @@
             "title": "Party Type",
             "type": "string"
           },
+          "portal_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Portal Token"
+          },
           "role": {
             "default": "",
             "title": "Role",
@@ -9044,6 +9055,58 @@
           }
         ],
         "summary": "Add Party",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/parties/{party_id}": {
+      "delete": {
+        "description": "Remove a party (and its thread) from a case's portal.",
+        "operationId": "delete_party_api_cases__case_id__portal_parties__party_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Party",
         "tags": [
           "party"
         ]

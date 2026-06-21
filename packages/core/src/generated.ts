@@ -782,6 +782,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Party
+         * @description Remove a party (and its thread) from a case's portal.
+         */
+        delete: operations["delete_party_api_cases__case_id__portal_parties__party_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/parties/{party_id}/link": {
         parameters: {
             query?: never;
@@ -3607,6 +3627,8 @@ export interface components {
             party_id: string;
             /** Party Type */
             party_type: string;
+            /** Portal Token */
+            portal_token?: string | null;
             /**
              * Role
              * @default
@@ -6349,6 +6371,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PartyCreatedResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_party_api_cases__case_id__portal_parties__party_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

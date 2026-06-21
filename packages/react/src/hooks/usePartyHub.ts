@@ -78,6 +78,15 @@ export function useAddParty(caseId: string): UseMutationResult<unknown, Error, A
 	});
 }
 
+/** Delete a party; refreshes overview. */
+export function useDeleteParty(caseId: string): UseMutationResult<unknown, Error, string> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, string>({
+		mutationFn: async (partyId) => getDefaultClient().deleteParty(caseId, partyId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
 /** Link a party to a case identity; refreshes overview. */
 export function useLinkParty(
 	caseId: string,

@@ -376,6 +376,14 @@ export class VeritasClient {
 		);
 	}
 
+	/** Remove a party (and its thread) from a case's portal. */
+	async deleteParty(caseId: string, partyId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}`,
+			{ method: "DELETE" },
+		);
+	}
+
 	/** Link a party to a resolved case identity. */
 	async linkParty(
 		caseId: string,

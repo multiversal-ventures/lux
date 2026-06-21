@@ -6,12 +6,12 @@ import {
 	type CaseDocument,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
-import { VerificationSummary } from "./VerificationSummary.js";
-import { PortalThread } from "./PortalThread.js";
 import { RequestComposer } from "./RequestComposer.js";
-import { UploadedDocuments } from "./UploadedDocuments.js";
 
-/** Center pane: the selected party's conversation, status, link, and documents. */
+type ThreadItem = PartyView["thread"][number];
+
+/** Center pane: a chat-first view of the selected party — conversation up front,
+ * link behind an icon, documents/roles tucked into a collapsible panel. */
 export function PartyDetail({
 	caseId,
 	party,
@@ -27,10 +27,7 @@ export function PartyDetail({
 }) {
 	const [composing, setComposing] = useState(false);
 	const [copied, setCopied] = useState(false);
-	const [docId, setDocId] = useState("");
-	const [docRole, setDocRole] = useState(party.role || "borrower");
 	const del = useDeleteParty(caseId);
-	const attach = useAttachDocument(caseId);
 
 	const linked = !!party.linked_identity_id;
 	const portalUrl = party.portal_token
@@ -56,90 +53,65 @@ export function PartyDetail({
 
 	return (
 		<div className="flex flex-col h-full">
-			<header className="border-b border-slate-200 px-6 py-4 flex items-start justify-between">
-				<div>
-					<h2 className="text-lg font-semibold text-slate-900">{party.display_name || roleLabel(party.role)}</h2>
-					<p className="text-xs text-slate-500">
+			{/* Compact header */}
+			<header className="border-b border-slate-200 px-5 py-3 flex items-center gap-3">
+				<div className="min-w-0 flex-1">
+					<h2 className="text-base font-semibold text-slate-900 truncate">{party.display_name || roleLabel(party.role)}</h2>
+					<p className="text-xs text-slate-500 truncate">
 						{[roleLabel(party.role), partyTypeLabel(party.party_type)].filter(Boolean).join(" · ")}
+						{party.verified && <span className="text-green-600"> · ✓ Verified</span>}
+						{party.signed && <span className="text-green-600"> · ✓ Signed</span>}
+						{!party.has_account && <span className="text-slate-400"> · No account</span>}
 					</p>
-					<div className="mt-2"><VerificationSummary party={party} /></div>
 				</div>
-				<div className="flex flex-col items-end gap-1 text-xs">
-					<span className={linked ? "text-slate-500" : "text-amber-600"}>
-						{linked ? "Linked to a case identity" : "Not linked to an identity"}
-					</span>
-					<span className={party.has_account ? "text-green-700" : "text-slate-400"}>
-						{party.has_account ? "✓ Account created" : "No account yet"}
-					</span>
-				</div>
+				{portalUrl && (
+					<button
+						type="button"
+						onClick={copyLink}
+						title={copied ? "Copied!" : "Copy portal link"}
+						aria-label="Copy portal link"
+						className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-base"
+					>
+						{copied ? "✓" : "🔗"}
+					</button>
+				)}
+				<button type="button" onClick={remove} disabled={del.isPending} title="Remove" aria-label="Remove" className="shrink-0 h-9 w-9 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-600 disabled:opacity-50">
+					✕
+				</button>
 			</header>
 
-			{/* Portal link + actions */}
-			<div className="px-6 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
-				{portalUrl ? (
-					<div className="flex items-center gap-2 flex-1 min-w-0">
-						<input readOnly value={portalUrl} onFocus={(e) => e.currentTarget.select()} className="flex-1 min-w-0 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-mono" />
-						<button type="button" onClick={copyLink} className="rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-xs font-medium px-3 py-1.5">
-							{copied ? "Copied" : "Copy link"}
-						</button>
-					</div>
+			{/* Conversation — the main area */}
+			<div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50">
+				{party.thread.length === 0 ? (
+					<p className="text-center text-sm text-slate-400 mt-6">No messages yet. Send a request to start.</p>
 				) : (
-					<span className="text-xs text-slate-400 flex-1">Send a request to create this party's portal link.</span>
+					party.thread.map((m) => <OpBubble key={m.message_id} m={m} />)
 				)}
-				<button type="button" onClick={remove} disabled={del.isPending} className="text-xs font-medium text-slate-400 hover:text-red-600 disabled:opacity-50">
-					Remove
-				</button>
 			</div>
 
-			{/* Conversation (message view) */}
-			<div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-				<section>
-					<h3 className="font-semibold text-slate-800 mb-2">Conversation</h3>
-					<PortalThread thread={party.thread} />
-				</section>
-
-				<section>
-					<h3 className="font-semibold text-slate-800 mb-2">Role on documents</h3>
-					{party.documents.length > 0 ? (
-						<ul className="space-y-1 mb-3">
-							{party.documents.map((d) => (
-								<li key={d.doc_id} className="text-sm text-slate-700">
-									<span className="font-medium">{roleLabel(d.role)}</span> on {d.label}
-								</li>
-							))}
-						</ul>
-					) : (
-						<p className="text-sm text-slate-400 mb-3">Not assigned to any document yet.</p>
-					)}
-					{caseDocuments.length > 0 && (
-						<div className="flex flex-wrap gap-2 items-center">
-							<select value={docId} onChange={(e) => setDocId(e.target.value)} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-								<option value="">Choose a document…</option>
-								{caseDocuments.map((d) => (
-									<option key={d.doc_id} value={d.doc_id}>{d.label}</option>
+			{/* Collapsible documents & roles */}
+			<details className="border-t border-slate-200 px-5 py-2 group">
+				<summary className="text-sm font-medium text-slate-600 cursor-pointer flex items-center justify-between">
+					<span>Documents &amp; roles</span>
+					<span className="text-xs text-slate-400">{party.documents.length + uploadedFiles.length}</span>
+				</summary>
+				<div className="mt-3 space-y-3">
+					<DocRoles party={party} caseDocuments={caseDocuments} caseId={caseId} />
+					{uploadedFiles.length > 0 && (
+						<div>
+							<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Shared documents</p>
+							<ul className="space-y-0.5">
+								{uploadedFiles.map((f, i) => (
+									<li key={i} className="flex items-center gap-2 text-sm text-slate-700"><span className="text-green-600" aria-hidden>✓</span>{f}</li>
 								))}
-							</select>
-							<input value={docRole} onChange={(e) => setDocRole(e.target.value)} placeholder="role" className="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
-							<button
-								type="button"
-								onClick={() => docId && docRole.trim() && attach.mutate({ partyId: party.party_id, docId, role: docRole.trim() })}
-								disabled={!docId || !docRole.trim() || attach.isPending}
-								className="rounded-lg bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm px-3 py-1.5"
-							>
-								Assign
-							</button>
+							</ul>
 						</div>
 					)}
-				</section>
-
-				<section>
-					<h3 className="font-semibold text-slate-800 mb-2">Documents shared</h3>
-					<UploadedDocuments files={uploadedFiles} />
-				</section>
-			</div>
+				</div>
+			</details>
 
 			{/* Composer */}
-			<div className="border-t border-slate-200 px-6 py-4">
+			<div className="border-t border-slate-200 px-5 py-3">
 				{composing ? (
 					<RequestComposer caseId={caseId} party={party} onSent={() => setComposing(false)} onCancel={() => setComposing(false)} />
 				) : (
@@ -154,6 +126,67 @@ export function PartyDetail({
 					</button>
 				)}
 			</div>
+		</div>
+	);
+}
+
+/** Operator-perspective chat bubble — "You" (operator) right, borrower left. */
+function OpBubble({ m }: { m: ThreadItem }) {
+	const mine = m.author_kind === "operator";
+	const items = (m.items ?? []) as Array<{ title?: string }>;
+	const align = mine ? "justify-end" : "justify-start";
+	if (m.kind === "upload") {
+		return (
+			<div className={`flex ${align}`}>
+				<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+					<span aria-hidden>📄</span>{m.body}
+				</div>
+			</div>
+		);
+	}
+	return (
+		<div className={`flex ${align}`}>
+			<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+				<p className="text-[10px] opacity-70 mb-0.5">{mine ? "You" : "Borrower"}</p>
+				{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+				{items.length > 0 && (
+					<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
+						{items.map((it, i) => <li key={i}>{it.title}</li>)}
+					</ul>
+				)}
+			</div>
+		</div>
+	);
+}
+
+/** Role-on-documents — existing relations + a compact assign control. */
+function DocRoles({ party, caseDocuments, caseId }: { party: PartyView; caseDocuments: CaseDocument[]; caseId: string }) {
+	const attach = useAttachDocument(caseId);
+	const [docId, setDocId] = useState("");
+	const [docRole, setDocRole] = useState(party.role || "borrower");
+
+	return (
+		<div>
+			<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Role on documents</p>
+			{party.documents.length > 0 ? (
+				<ul className="space-y-0.5 mb-2">
+					{party.documents.map((d) => (
+						<li key={d.doc_id} className="text-sm text-slate-700"><span className="font-medium">{roleLabel(d.role)}</span> on {d.label}</li>
+					))}
+				</ul>
+			) : (
+				<p className="text-sm text-slate-400 mb-2">Not assigned to any document.</p>
+			)}
+			{caseDocuments.length > 0 && (
+				<div className="flex flex-wrap gap-2 items-center">
+					<select value={docId} onChange={(e) => setDocId(e.target.value)} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+						<option value="">Choose a document…</option>
+						{caseDocuments.map((d) => <option key={d.doc_id} value={d.doc_id}>{d.label}</option>)}
+					</select>
+					<input value={docRole} onChange={(e) => setDocRole(e.target.value)} placeholder="role" className="w-28 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
+					<button type="button" onClick={() => docId && docRole.trim() && attach.mutate({ partyId: party.party_id, docId, role: docRole.trim() })} disabled={!docId || !docRole.trim() || attach.isPending} className="rounded-lg bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm px-3 py-1.5">Assign</button>
+				</div>
+			)}
 		</div>
 	);
 }

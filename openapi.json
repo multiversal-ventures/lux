@@ -169,6 +169,26 @@
         "title": "ApproveRequest",
         "type": "object"
       },
+      "AttachDocBody": {
+        "description": "Set a party's role on a case document (spec-style entity\u2194document relation).",
+        "properties": {
+          "doc_id": {
+            "format": "uuid",
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id",
+          "role"
+        ],
+        "title": "AttachDocBody",
+        "type": "object"
+      },
       "AttestationArtifactResponse": {
         "description": "Full attestation artifact: signed in-toto statement plus verification material.",
         "example": {
@@ -746,6 +766,25 @@
           "formula"
         ],
         "title": "CalculationStepResponse",
+        "type": "object"
+      },
+      "CaseDocument": {
+        "description": "A case document available to relate a party to.",
+        "properties": {
+          "doc_id": {
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "title": "CaseDocument",
         "type": "object"
       },
       "CaseEventData": {
@@ -3590,12 +3629,44 @@
         "title": "PartyCreatedResponse",
         "type": "object"
       },
+      "PartyDocument": {
+        "description": "A document this party is related to, and their role on it.",
+        "properties": {
+          "doc_id": {
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "title": "PartyDocument",
+        "type": "object"
+      },
       "PartyView": {
         "properties": {
           "display_name": {
             "default": "",
             "title": "Display Name",
             "type": "string"
+          },
+          "documents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PartyDocument"
+            },
+            "title": "Documents",
+            "type": "array"
           },
           "has_account": {
             "default": false,
@@ -3803,6 +3874,14 @@
       },
       "PortalOverview": {
         "properties": {
+          "case_documents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CaseDocument"
+            },
+            "title": "Case Documents",
+            "type": "array"
+          },
           "case_id": {
             "format": "uuid",
             "title": "Case Id",
@@ -9107,6 +9186,77 @@
           }
         ],
         "summary": "Delete Party",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/parties/{party_id}/documents": {
+      "post": {
+        "description": "Set a party's role on a case document (e.g. 'borrower on bank_statement').",
+        "operationId": "attach_document_api_cases__case_id__portal_parties__party_id__documents_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachDocBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Attach Document Api Cases  Case Id  Portal Parties  Party Id  Documents Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Attach Document",
         "tags": [
           "party"
         ]

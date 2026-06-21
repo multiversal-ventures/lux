@@ -118,7 +118,13 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 				{overview.isLoading ? (
 					<div className="p-6 text-slate-500">Loading…</div>
 				) : selected ? (
-					<PartyDetail caseId={caseId} party={selected} uploadedFiles={overview.data?.uploaded_files ?? []} onRemoved={() => setSelectedId(null)} />
+					<PartyDetail
+						caseId={caseId}
+						party={selected}
+						uploadedFiles={overview.data?.uploaded_files ?? []}
+						caseDocuments={overview.data?.case_documents ?? []}
+						onRemoved={() => setSelectedId(null)}
+					/>
 				) : (
 					<div className="h-full flex items-center justify-center text-slate-400 text-sm">Select a person, or add one from the sidebar.</div>
 				)}

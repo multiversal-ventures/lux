@@ -802,6 +802,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach Document
+         * @description Set a party's role on a case document (e.g. 'borrower on bank_statement').
+         */
+        post: operations["attach_document_api_cases__case_id__portal_parties__party_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/parties/{party_id}/link": {
         parameters: {
             query?: never;
@@ -2021,6 +2041,19 @@ export interface components {
             approved_by: string;
         };
         /**
+         * AttachDocBody
+         * @description Set a party's role on a case document (spec-style entity↔document relation).
+         */
+        AttachDocBody: {
+            /**
+             * Doc Id
+             * Format: uuid
+             */
+            doc_id: string;
+            /** Role */
+            role: string;
+        };
+        /**
          * AttestationArtifactResponse
          * @description Full attestation artifact: signed in-toto statement plus verification material.
          * @example {
@@ -2360,6 +2393,19 @@ export interface components {
             result_type?: string | null;
             /** Step Number */
             step_number: number;
+        };
+        /**
+         * CaseDocument
+         * @description A case document available to relate a party to.
+         */
+        CaseDocument: {
+            /** Doc Id */
+            doc_id: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
         };
         /**
          * CaseEventData
@@ -3606,6 +3652,24 @@ export interface components {
             /** Signer Party Id */
             signer_party_id?: string | null;
         };
+        /**
+         * PartyDocument
+         * @description A document this party is related to, and their role on it.
+         */
+        PartyDocument: {
+            /** Doc Id */
+            doc_id: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+        };
         /** PartyView */
         PartyView: {
             /**
@@ -3613,6 +3677,11 @@ export interface components {
              * @default
              */
             display_name: string;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["PartyDocument"][];
             /**
              * Has Account
              * @default false
@@ -3725,6 +3794,11 @@ export interface components {
         };
         /** PortalOverview */
         PortalOverview: {
+            /**
+             * Case Documents
+             * @default []
+             */
+            case_documents: components["schemas"]["CaseDocument"][];
             /**
              * Case Id
              * Format: uuid
@@ -6401,6 +6475,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_document_api_cases__case_id__portal_parties__party_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachDocBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             /** @description Validation Error */
             422: {

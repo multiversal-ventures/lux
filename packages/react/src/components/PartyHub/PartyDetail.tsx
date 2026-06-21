@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
-import { useDeleteParty, type PartyView } from "../../hooks/usePartyHub.js";
+import {
+	useAttachDocument,
+	useDeleteParty,
+	type CaseDocument,
+	type PartyView,
+} from "../../hooks/usePartyHub.js";
 import { VerificationSummary } from "./VerificationSummary.js";
 import { PortalThread } from "./PortalThread.js";
 import { RequestComposer } from "./RequestComposer.js";
@@ -11,16 +16,21 @@ export function PartyDetail({
 	caseId,
 	party,
 	uploadedFiles,
+	caseDocuments,
 	onRemoved,
 }: {
 	caseId: string;
 	party: PartyView;
 	uploadedFiles: string[];
+	caseDocuments: CaseDocument[];
 	onRemoved?: () => void;
 }) {
 	const [composing, setComposing] = useState(false);
 	const [copied, setCopied] = useState(false);
+	const [docId, setDocId] = useState("");
+	const [docRole, setDocRole] = useState(party.role || "borrower");
 	const del = useDeleteParty(caseId);
+	const attach = useAttachDocument(caseId);
 
 	const linked = !!party.linked_identity_id;
 	const portalUrl = party.portal_token
@@ -86,6 +96,40 @@ export function PartyDetail({
 				<section>
 					<h3 className="font-semibold text-slate-800 mb-2">Conversation</h3>
 					<PortalThread thread={party.thread} />
+				</section>
+
+				<section>
+					<h3 className="font-semibold text-slate-800 mb-2">Role on documents</h3>
+					{party.documents.length > 0 ? (
+						<ul className="space-y-1 mb-3">
+							{party.documents.map((d) => (
+								<li key={d.doc_id} className="text-sm text-slate-700">
+									<span className="font-medium">{roleLabel(d.role)}</span> on {d.label}
+								</li>
+							))}
+						</ul>
+					) : (
+						<p className="text-sm text-slate-400 mb-3">Not assigned to any document yet.</p>
+					)}
+					{caseDocuments.length > 0 && (
+						<div className="flex flex-wrap gap-2 items-center">
+							<select value={docId} onChange={(e) => setDocId(e.target.value)} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+								<option value="">Choose a document…</option>
+								{caseDocuments.map((d) => (
+									<option key={d.doc_id} value={d.doc_id}>{d.label}</option>
+								))}
+							</select>
+							<input value={docRole} onChange={(e) => setDocRole(e.target.value)} placeholder="role" className="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
+							<button
+								type="button"
+								onClick={() => docId && docRole.trim() && attach.mutate({ partyId: party.party_id, docId, role: docRole.trim() })}
+								disabled={!docId || !docRole.trim() || attach.isPending}
+								className="rounded-lg bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm px-3 py-1.5"
+							>
+								Assign
+							</button>
+						</div>
+					)}
 				</section>
 
 				<section>

@@ -15,6 +15,8 @@ export type SendRequestBody = components["schemas"]["SendRequestBody"];
 export type DraftRequestBody = components["schemas"]["DraftRequestBody"];
 export type AddPartyBody = components["schemas"]["AddPartyBody"];
 export type MyCaseLink = components["schemas"]["MyCaseLink"];
+export type CaseDocument = components["schemas"]["CaseDocument"];
+export type PartyDocument = components["schemas"]["PartyDocument"];
 
 /** Cases the signed-in borrower (magic-link account) can access, with tokens. */
 export function useMyCases(enabled = true): UseQueryResult<MyCaseLink[], Error> {
@@ -75,6 +77,18 @@ export function useAddParty(caseId: string): UseMutationResult<unknown, Error, A
 			qc.invalidateQueries({ queryKey: overviewKey(caseId) });
 			qc.invalidateQueries({ queryKey: ["portal-candidates", caseId] });
 		},
+	});
+}
+
+/** Attach a party's role on a case document; refreshes overview. */
+export function useAttachDocument(
+	caseId: string,
+): UseMutationResult<unknown, Error, { partyId: string; docId: string; role: string }> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, { partyId: string; docId: string; role: string }>({
+		mutationFn: async ({ partyId, docId, role }) =>
+			getDefaultClient().attachPartyDocument(caseId, partyId, { doc_id: docId, role }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
 	});
 }
 

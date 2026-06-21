@@ -376,6 +376,18 @@ export class VeritasClient {
 		);
 	}
 
+	/** Set a party's role on a case document (spec-style entity↔document relation). */
+	async attachPartyDocument(
+		caseId: string,
+		partyId: string,
+		body: components["schemas"]["AttachDocBody"],
+	): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/documents`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
 	/** Remove a party (and its thread) from a case's portal. */
 	async deleteParty(caseId: string, partyId: string): Promise<void> {
 		await this.requestJson<unknown>(

@@ -435,6 +435,7 @@ export {
   useAddParty,
   useLinkParty,
   useDeleteParty,
+  useAttachDocument,
   useMyCases,
 } from "./hooks/usePartyHub.js";
 export type {

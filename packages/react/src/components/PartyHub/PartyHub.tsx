@@ -3,11 +3,10 @@ import { roleLabel } from "../../labels.js";
 import {
 	usePortalOverview,
 	usePortalCandidates,
-	useAddParty,
-	type PartyCandidate,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
 import { PartyDetail } from "./PartyDetail.js";
+import { AddPartyPanel } from "./AddPartyPanel.js";
 
 export interface PartyHubProps {
 	caseId: string;
@@ -24,33 +23,14 @@ type Filter = "all" | "open" | "verified" | "no_account";
 export function PartyHub({ caseId, className }: PartyHubProps) {
 	const overview = usePortalOverview(caseId);
 	const candidates = usePortalCandidates(caseId);
-	const addParty = useAddParty(caseId);
 
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<Filter>("all");
-	const [name, setName] = useState("");
-	const [role, setRole] = useState("borrower");
 
 	const parties = overview.data?.parties ?? [];
 	const filtered = useMemo(() => filterParties(parties, search, filter), [parties, search, filter]);
 	const selected = parties.find((p) => p.party_id === selectedId) ?? filtered[0] ?? null;
-
-	function addManual() {
-		const n = name.trim();
-		if (!n) return;
-		addParty.mutate({ party_type: "individual", display_name: n, role: role || null, linked_identity_id: null });
-		setName("");
-	}
-
-	function addFromCandidate(c: PartyCandidate) {
-		addParty.mutate({
-			party_type: c.party_type ?? "individual",
-			role: c.role ?? null,
-			display_name: c.display_name ?? null,
-			linked_identity_id: c.identity_id ?? null,
-		});
-	}
 
 	if (overview.error) {
 		return <div className={`p-6 ${className ?? ""}`}><p className="text-sm text-red-600">Couldn't load this case's parties.</p></div>;
@@ -90,26 +70,13 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					)}
 				</div>
 
-				{/* Add party */}
-				<div className="border-t border-slate-200 p-3 space-y-2">
-					<p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Add a person</p>
-					<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" />
-					<div className="flex gap-2">
-						<input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role (e.g. borrower)" className="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" />
-						<button type="button" onClick={addManual} disabled={!name.trim() || addParty.isPending} className="rounded-lg bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm px-3">Add</button>
-					</div>
-					{(candidates.data ?? []).length > 0 && (
-						<div className="pt-1">
-							<p className="text-[11px] text-slate-400 mb-1">From this case</p>
-							<div className="flex flex-wrap gap-1">
-								{(candidates.data ?? []).map((c) => (
-									<button key={c.identity_id} type="button" onClick={() => addFromCandidate(c)} disabled={addParty.isPending} className="text-xs rounded-full border border-slate-300 hover:bg-slate-100 px-2 py-1 disabled:opacity-50">
-										+ {c.display_name || roleLabel(c.role)}
-									</button>
-								))}
-							</div>
-						</div>
-					)}
+				{/* Add party (email-To style) */}
+				<div className="border-t border-slate-200 p-3">
+					<AddPartyPanel
+						caseId={caseId}
+						candidates={candidates.data ?? []}
+						caseDocuments={overview.data?.case_documents ?? []}
+					/>
 				</div>
 			</aside>
 

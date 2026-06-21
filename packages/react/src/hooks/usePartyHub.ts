@@ -14,6 +14,7 @@ export type PartyCandidate = components["schemas"]["PartyCandidate"];
 export type SendRequestBody = components["schemas"]["SendRequestBody"];
 export type DraftRequestBody = components["schemas"]["DraftRequestBody"];
 export type AddPartyBody = components["schemas"]["AddPartyBody"];
+export type PartyCreated = components["schemas"]["PartyCreatedResponse"];
 export type MyCaseLink = components["schemas"]["MyCaseLink"];
 export type CaseDocument = components["schemas"]["CaseDocument"];
 export type PartyDocument = components["schemas"]["PartyDocument"];
@@ -69,9 +70,9 @@ export function useSendRequest(
 }
 
 /** Create a party for a case; refreshes overview + candidates. */
-export function useAddParty(caseId: string): UseMutationResult<unknown, Error, AddPartyBody> {
+export function useAddParty(caseId: string): UseMutationResult<PartyCreated, Error, AddPartyBody> {
 	const qc = useQueryClient();
-	return useMutation<unknown, Error, AddPartyBody>({
+	return useMutation<PartyCreated, Error, AddPartyBody>({
 		mutationFn: async (body) => getDefaultClient().addParty(caseId, body),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: overviewKey(caseId) });

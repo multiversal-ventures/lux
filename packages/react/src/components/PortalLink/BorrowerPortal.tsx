@@ -1,4 +1,5 @@
 import { useRef, useState, type InputHTMLAttributes } from "react";
+import { FileText, Lock, Paperclip } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
@@ -136,7 +137,7 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 						aria-label="Attach documents"
 						className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
 					>
-						📎
+						<Paperclip size={18} />
 					</button>
 					<textarea
 						value={replyText}
@@ -170,7 +171,7 @@ function Bubble({ m }: { m: ThreadMessage }) {
 		return (
 			<div className={`flex ${align}`}>
 				<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-					<span aria-hidden>📄</span>{m.body}
+					<FileText size={14} />{m.body}
 				</div>
 			</div>
 		);
@@ -255,7 +256,7 @@ function KbaStep({
 					{submitting ? "Checking…" : "Continue"}
 				</button>
 				<p className="text-xs text-slate-400 flex items-center gap-1">
-					<span aria-hidden>🔒</span> Your answers are encrypted and never shared.
+					<Lock size={12} /> Your answers are encrypted and never shared.
 				</p>
 			</div>
 		</section>

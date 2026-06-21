@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { roleLabel } from "../../labels.js";
 import {
 	usePortalOverview,
@@ -27,6 +28,7 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<Filter>("all");
+	const [collapsed, setCollapsed] = useState(false);
 
 	const parties = overview.data?.parties ?? [];
 	const filtered = useMemo(() => filterParties(parties, search, filter), [parties, search, filter]);
@@ -39,9 +41,21 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 	return (
 		<div className={`flex h-full bg-slate-50 ${className ?? ""}`}>
 			{/* Sidebar */}
-			<aside className="w-72 shrink-0 border-r border-slate-200 bg-white flex flex-col">
+			{collapsed && (
+				<div className="w-10 shrink-0 border-r border-slate-200 bg-white flex flex-col items-center py-3">
+					<button type="button" onClick={() => setCollapsed(false)} title="Show people" aria-label="Show people" className="h-8 w-8 rounded hover:bg-slate-100 flex items-center justify-center text-slate-500">
+						<PanelLeftOpen size={18} />
+					</button>
+				</div>
+			)}
+			<aside className={`${collapsed ? "hidden" : "flex"} w-72 shrink-0 border-r border-slate-200 bg-white flex-col`}>
 				<div className="p-4 border-b border-slate-100">
-					<h1 className="font-semibold text-slate-900">People on this case</h1>
+					<div className="flex items-center justify-between">
+						<h1 className="font-semibold text-slate-900">People on this case</h1>
+						<button type="button" onClick={() => setCollapsed(true)} title="Hide" aria-label="Hide people" className="text-slate-400 hover:text-slate-600">
+							<PanelLeftClose size={16} />
+						</button>
+					</div>
 					<input
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}

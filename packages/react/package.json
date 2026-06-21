@@ -1,6 +1,6 @@
 {
   "name": "@multiversal-ventures/lux-react",
-  "version": "0.2.26",
+  "version": "0.2.27",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
@@ -29,6 +29,7 @@
   "peerDependencies": {
     "@multiversal-ventures/lux-core": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
+    "lucide-react": ">=0.300.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",
     "zustand": "^5.0.0"
@@ -45,6 +46,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "happy-dom": "^20.8.9",
+    "lucide-react": "^0.460.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vitest": "^4.1.0"

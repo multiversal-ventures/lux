@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check, ClipboardList, FileText, Link2, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useAttachDocument,
@@ -91,12 +92,10 @@ export function PartyDetail({
 						aria-label="Copy portal link"
 						className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-base"
 					>
-						{copied ? "✓" : "🔗"}
+						{copied ? <Check size={16} /> : <Link2 size={16} />}
 					</button>
 				)}
-				<button type="button" onClick={remove} disabled={del.isPending} title="Remove" aria-label="Remove" className="shrink-0 h-9 w-9 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-600 disabled:opacity-50">
-					✕
-				</button>
+				<button type="button" onClick={remove} disabled={del.isPending} title="Remove" aria-label="Remove" className="shrink-0 h-9 w-9 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-600 disabled:opacity-50"><X size={16} /></button>
 			</header>
 
 			{/* Conversation — the main area */}
@@ -143,7 +142,7 @@ export function PartyDetail({
 							aria-label="Request documents"
 							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-40"
 						>
-							📋
+							<ClipboardList size={18} />
 						</button>
 						<textarea
 							value={msg}
@@ -178,7 +177,7 @@ function OpBubble({ m }: { m: ThreadItem }) {
 		return (
 			<div className={`flex ${align}`}>
 				<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-					<span aria-hidden>📄</span>{m.body}
+					<FileText size={14} />{m.body}
 				</div>
 			</div>
 		);

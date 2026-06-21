@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import {
 	usePortalSuggestions,
 	type PortalRequestItem,
@@ -123,7 +124,7 @@ export function RequestComposer({ caseId, party, onSent, onCancel }: RequestComp
 						disabled={draft.isPending}
 						className="text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
 					>
-						{draft.isPending ? "Drafting…" : "✨ Draft with AI"}
+						{draft.isPending ? "Drafting…" : <span className="inline-flex items-center gap-1"><Sparkles size={12} /> Draft with AI</span>}
 					</button>
 				</div>
 				<textarea

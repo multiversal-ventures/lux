@@ -4,6 +4,7 @@ import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useAttachDocument,
 	useDeleteParty,
+	usePortalRealtime,
 	useSendRequest,
 	type CaseDocument,
 	type PartyView,
@@ -32,6 +33,7 @@ export function PartyDetail({
 	const [msg, setMsg] = useState("");
 	const del = useDeleteParty(caseId);
 	const send = useSendRequest(caseId);
+	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
 	const linked = !!party.linked_identity_id;
 
@@ -100,10 +102,19 @@ export function PartyDetail({
 
 			{/* Conversation — the main area */}
 			<div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50">
-				{party.thread.length === 0 ? (
+				{party.thread.length === 0 && !borrowerTyping ? (
 					<p className="text-center text-sm text-slate-400 mt-6">No messages yet. Send a request to start.</p>
 				) : (
 					party.thread.map((m) => <OpBubble key={m.message_id} m={m} />)
+				)}
+				{borrowerTyping && (
+					<div className="flex justify-start">
+						<div className="bg-white border border-slate-200 rounded-2xl px-3 py-2 flex gap-1">
+							<span className="h-1.5 w-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
+							<span className="h-1.5 w-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
+							<span className="h-1.5 w-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
+						</div>
+					</div>
 				)}
 			</div>
 
@@ -146,7 +157,7 @@ export function PartyDetail({
 						</button>
 						<textarea
 							value={msg}
-							onChange={(e) => setMsg(e.target.value)}
+							onChange={(e) => { setMsg(e.target.value); sendTyping(); }}
 							onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
 							rows={1}
 							disabled={!linked}

@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	useMutation,
 	useQuery,
@@ -91,6 +92,44 @@ export function useAttachDocument(
 			getDefaultClient().attachPartyDocument(caseId, partyId, { doc_id: docId, role }),
 		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
 	});
+}
+
+/** Real-time for the operator: refetch the overview when portal/document events
+ * arrive on the case stream, and surface a borrower-typing indicator. */
+export function usePortalRealtime(caseId: string): { borrowerTyping: boolean; sendTyping: () => void } {
+	const qc = useQueryClient();
+	const [borrowerTyping, setBorrowerTyping] = useState(false);
+
+	useEffect(() => {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const unsub = getDefaultClient().streamCaseEvents(caseId, (e) => {
+			const t = e.event_type || "";
+			if (t === "portal.typing") {
+				if ((e.event_data as { actor?: string } | undefined)?.actor === "borrower") {
+					setBorrowerTyping(true);
+					if (timer) clearTimeout(timer);
+					timer = setTimeout(() => setBorrowerTyping(false), 3000);
+				}
+			} else if (t.startsWith("portal.") || t.startsWith("document.")) {
+				qc.invalidateQueries({ queryKey: overviewKey(caseId) });
+			}
+		});
+		return () => {
+			unsub();
+			if (timer) clearTimeout(timer);
+		};
+	}, [caseId, qc]);
+
+	const lastTyped = useRef(0);
+	const sendTyping = useCallback(() => {
+		const now = Date.now();
+		if (now - lastTyped.current > 1500) {
+			lastTyped.current = now;
+			void getDefaultClient().sendOperatorTyping(caseId);
+		}
+	}, [caseId]);
+
+	return { borrowerTyping, sendTyping };
 }
 
 /** Delete a party; refreshes overview. */

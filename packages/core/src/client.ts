@@ -324,6 +324,15 @@ export class VeritasClient {
 
 	// -- Party Hub (operator) --------------------------------------------------
 
+	/** Operator typing signal — broadcast to the borrower's portal stream. */
+	async sendOperatorTyping(caseId: string): Promise<void> {
+		try {
+			await this.requestJson<unknown>(`/api/cases/${caseId}/portal/typing`, { method: "POST" });
+		} catch {
+			/* typing is best-effort */
+		}
+	}
+
 	/** Cases the signed-in borrower (magic-link account) can access, each with a
 	 * fresh portal token. Authed by the borrower's Firebase JWT. */
 	async getMyCases(): Promise<components["schemas"]["MyCaseLink"][]> {
@@ -1126,5 +1135,60 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		}
 	}
 
-	return { fetchSession, submitIntents, uploadDocuments, claimAccount };
+	/** Borrower typing signal — broadcast to the operator. Best-effort. */
+	async function sendTyping(token: string): Promise<void> {
+		try {
+			await fetch(`${base}/api/portal/typing`, { method: "POST", headers: { [PORTAL_AUTH_HEADER]: token } });
+		} catch {
+			/* best-effort */
+		}
+	}
+
+	/** Subscribe to the borrower's real-time portal stream. Emits MINIMAL pings
+	 * ({type, actor?}) — no content — so the caller refetches the gated session.
+	 * Returns an unsubscribe function. */
+	function streamPortalEvents(
+		token: string,
+		onPing: (ping: { type: string; actor?: string }) => void,
+	): () => void {
+		const controller = new AbortController();
+		(async () => {
+			let res: Response;
+			try {
+				res = await fetch(`${base}/api/portal/stream`, {
+					headers: { [PORTAL_AUTH_HEADER]: token },
+					signal: controller.signal,
+				});
+			} catch {
+				return;
+			}
+			if (!res.ok || !res.body) return;
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const chunks = buffer.split("\n\n");
+					buffer = chunks.pop() ?? "";
+					for (const chunk of chunks) {
+						const line = chunk.split("\n").find((l) => l.startsWith("data:"));
+						if (!line) continue;
+						try {
+							onPing(JSON.parse(line.slice(5).trim()));
+						} catch {
+							/* ignore malformed */
+						}
+					}
+				}
+			} catch {
+				/* aborted or network drop */
+			}
+		})();
+		return () => controller.abort();
+	}
+
+	return { fetchSession, submitIntents, uploadDocuments, claimAccount, sendTyping, streamPortalEvents };
 }

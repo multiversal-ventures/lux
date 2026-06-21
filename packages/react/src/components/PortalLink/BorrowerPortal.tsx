@@ -20,8 +20,17 @@ export interface BorrowerPortalProps {
  * "link unavailable". No login; the token is the auth.
  */
 export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
-	const { session, loading, error, submitIntent, uploadDocuments } = usePortalSession(token);
+	const { session, loading, error, submitIntent, uploadDocuments, operatorTyping, sendTyping } = usePortalSession(token);
 	const fileRef = useRef<HTMLInputElement>(null);
+	const lastTyped = useRef(0);
+
+	function onTyping() {
+		const now = Date.now();
+		if (now - lastTyped.current > 1500) {
+			lastTyped.current = now;
+			sendTyping();
+		}
+	}
 	const [uploading, setUploading] = useState(false);
 	const [finishing, setFinishing] = useState(false);
 	const [replyText, setReplyText] = useState("");
@@ -111,9 +120,10 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 					</div>
 				)}
 				{session.thread.map((m) => <Bubble key={m.message_id} m={m} />)}
-				{session.thread.length === 0 && (
+				{session.thread.length === 0 && !operatorTyping && (
 					<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
 				)}
+				{operatorTyping && <TypingBubble />}
 				{uploading && <div className="flex justify-end"><span className="text-xs text-slate-400">Uploading…</span></div>}
 			</div>
 
@@ -141,7 +151,7 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 					</button>
 					<textarea
 						value={replyText}
-						onChange={(e) => setReplyText(e.target.value)}
+						onChange={(e) => { setReplyText(e.target.value); onTyping(); }}
 						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
 						rows={1}
 						placeholder="Message…"
@@ -185,6 +195,19 @@ function Bubble({ m }: { m: ThreadMessage }) {
 						{items.map((it, i) => <li key={i}>{it.title}</li>)}
 					</ul>
 				)}
+			</div>
+		</div>
+	);
+}
+
+/** Animated "officer is typing" bubble. */
+function TypingBubble() {
+	return (
+		<div className="flex justify-start">
+			<div className="bg-white border border-slate-200 rounded-2xl px-3 py-2 flex gap-1">
+				<span className="h-1.5 w-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
+				<span className="h-1.5 w-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
+				<span className="h-1.5 w-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
 			</div>
 		</div>
 	);

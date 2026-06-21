@@ -3220,6 +3220,17 @@
             ],
             "title": "Consent Type"
           },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "granted": {
             "anyOf": [
               {
@@ -3973,6 +3984,11 @@
       },
       "PortalSessionResponse": {
         "properties": {
+          "account_email": {
+            "default": "",
+            "title": "Account Email",
+            "type": "string"
+          },
           "case_id": {
             "format": "uuid",
             "title": "Case Id",

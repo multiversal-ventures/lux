@@ -10,6 +10,9 @@ export interface BorrowerPortalProps {
 	/** Portal token from the URL (`?token=…`), or null for an immediate error. */
 	token: string | null;
 	className?: string;
+	/** Host hook to create a returnable account for the email (e.g. send a
+	 * Firebase magic link). Called alongside storing the email server-side. */
+	onCreateAccount?: (email: string) => Promise<void>;
 }
 
 /**
@@ -18,7 +21,7 @@ export interface BorrowerPortalProps {
  * the next. On submit the link is consumed (expires); the next visit shows
  * "link unavailable". No login; the token is the auth.
  */
-export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
+export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPortalProps) {
 	const { session, loading, error, submitIntent, uploadDocuments, operatorTyping, sendTyping } = usePortalSession(token);
 	const fileRef = useRef<HTMLInputElement>(null);
 	const lastTyped = useRef(0);
@@ -55,9 +58,15 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 	const name = session.entity?.name || "the borrower";
 
 	const verified = session.verification.verified;
+	const accountDone = !!session.account_email;
 	const signed = session.signed;
-	const step = !verified ? 1 : !signed ? 2 : 3;
+	const step = !verified ? 1 : !accountDone ? 2 : !signed ? 3 : 4;
 	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
+
+	async function createAccount(email: string) {
+		await submitIntent([{ type: "set_email", params: { email } }]);
+		if (onCreateAccount) await onCreateAccount(email);
+	}
 
 	async function onFiles(files: FileList | null) {
 		if (!files || files.length === 0) return;
@@ -82,8 +91,8 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 		setReplyText("");
 	}
 
-	// Steps 1–2 are gates (centered cards). Step 3 is a full-height chat.
-	if (step !== 3) {
+	// Steps 1–3 are gates (centered cards). Step 4 is the full-height chat.
+	if (step !== 4) {
 		return (
 			<div className={wrap(className)}>
 				<Stepper current={step} />
@@ -92,6 +101,8 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 						verified={session.verification.verified}
 						onVerify={(code) => submitIntent([{ type: "verify", params: { code } }])}
 					/>
+				) : step === 2 ? (
+					<AccountStep onSubmit={createAccount} />
 				) : (
 					<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
 				)}
@@ -319,7 +330,50 @@ function SignStep({ name, onSign }: { name: string; onSign: (signature: string) 
 	);
 }
 
-const STEPS = ["Identity", "Sign", "Submit"];
+/** Account step — capture an email so the borrower can return (magic link). */
+function AccountStep({ onSubmit }: { onSubmit: (email: string) => Promise<void> }) {
+	const [email, setEmail] = useState("");
+	const [submitting, setSubmitting] = useState(false);
+	const valid = email.includes("@") && email.includes(".");
+
+	async function submit() {
+		if (!valid) return;
+		setSubmitting(true);
+		await onSubmit(email.trim());
+		setSubmitting(false);
+	}
+
+	return (
+		<section>
+			<StepHeading n={2} title="Create your account" />
+			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+				<p className="text-sm text-slate-600">
+					Add your email so you can come back to your application anytime — we'll send you a
+					secure sign-in link.
+				</p>
+				<input
+					type="email"
+					value={email}
+					onChange={(e) => setEmail(e.target.value)}
+					onKeyDown={(e) => { if (e.key === "Enter" && valid) submit(); }}
+					placeholder="you@example.com"
+					autoComplete="email"
+					className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+				/>
+				<button
+					type="button"
+					onClick={submit}
+					disabled={submitting || !valid}
+					className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
+				>
+					{submitting ? "Creating…" : "Continue"}
+				</button>
+			</div>
+		</section>
+	);
+}
+
+const STEPS = ["Verify", "Account", "Consent"];
 
 function Stepper({ current }: { current: number }) {
 	return (

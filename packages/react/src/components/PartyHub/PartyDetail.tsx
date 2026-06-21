@@ -109,7 +109,23 @@ export function PartyDetail({
 			{/* Conversation — the main area */}
 			<div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50">
 				{party.thread.length === 0 && !borrowerTyping ? (
-					<p className="text-center text-sm text-slate-400 mt-6">No messages yet. Send a request to start.</p>
+					<div className="max-w-md mx-auto mt-6 bg-white border border-slate-200 rounded-xl p-5 text-center space-y-3">
+						<p className="text-sm font-medium text-slate-800">Start the conversation</p>
+						<p className="text-xs text-slate-500">
+							Send {party.display_name || "them"} the link below and their access code. Once they
+							open it, all your messages and document requests happen right here.
+						</p>
+						{portalUrl && (
+							<div className="flex items-center gap-2">
+								<input readOnly value={portalUrl} onFocus={(e) => e.currentTarget.select()} className="flex-1 min-w-0 rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-mono" />
+								<button type="button" onClick={copyLink} className="rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-xs px-3 py-1.5">{copied ? "Copied" : "Copy"}</button>
+							</div>
+						)}
+						{party.access_code && (
+							<p className="text-xs text-slate-500">Access code: <span className="font-mono font-semibold text-slate-800 tracking-widest">{party.access_code}</span></p>
+						)}
+						{!portalUrl && <p className="text-xs text-amber-600">Link not ready — link this party to a case identity first.</p>}
+					</div>
 				) : (
 					party.thread.map((m) => <OpBubble key={m.message_id} m={m} />)
 				)}

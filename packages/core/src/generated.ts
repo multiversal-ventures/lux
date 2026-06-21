@@ -3522,6 +3522,8 @@ export interface components {
             code?: string | null;
             /** Consent Type */
             consent_type?: string | null;
+            /** Email */
+            email?: string | null;
             /** Granted */
             granted?: boolean | null;
             /** Level */
@@ -3919,6 +3921,11 @@ export interface components {
         };
         /** PortalSessionResponse */
         PortalSessionResponse: {
+            /**
+             * Account Email
+             * @default
+             */
+            account_email: string;
             /**
              * Case Id
              * Format: uuid

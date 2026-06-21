@@ -3,6 +3,7 @@ import {
 	usePortalSuggestions,
 	type PortalRequestItem,
 } from "../../hooks/useCreatePortalLink.js";
+import { roleLabel } from "../../labels.js";
 import { useDraftRequest, useSendRequest, type PartyView } from "../../hooks/usePartyHub.js";
 
 export interface RequestComposerProps {
@@ -30,14 +31,24 @@ export function RequestComposer({ caseId, party, onSent, onCancel }: RequestComp
 	const [message, setMessage] = useState("");
 
 	function selectedItems(): PortalRequestItem[] {
-		return [
+		const all: PortalRequestItem[] = [
 			...items.filter((_, i) => checked.has(i)),
 			...custom.map((title) => ({ id: "", title, detail: "", action: "", source: "custom", priority: "medium" })),
 		];
+		// Include whatever's typed in "Add your own" but not yet added as a chip.
+		const pending = draftItem.trim();
+		if (pending) all.push({ id: "", title: pending, detail: "", action: "", source: "custom", priority: "medium" });
+		return all;
+	}
+
+	function partyContext(): string {
+		const who = [party.display_name, party.role ? `role: ${roleLabel(party.role)}` : ""].filter(Boolean).join(", ");
+		const docs = (party.documents ?? []).map((d) => `${roleLabel(d.role)} on ${d.label}`).join("; ");
+		return [who && `Borrower: ${who}`, docs && `Appears on: ${docs}`].filter(Boolean).join(". ");
 	}
 
 	async function generate() {
-		const text = await draft.mutateAsync({ items: selectedItems(), context: "" });
+		const text = await draft.mutateAsync({ items: selectedItems(), context: partyContext() });
 		setMessage(text); // editable draft — operator reviews/edits before sending
 	}
 

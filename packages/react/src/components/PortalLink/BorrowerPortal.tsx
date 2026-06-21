@@ -23,6 +23,8 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
 	const [finishing, setFinishing] = useState(false);
+	const [replyText, setReplyText] = useState("");
+	const [sendingReply, setSendingReply] = useState(false);
 
 	if (loading) {
 		return <div className={wrap(className)}><p className="text-slate-500">Loading…</p></div>;
@@ -63,154 +65,130 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 		setFinishing(false);
 	}
 
+	async function sendReply() {
+		const t = replyText.trim();
+		if (!t) return;
+		setSendingReply(true);
+		await submitIntent([{ type: "reply", params: { text: t } }]);
+		setSendingReply(false);
+		setReplyText("");
+	}
+
+	// Steps 1–2 are gates (centered cards). Step 3 is a full-height chat.
+	if (step !== 3) {
+		return (
+			<div className={wrap(className)}>
+				<Stepper current={step} />
+				{step === 1 ? (
+					<KbaStep
+						questions={session.kba_questions}
+						verified={session.verification.verified}
+						onVerify={(claims) => submitIntent([{ type: "verify", params: { claims } }])}
+					/>
+				) : (
+					<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
+				)}
+			</div>
+		);
+	}
+
 	return (
-		<div className={wrap(className)}>
-			<header className="mb-6">
-				<h1 className="text-xl font-semibold text-slate-900">
-					Welcome{session.entity?.name ? `, ${session.entity.name}` : ""}
+		<div className={`flex flex-col h-full mx-auto w-full max-w-2xl bg-white ${className ?? ""}`}>
+			<header className="px-4 py-3 border-b border-slate-200">
+				<h1 className="font-semibold text-slate-900">
+					{session.requested_by || "Your documents"}
 				</h1>
-				<p className="text-sm text-slate-500">
-					{session.requested_by
-						? `${session.requested_by} has requested some documents to move your application forward.`
-						: "Upload your documents to move your application forward."}
+				<p className="text-xs text-slate-500">
+					{openRequests.length > 0 ? `${openRequests.length} request${openRequests.length > 1 ? "s" : ""} pending` : "All caught up"}
 				</p>
+			</header>
+
+			<div className="flex-1 overflow-y-auto px-3 py-4 space-y-2 bg-slate-50">
 				{session.request_message && (
-					<div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-sm text-slate-700">
+					<div className="mx-auto max-w-[90%] text-center text-xs text-slate-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
 						{session.request_message}
 					</div>
 				)}
-			</header>
+				{session.thread.map((m) => <Bubble key={m.message_id} m={m} />)}
+				{session.thread.length === 0 && (
+					<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
+				)}
+				{uploading && <div className="flex justify-end"><span className="text-xs text-slate-400">Uploading…</span></div>}
+			</div>
 
-			<Stepper current={step} />
-
-			{step === 1 && (
-				<KbaStep
-					questions={session.kba_questions}
-					verified={session.verification.verified}
-					onVerify={(claims) => submitIntent([{ type: "verify", params: { claims } }])}
-				/>
-			)}
-
-			{step === 2 && (
-				<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
-			)}
-
-			{step === 3 && (
-				<section className="space-y-6">
-					<Conversation thread={session.thread} />
-
-					{openRequests.length === 0 ? (
-						<div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center text-sm text-green-800">
-							You're all caught up — nothing pending right now. We'll let your loan officer know
-							if anything else is needed.
-						</div>
-					) : (
-						<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-							<h2 className="font-semibold text-slate-800">Upload documents</h2>
-							<input
-								ref={fileRef}
-								type="file"
-								multiple
-								accept=".pdf,.png,.jpg,.jpeg"
-								disabled={uploading}
-								onChange={(e) => onFiles(e.target.files)}
-								className="block text-sm text-slate-600"
-							/>
-							{uploading && <p className="text-xs text-slate-500">Uploading…</p>}
-							{session.uploaded_files.length > 0 && (
-								<div>
-									<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
-										Uploaded ({session.uploaded_files.length})
-									</p>
-									<ul className="space-y-1">
-										{session.uploaded_files.map((f, i) => (
-											<li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-												<span className="text-green-600" aria-hidden>✓</span>{f}
-											</li>
-										))}
-									</ul>
-								</div>
-							)}
-							<button
-								type="button"
-								onClick={submit}
-								disabled={finishing || session.uploaded_files.length === 0}
-								className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
-							>
-								{finishing ? "Submitting…" : "Submit documents"}
-							</button>
-							{session.uploaded_files.length === 0 && (
-								<p className="text-xs text-amber-600 text-center">Upload at least one document to submit.</p>
-							)}
-						</div>
-					)}
-
-					<ReplyBox onReply={(text) => submitIntent([{ type: "reply", params: { text } }])} />
-				</section>
-			)}
+			<div className="border-t border-slate-200 bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+				{openRequests.length > 0 && session.uploaded_files.length > 0 && (
+					<button
+						type="button"
+						onClick={submit}
+						disabled={finishing}
+						className="w-full mb-2 rounded-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium py-2"
+					>
+						{finishing ? "Submitting…" : "I've sent everything — submit"}
+					</button>
+				)}
+				<div className="flex items-end gap-2">
+					<input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={(e) => onFiles(e.target.files)} />
+					<button
+						type="button"
+						onClick={() => fileRef.current?.click()}
+						disabled={uploading}
+						aria-label="Attach documents"
+						className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
+					>
+						📎
+					</button>
+					<textarea
+						value={replyText}
+						onChange={(e) => setReplyText(e.target.value)}
+						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
+						rows={1}
+						placeholder="Message…"
+						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
+					/>
+					<button
+						type="button"
+						onClick={sendReply}
+						disabled={sendingReply || !replyText.trim()}
+						className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
+					>
+						Send
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }
 
-/** The conversation so far — officer requests and the borrower's replies. */
-function Conversation({ thread }: { thread: ThreadMessage[] }) {
-	if (thread.length === 0) return null;
-	return (
-		<div className="space-y-2">
-			<h2 className="font-semibold text-slate-800">Your requests</h2>
-			{thread.map((m) => {
-				const fromOfficer = m.author_kind === "operator";
-				const items = (m.items ?? []) as Array<{ title?: string }>;
-				return (
-					<div key={m.message_id} className={`rounded-lg p-3 text-sm ${fromOfficer ? "bg-indigo-50" : "bg-slate-50"}`}>
-						<p className="text-xs text-slate-400 mb-1">{fromOfficer ? "Your loan officer" : "You"}</p>
-						{m.body && <p className="text-slate-700">{m.body}</p>}
-						{items.length > 0 && (
-							<ul className="mt-1 ml-4 list-disc text-slate-600">
-								{items.map((it, i) => <li key={i}>{it.title}</li>)}
-							</ul>
-						)}
-					</div>
-				);
-			})}
-		</div>
-	);
-}
+/** A single chat bubble — officer left, borrower right; uploads as file chips. */
+function Bubble({ m }: { m: ThreadMessage }) {
+	const mine = m.author_kind === "borrower";
+	const items = (m.items ?? []) as Array<{ title?: string }>;
+	const align = mine ? "justify-end" : "justify-start";
 
-/** Free-text reply back to the loan officer. */
-function ReplyBox({ onReply }: { onReply: (text: string) => Promise<void> }) {
-	const [text, setText] = useState("");
-	const [sending, setSending] = useState(false);
-	async function send() {
-		if (!text.trim()) return;
-		setSending(true);
-		await onReply(text.trim());
-		setSending(false);
-		setText("");
+	if (m.kind === "upload") {
+		return (
+			<div className={`flex ${align}`}>
+				<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+					<span aria-hidden>📄</span>{m.body}
+				</div>
+			</div>
+		);
 	}
 	return (
-		<div className="bg-white border border-slate-200 rounded-xl p-4">
-			<label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Message your loan officer</label>
-			<textarea
-				value={text}
-				onChange={(e) => setText(e.target.value)}
-				rows={2}
-				placeholder="Add a note or ask a question…"
-				className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-			/>
-			<button
-				type="button"
-				onClick={send}
-				disabled={sending || !text.trim()}
-				className="mt-2 rounded-full bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2"
-			>
-				{sending ? "Sending…" : "Send"}
-			</button>
+		<div className={`flex ${align}`}>
+			<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+				{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+				{items.length > 0 && (
+					<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
+						{items.map((it, i) => <li key={i}>{it.title}</li>)}
+					</ul>
+				)}
+			</div>
 		</div>
 	);
 }
 
-/** KBA identity step — answer questions derived from the borrower's documents. */
 /** Input affordances per known KBA fact — numeric SSN, date-of-birth hint. */
 function kbaFieldProps(id: string): InputHTMLAttributes<HTMLInputElement> {
 	if (id.includes("ssn")) return { inputMode: "numeric", maxLength: 4, placeholder: "••••", autoComplete: "off" };

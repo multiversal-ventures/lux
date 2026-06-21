@@ -3,6 +3,7 @@ import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useAttachDocument,
 	useDeleteParty,
+	useSendRequest,
 	type CaseDocument,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
@@ -27,9 +28,18 @@ export function PartyDetail({
 }) {
 	const [composing, setComposing] = useState(false);
 	const [copied, setCopied] = useState(false);
+	const [msg, setMsg] = useState("");
 	const del = useDeleteParty(caseId);
+	const send = useSendRequest(caseId);
 
 	const linked = !!party.linked_identity_id;
+
+	async function sendMessage() {
+		const text = msg.trim();
+		if (!text) return;
+		await send.mutateAsync({ party_id: party.party_id, items: [], message: text });
+		setMsg("");
+	}
 	const portalUrl = party.portal_token
 		? `${typeof window !== "undefined" ? window.location.origin : ""}/portal?token=${party.portal_token}`
 		: null;
@@ -63,6 +73,15 @@ export function PartyDetail({
 						{party.signed && <span className="text-green-600"> · ✓ Signed</span>}
 						{!party.has_account && <span className="text-slate-400"> · No account</span>}
 					</p>
+					{party.documents.length > 0 && (
+						<div className="flex flex-wrap gap-1 mt-1">
+							{party.documents.map((d) => (
+								<span key={d.doc_id} className="text-[10px] bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">
+									{roleLabel(d.role)} · {d.label}
+								</span>
+							))}
+						</div>
+					)}
 				</div>
 				{portalUrl && (
 					<button
@@ -110,20 +129,40 @@ export function PartyDetail({
 				</div>
 			</details>
 
-			{/* Composer */}
-			<div className="border-t border-slate-200 px-5 py-3">
+			{/* Composer — chat message + structured request */}
+			<div className="border-t border-slate-200 px-4 py-3">
 				{composing ? (
 					<RequestComposer caseId={caseId} party={party} onSent={() => setComposing(false)} onCancel={() => setComposing(false)} />
 				) : (
-					<button
-						type="button"
-						onClick={() => setComposing(true)}
-						disabled={!linked}
-						title={linked ? undefined : "Link this party to a case identity first"}
-						className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium py-2.5"
-					>
-						+ Send request
-					</button>
+					<div className="flex items-end gap-2">
+						<button
+							type="button"
+							onClick={() => setComposing(true)}
+							disabled={!linked}
+							title={linked ? "Request documents" : "Link this party to a case identity first"}
+							aria-label="Request documents"
+							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-40"
+						>
+							📋
+						</button>
+						<textarea
+							value={msg}
+							onChange={(e) => setMsg(e.target.value)}
+							onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+							rows={1}
+							disabled={!linked}
+							placeholder={linked ? "Message…" : "Link an identity to message"}
+							className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32 disabled:opacity-50"
+						/>
+						<button
+							type="button"
+							onClick={sendMessage}
+							disabled={send.isPending || !msg.trim()}
+							className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
+						>
+							Send
+						</button>
+					</div>
 				)}
 			</div>
 		</div>

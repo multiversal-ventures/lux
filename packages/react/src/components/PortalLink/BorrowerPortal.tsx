@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type InputHTMLAttributes } from "react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
@@ -86,7 +86,6 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 			{step === 1 && (
 				<KbaStep
 					questions={session.kba_questions}
-					name={name}
 					verified={session.verification.verified}
 					onVerify={(claims) => submitIntent([{ type: "verify", params: { claims } }])}
 				/>
@@ -212,20 +211,27 @@ function ReplyBox({ onReply }: { onReply: (text: string) => Promise<void> }) {
 }
 
 /** KBA identity step — answer questions derived from the borrower's documents. */
+/** Input affordances per known KBA fact — numeric SSN, date-of-birth hint. */
+function kbaFieldProps(id: string): InputHTMLAttributes<HTMLInputElement> {
+	if (id.includes("ssn")) return { inputMode: "numeric", maxLength: 4, placeholder: "••••", autoComplete: "off" };
+	if (id.includes("dob")) return { inputMode: "numeric", placeholder: "MM/DD/YYYY", autoComplete: "off" };
+	return { autoComplete: "off" };
+}
+
 function KbaStep({
 	questions,
-	name,
 	verified,
 	onVerify,
 }: {
 	questions: KbaQuestion[];
-	name: string;
 	verified: boolean;
 	onVerify: (claims: Record<string, string>) => Promise<void>;
 }) {
 	const [answers, setAnswers] = useState<Record<string, string>>({});
 	const [submitting, setSubmitting] = useState(false);
 	const [failed, setFailed] = useState(false);
+
+	const allFilled = questions.every((q) => (answers[q.id] ?? "").trim().length > 0);
 
 	async function submit() {
 		setSubmitting(true);
@@ -239,33 +245,40 @@ function KbaStep({
 		<section>
 			<StepHeading n={1} title="Confirm your identity" />
 			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-				<p className="text-sm text-slate-500">
-					To protect {name}, answer these from your records before continuing.
+				<p className="text-sm text-slate-600">
+					Please confirm your identity to continue. We'll ask for a couple of details only you would
+					know — this keeps your application secure.
 				</p>
 				{questions.map((q) => (
 					<div key={q.id}>
-						<label className="block text-sm font-medium text-slate-700 mb-1">{q.prompt}</label>
+						<label htmlFor={`kba-${q.id}`} className="block text-sm font-medium text-slate-700 mb-1">{q.prompt}</label>
 						<input
+							id={`kba-${q.id}`}
 							type="text"
 							value={answers[q.id] ?? ""}
 							onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-							className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+							onKeyDown={(e) => { if (e.key === "Enter" && allFilled) submit(); }}
+							className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tracking-wide"
+							{...kbaFieldProps(q.id)}
 						/>
 					</div>
 				))}
 				{failed && (
 					<p className="text-sm text-red-600" role="alert">
-						Those answers didn't match our records. Please try again.
+						That didn't match our records. Double-check and try again.
 					</p>
 				)}
 				<button
 					type="button"
 					onClick={submit}
-					disabled={submitting || Object.keys(answers).length === 0}
+					disabled={submitting || !allFilled}
 					className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
 				>
-					{submitting ? "Verifying…" : "Verify my identity"}
+					{submitting ? "Checking…" : "Continue"}
 				</button>
+				<p className="text-xs text-slate-400 flex items-center gap-1">
+					<span aria-hidden>🔒</span> Your answers are encrypted and never shared.
+				</p>
 			</div>
 		</section>
 	);

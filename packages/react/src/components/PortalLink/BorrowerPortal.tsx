@@ -1,10 +1,9 @@
-import { useRef, useState, type InputHTMLAttributes } from "react";
+import { useRef, useState } from "react";
 import { FileText, Lock, Paperclip } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
-type KbaQuestion = components["schemas"]["KbaQuestion"];
 type ThreadMessage = components["schemas"]["ThreadMessage"];
 
 export interface BorrowerPortalProps {
@@ -55,8 +54,7 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 
 	const name = session.entity?.name || "the borrower";
 
-	const kycRequired = session.kba_questions.length > 0;
-	const verified = !kycRequired || session.verification.verified;
+	const verified = session.verification.verified;
 	const signed = session.signed;
 	const step = !verified ? 1 : !signed ? 2 : 3;
 	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
@@ -90,10 +88,9 @@ export function BorrowerPortal({ token, className }: BorrowerPortalProps) {
 			<div className={wrap(className)}>
 				<Stepper current={step} />
 				{step === 1 ? (
-					<KbaStep
-						questions={session.kba_questions}
+					<CodeStep
 						verified={session.verification.verified}
-						onVerify={(claims) => submitIntent([{ type: "verify", params: { claims } }])}
+						onVerify={(code) => submitIntent([{ type: "verify", params: { code } }])}
 					/>
 				) : (
 					<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
@@ -213,73 +210,59 @@ function TypingBubble() {
 	);
 }
 
-/** Input affordances per known KBA fact — numeric SSN, date-of-birth hint. */
-function kbaFieldProps(id: string): InputHTMLAttributes<HTMLInputElement> {
-	if (id.includes("ssn")) return { inputMode: "numeric", maxLength: 4, placeholder: "••••", autoComplete: "off" };
-	if (id.includes("dob")) return { inputMode: "numeric", placeholder: "MM/DD/YYYY", autoComplete: "off" };
-	return { autoComplete: "off" };
-}
-
-function KbaStep({
-	questions,
+function CodeStep({
 	verified,
 	onVerify,
 }: {
-	questions: KbaQuestion[];
 	verified: boolean;
-	onVerify: (claims: Record<string, string>) => Promise<void>;
+	onVerify: (code: string) => Promise<void>;
 }) {
-	const [answers, setAnswers] = useState<Record<string, string>>({});
+	const [code, setCode] = useState("");
 	const [submitting, setSubmitting] = useState(false);
 	const [failed, setFailed] = useState(false);
-
-	const allFilled = questions.every((q) => (answers[q.id] ?? "").trim().length > 0);
 
 	async function submit() {
 		setSubmitting(true);
 		setFailed(false);
-		await onVerify(answers);
+		await onVerify(code.trim());
 		setSubmitting(false);
 		if (!verified) setFailed(true);
 	}
 
 	return (
 		<section>
-			<StepHeading n={1} title="Confirm your identity" />
+			<StepHeading n={1} title="Enter your access code" />
 			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
 				<p className="text-sm text-slate-600">
-					Please confirm your identity to continue. We'll ask for a couple of details only you would
-					know — this keeps your application secure.
+					Your loan officer sent you a code along with this link. Enter it below to securely
+					access your application.
 				</p>
-				{questions.map((q) => (
-					<div key={q.id}>
-						<label htmlFor={`kba-${q.id}`} className="block text-sm font-medium text-slate-700 mb-1">{q.prompt}</label>
-						<input
-							id={`kba-${q.id}`}
-							type="text"
-							value={answers[q.id] ?? ""}
-							onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-							onKeyDown={(e) => { if (e.key === "Enter" && allFilled) submit(); }}
-							className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tracking-wide"
-							{...kbaFieldProps(q.id)}
-						/>
-					</div>
-				))}
+				<input
+					type="text"
+					inputMode="numeric"
+					maxLength={5}
+					value={code}
+					onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+					onKeyDown={(e) => { if (e.key === "Enter" && code.length >= 4) submit(); }}
+					placeholder="• • • • •"
+					autoComplete="one-time-code"
+					className="w-full rounded-lg border border-slate-300 px-3 py-3 text-center text-2xl tracking-[0.5em] font-mono"
+				/>
 				{failed && (
 					<p className="text-sm text-red-600" role="alert">
-						That didn't match our records. Double-check and try again.
+						That code didn't match. Check the code your loan officer sent you.
 					</p>
 				)}
 				<button
 					type="button"
 					onClick={submit}
-					disabled={submitting || !allFilled}
+					disabled={submitting || code.length < 4}
 					className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
 				>
 					{submitting ? "Checking…" : "Continue"}
 				</button>
 				<p className="text-xs text-slate-400 flex items-center gap-1">
-					<Lock size={12} /> Your answers are encrypted and never shared.
+					<Lock size={12} /> Don't have a code? Ask your loan officer.
 				</p>
 			</div>
 		</section>

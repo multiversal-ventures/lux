@@ -934,6 +934,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/typing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Operator Typing
+         * @description Operator typing signal — transient, broadcast to the borrower stream.
+         */
+        post: operations["operator_typing_api_cases__case_id__portal_typing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/qualify": {
         parameters: {
             query?: never;
@@ -1558,6 +1578,48 @@ export interface paths {
          *     context (resolve_caller's within-tenant path 401s for borrower callers).
          */
         post: operations["submit_intents_api_portal_session__session_id__intents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Stream
+         * @description Real-time portal stream for the borrower (token-authed). Emits MINIMAL
+         *     pings only (event type + typing actor) — never event_data — so nothing
+         *     internal/PII leaks; the client refetches the gated session for content.
+         */
+        get: operations["portal_stream_api_portal_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/typing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Portal Typing
+         * @description Borrower typing signal — transient, broadcast to the operator stream.
+         */
+        post: operations["portal_typing_api_portal_typing_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3456,6 +3518,8 @@ export interface components {
             claims?: {
                 [key: string]: string;
             } | null;
+            /** Code */
+            code?: string | null;
             /** Consent Type */
             consent_type?: string | null;
             /** Granted */
@@ -3672,6 +3736,8 @@ export interface components {
         };
         /** PartyView */
         PartyView: {
+            /** Access Code */
+            access_code?: string | null;
             /**
              * Display Name
              * @default
@@ -3891,6 +3957,11 @@ export interface components {
              * @default
              */
             requested_by: string;
+            /**
+             * Requires Code
+             * @default false
+             */
+            requires_code: boolean;
             /** Session Id */
             session_id: string;
             /**
@@ -4947,10 +5018,7 @@ export interface components {
             }[];
             /** Kind */
             kind: string;
-            /**
-             * Message Id
-             * Format: uuid
-             */
+            /** Message Id */
             message_id: string;
             /** Status */
             status?: string | null;
@@ -6695,6 +6763,39 @@ export interface operations {
             };
         };
     };
+    operator_typing_api_cases__case_id__portal_typing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     qualify_case_api_cases__case_id__qualify_post: {
         parameters: {
             query?: {
@@ -7652,6 +7753,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_stream_api_portal_stream_get: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_typing_api_portal_typing_post: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

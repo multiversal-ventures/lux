@@ -86,13 +86,19 @@ export function PartyDetail({
 						</div>
 					)}
 				</div>
+				{party.access_code && (
+					<div className="shrink-0 text-right">
+						<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>
+						<p className="font-mono font-semibold text-slate-800 tracking-widest">{party.access_code}</p>
+					</div>
+				)}
 				{portalUrl && (
 					<button
 						type="button"
 						onClick={copyLink}
 						title={copied ? "Copied!" : "Copy portal link"}
 						aria-label="Copy portal link"
-						className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-base"
+						className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-base flex items-center justify-center"
 					>
 						{copied ? <Check size={16} /> : <Link2 size={16} />}
 					</button>

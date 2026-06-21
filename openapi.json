@@ -3198,6 +3198,17 @@
             ],
             "title": "Claims"
           },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
           "consent_type": {
             "anyOf": [
               {
@@ -3655,6 +3666,17 @@
       },
       "PartyView": {
         "properties": {
+          "access_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Code"
+          },
           "display_name": {
             "default": "",
             "title": "Display Name",
@@ -3998,6 +4020,11 @@
             "default": "",
             "title": "Requested By",
             "type": "string"
+          },
+          "requires_code": {
+            "default": false,
+            "title": "Requires Code",
+            "type": "boolean"
           },
           "session_id": {
             "title": "Session Id",
@@ -6529,7 +6556,6 @@
             "type": "string"
           },
           "message_id": {
-            "format": "uuid",
             "title": "Message Id",
             "type": "string"
           },
@@ -9553,6 +9579,57 @@
         ]
       }
     },
+    "/api/cases/{case_id}/portal/typing": {
+      "post": {
+        "description": "Operator typing signal \u2014 transient, broadcast to the borrower stream.",
+        "operationId": "operator_typing_api_cases__case_id__portal_typing_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Operator Typing Api Cases  Case Id  Portal Typing Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Operator Typing",
+        "tags": [
+          "party"
+        ]
+      }
+    },
     "/api/cases/{case_id}/qualify": {
       "post": {
         "description": "Trigger qualification on an already-extracted case.\n\nTenant/operator only \u2014 qualification is an underwriting decision, not a\nportal-user action. PORTAL_PERMS does not include any qualify capability.\n\nPass ?spec_id=<uuid> to run a specific DB-stored spec.\nWithout spec_id, runs all registered product specs.",
@@ -11369,6 +11446,138 @@
           }
         },
         "summary": "Submit Intents",
+        "tags": [
+          "portal"
+        ]
+      }
+    },
+    "/api/portal/stream": {
+      "get": {
+        "description": "Real-time portal stream for the borrower (token-authed). Emits MINIMAL\npings only (event type + typing actor) \u2014 never event_data \u2014 so nothing\ninternal/PII leaks; the client refetches the gated session for content.",
+        "operationId": "portal_stream_api_portal_stream_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Portal Stream",
+        "tags": [
+          "portal"
+        ]
+      }
+    },
+    "/api/portal/typing": {
+      "post": {
+        "description": "Borrower typing signal \u2014 transient, broadcast to the operator stream.",
+        "operationId": "portal_typing_api_portal_typing_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Portal Typing Api Portal Typing Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Portal Typing",
         "tags": [
           "portal"
         ]

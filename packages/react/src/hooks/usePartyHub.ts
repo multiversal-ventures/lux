@@ -141,6 +141,15 @@ export function useDeleteParty(caseId: string): UseMutationResult<unknown, Error
 	});
 }
 
+/** Reissue a party's portal link (reset access code); refreshes overview. */
+export function useReissueLink(caseId: string): UseMutationResult<unknown, Error, string> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, string>({
+		mutationFn: async (partyId) => getDefaultClient().reissueLink(caseId, partyId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
 /** Link a party to a case identity; refreshes overview. */
 export function useLinkParty(
 	caseId: string,

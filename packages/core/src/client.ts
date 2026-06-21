@@ -405,6 +405,14 @@ export class VeritasClient {
 		);
 	}
 
+	/** Reissue a party's portal link — resets the access code and attempt counter. */
+	async reissueLink(caseId: string, partyId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/reissue`,
+			{ method: "POST" },
+		);
+	}
+
 	/** Link a party to a resolved case identity. */
 	async linkParty(
 		caseId: string,

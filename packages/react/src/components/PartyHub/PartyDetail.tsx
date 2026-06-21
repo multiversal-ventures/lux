@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Check, ClipboardList, FileText, Link2, X } from "lucide-react";
+import { Check, ClipboardList, FileText, Link2, RotateCcw, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useAttachDocument,
 	useDeleteParty,
 	usePortalRealtime,
+	useReissueLink,
 	useSendRequest,
 	type CaseDocument,
 	type PartyView,
@@ -32,6 +33,7 @@ export function PartyDetail({
 	const [copied, setCopied] = useState(false);
 	const [msg, setMsg] = useState("");
 	const del = useDeleteParty(caseId);
+	const reissue = useReissueLink(caseId);
 	const send = useSendRequest(caseId);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
@@ -86,6 +88,18 @@ export function PartyDetail({
 						</div>
 					)}
 				</div>
+				{party.access_code && (
+					<button
+						type="button"
+						onClick={() => reissue.mutate(party.party_id)}
+						disabled={reissue.isPending}
+						title="Reset access code"
+						aria-label="Reset access code"
+						className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-50 flex items-center justify-center"
+					>
+						<RotateCcw size={16} />
+					</button>
+				)}
 				{party.access_code && (
 					<div className="shrink-0 text-right">
 						<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>

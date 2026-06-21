@@ -33,6 +33,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 			sendTyping();
 		}
 	}
+	const [skippedAccount, setSkippedAccount] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const [finishing, setFinishing] = useState(false);
 	const [replyText, setReplyText] = useState("");
@@ -60,7 +61,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const verified = session.verification.verified;
 	const accountDone = !!session.account_email;
 	const signed = session.signed;
-	const step = !verified ? 1 : !accountDone ? 2 : !signed ? 3 : 4;
+	const step = !verified ? 1 : (!accountDone && !skippedAccount) ? 2 : !signed ? 3 : 4;
 	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
 
 	async function createAccount(email: string) {
@@ -102,7 +103,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						onVerify={(code) => submitIntent([{ type: "verify", params: { code } }])}
 					/>
 				) : step === 2 ? (
-					<AccountStep onSubmit={createAccount} />
+					<AccountStep onSubmit={createAccount} onSkip={() => setSkippedAccount(true)} />
 				) : (
 					<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
 				)}
@@ -331,7 +332,7 @@ function SignStep({ name, onSign }: { name: string; onSign: (signature: string) 
 }
 
 /** Account step — capture an email so the borrower can return (magic link). */
-function AccountStep({ onSubmit }: { onSubmit: (email: string) => Promise<void> }) {
+function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promise<void>; onSkip: () => void }) {
 	const [email, setEmail] = useState("");
 	const [submitting, setSubmitting] = useState(false);
 	const valid = email.includes("@") && email.includes(".");
@@ -367,6 +368,13 @@ function AccountStep({ onSubmit }: { onSubmit: (email: string) => Promise<void> 
 					className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
 				>
 					{submitting ? "Creating…" : "Continue"}
+				</button>
+				<button
+					type="button"
+					onClick={onSkip}
+					className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
+				>
+					Skip for now — you can create an account later
 				</button>
 			</div>
 		</section>

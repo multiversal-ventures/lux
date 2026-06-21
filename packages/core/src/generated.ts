@@ -842,6 +842,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue Link
+         * @description Reset a locked-out party's access-code attempt counter.
+         *
+         *     A borrower who fumbled the access code 5 times is locked out; the operator
+         *     reissues so they can try again. Resets the active token's attempt counter to
+         *     0 (the link/code itself is unchanged).
+         */
+        post: operations["reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/requests": {
         parameters: {
             query?: never;
@@ -6615,6 +6639,40 @@ export interface operations {
                 "application/json": components["schemas"]["LinkPartyBody"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

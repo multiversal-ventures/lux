@@ -9375,6 +9375,67 @@
         ]
       }
     },
+    "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
+      "post": {
+        "description": "Reset a locked-out party's access-code attempt counter.\n\nA borrower who fumbled the access code 5 times is locked out; the operator\nreissues so they can try again. Resets the active token's attempt counter to\n0 (the link/code itself is unchanged).",
+        "operationId": "reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reissue Link Api Cases  Case Id  Portal Parties  Party Id  Reissue Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reissue Link",
+        "tags": [
+          "party"
+        ]
+      }
+    },
     "/api/cases/{case_id}/portal/requests": {
       "post": {
         "description": "Append a request to a party's portal thread, reusing its active token.\n\nThe token identity MUST equal the party's linked identity so the borrower\nresolves to their own party. A party with no linked identity can't be\nmessaged through the portal (409) \u2014 link it first.",

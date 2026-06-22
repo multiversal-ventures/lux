@@ -136,7 +136,7 @@ function PartyRow({ party, active, onClick }: { party: PartyView; active: boolea
 		<button
 			type="button"
 			onClick={onClick}
-			className={`w-full text-left px-4 py-3 border-b border-slate-50 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
+			className={`w-full text-left px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
 		>
 			<div className="flex items-center justify-between">
 				<span className="text-sm font-medium text-slate-800 truncate">{party.display_name || roleLabel(party.role)}</span>

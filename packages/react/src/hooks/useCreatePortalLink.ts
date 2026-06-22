@@ -47,14 +47,22 @@ export function useCreatePortalLink(
  * Suggested follow-up / document items for the portal request modal, derived
  * from the case's findings. Disabled when ``caseId`` is null (e.g. the caller
  * supplies its own items).
+ *
+ * When ``partyId`` is given the suggestions are party-aware — shaped by that
+ * party's role (Primary vs Co-borrower) and the documents they appear on, so
+ * two parties on the same case get different pills. ``partyId`` is part of the
+ * query key, so switching parties refetches rather than serving stale pills.
+ * Omit it for the case-scoped (back-compat) view.
  */
 export function usePortalSuggestions(
 	caseId: string | null,
+	partyId?: string | null,
 ): UseQueryResult<PortalRequestItem[], Error> {
 	return useQuery<PortalRequestItem[], Error>({
-		queryKey: ["portal-suggestions", caseId],
+		queryKey: ["portal-suggestions", caseId, partyId],
 		enabled: !!caseId,
-		queryFn: async () => getDefaultClient().getPortalSuggestions(caseId as string),
+		queryFn: async () =>
+			getDefaultClient().getPortalSuggestions(caseId as string, partyId ?? undefined),
 	});
 }
 

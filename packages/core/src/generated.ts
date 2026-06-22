@@ -951,10 +951,19 @@ export interface paths {
          * Portal Suggestions
          * @description Suggested document/follow-up items for the borrower portal request modal.
          *
-         *     Derived (cheaply) from the case's spec findings — the things qualification
-         *     flagged as needing follow-up or a missing document. The operator checks off
-         *     which to request. Deduped by normalized title and capped (see
-         *     ``curate_suggestions``).
+         *     Per-party when ``party_id`` is given: the suggestions are shaped by THAT
+         *     party's role (Primary vs Co-borrower) and the documents they appear on, so
+         *     two parties on the same case get different asks. The prepared cache is
+         *     per-party (``prepare_party_link`` curates with the party), so we serve that
+         *     party's row; on a miss we curate fresh WITH the party.
+         *
+         *     Without ``party_id`` the endpoint stays case-scoped (back-compat): serve the
+         *     latest prepared row for any party, else curate case-only.
+         *
+         *     Derived from the case's spec findings + qualification report — the things
+         *     qualification flagged as needing follow-up or a missing document. The
+         *     operator checks off which to request. Deduped by normalized title and capped
+         *     (see ``curate_suggestions``).
          */
         get: operations["portal_suggestions_api_cases__case_id__portal_suggestions_get"];
         put?: never;
@@ -6855,7 +6864,9 @@ export interface operations {
     };
     portal_suggestions_api_cases__case_id__portal_suggestions_get: {
         parameters: {
-            query?: never;
+            query?: {
+                party_id?: string | null;
+            };
             header?: never;
             path: {
                 case_id: string;

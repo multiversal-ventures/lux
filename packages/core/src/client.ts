@@ -315,10 +315,19 @@ export class VeritasClient {
 	}
 
 	/** Suggested follow-up / document items for the portal request modal
-	 * (derived from the case's findings; operator picks which to request). */
-	async getPortalSuggestions(caseId: string): Promise<components["schemas"]["PortalRequestItem"][]> {
+	 * (derived from the case's findings; operator picks which to request).
+	 *
+	 * When ``partyId`` is given the suggestions are party-aware — shaped by that
+	 * party's role (Primary vs Co-borrower) and the documents they appear on, so
+	 * two parties on the same case get different asks. Omit it for the
+	 * case-scoped (back-compat) view. */
+	async getPortalSuggestions(
+		caseId: string,
+		partyId?: string,
+	): Promise<components["schemas"]["PortalRequestItem"][]> {
+		const qs = partyId ? `?party_id=${encodeURIComponent(partyId)}` : '';
 		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
-			`/api/cases/${caseId}/portal/suggestions`,
+			`/api/cases/${caseId}/portal/suggestions${qs}`,
 		);
 	}
 

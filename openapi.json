@@ -9657,7 +9657,7 @@
     },
     "/api/cases/{case_id}/portal/suggestions": {
       "get": {
-        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nDerived (cheaply) from the case's spec findings \u2014 the things qualification\nflagged as needing follow-up or a missing document. The operator checks off\nwhich to request. Deduped by normalized title and capped (see\n``curate_suggestions``).",
+        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nPer-party when ``party_id`` is given: the suggestions are shaped by THAT\nparty's role (Primary vs Co-borrower) and the documents they appear on, so\ntwo parties on the same case get different asks. The prepared cache is\nper-party (``prepare_party_link`` curates with the party), so we serve that\nparty's row; on a miss we curate fresh WITH the party.\n\nWithout ``party_id`` the endpoint stays case-scoped (back-compat): serve the\nlatest prepared row for any party, else curate case-only.\n\nDerived from the case's spec findings + qualification report \u2014 the things\nqualification flagged as needing follow-up or a missing document. The\noperator checks off which to request. Deduped by normalized title and capped\n(see ``curate_suggestions``).",
         "operationId": "portal_suggestions_api_cases__case_id__portal_suggestions_get",
         "parameters": [
           {
@@ -9668,6 +9668,23 @@
               "format": "uuid",
               "title": "Case Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Party Id"
             }
           }
         ],

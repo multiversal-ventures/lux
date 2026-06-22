@@ -34,7 +34,10 @@ export function PartyDetail({
 	const reissue = useReissueLink(caseId);
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
-	const suggestions = usePortalSuggestions(caseId);
+	// Party-aware: suggestions are shaped by THIS party's role + the documents
+	// they appear on. Passing party_id also keys the query so switching parties
+	// refetches instead of showing the previous party's pills.
+	const suggestions = usePortalSuggestions(caseId, party.party_id);
 	const regen = useRegenerateSuggestions(caseId);
 	// Regenerate REPLACES the shown suggestions with the freshly returned set;
 	// null = show the originally curated suggestions.
@@ -56,6 +59,16 @@ export function PartyDetail({
 		el.style.height = "auto";
 		el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
 	}, [msg]);
+
+	// Switching parties must not carry over the previous party's pills/selection:
+	// the suggestions are per-person (role + their documents). Reset the local
+	// override/selection/custom state so stale state doesn't bleed across parties.
+	useEffect(() => {
+		setOverride(null);
+		setSelected(new Set());
+		setCustom([]);
+		setRegenerated(false);
+	}, [party.party_id]);
 
 	function selectedItems(): PortalRequestItem[] {
 		const picked = sugg.filter((_, i) => selected.has(i));

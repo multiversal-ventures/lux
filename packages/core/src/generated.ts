@@ -3098,11 +3098,8 @@ export interface components {
         };
         /** EntityInfo */
         EntityInfo: {
-            /**
-             * Identity Id
-             * Format: uuid
-             */
-            identity_id: string;
+            /** Identity Id */
+            identity_id?: string | null;
             /**
              * Name
              * @default
@@ -3973,6 +3970,11 @@ export interface components {
              */
             consent: components["schemas"]["ConsentState"];
             entity: components["schemas"]["EntityInfo"];
+            /**
+             * Has Account
+             * @default false
+             */
+            has_account: boolean;
             /**
              * Kba Questions
              * @default []

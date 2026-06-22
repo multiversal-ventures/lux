@@ -2214,9 +2214,16 @@
       "EntityInfo": {
         "properties": {
           "identity_id": {
-            "format": "uuid",
-            "title": "Identity Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Id"
           },
           "name": {
             "default": "",
@@ -2229,9 +2236,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "identity_id"
-        ],
         "title": "EntityInfo",
         "type": "object"
       },
@@ -4018,6 +4022,11 @@
           },
           "entity": {
             "$ref": "#/components/schemas/EntityInfo"
+          },
+          "has_account": {
+            "default": false,
+            "title": "Has Account",
+            "type": "boolean"
           },
           "kba_questions": {
             "default": [],

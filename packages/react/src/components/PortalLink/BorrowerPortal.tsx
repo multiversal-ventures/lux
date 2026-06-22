@@ -59,7 +59,10 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const name = session.entity?.name || "the borrower";
 
 	const verified = session.verification.verified;
-	const accountDone = !!session.account_email;
+	// Advance past the account step only when the account is actually CLAIMED
+	// (a Firebase uid is bound via claim-account, after the borrower clicks the
+	// magic link and returns signed-in) — NOT when the email is merely submitted.
+	const accountDone = !!session.has_account;
 	const signed = session.signed;
 	const step = !verified ? 1 : (!accountDone && !skippedAccount) ? 2 : !signed ? 3 : 4;
 	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
@@ -331,10 +334,18 @@ function SignStep({ name, onSign }: { name: string; onSign: (signature: string) 
 	);
 }
 
-/** Account step — capture an email so the borrower can return (magic link). */
+/** Account step — capture an email so the borrower can return (magic link).
+ *
+ * Submitting the email only SENDS the sign-in link; it does not claim the
+ * account. So on submit we switch to a local waiting state ("Check your email")
+ * and do NOT advance — advancing is driven solely by `session.has_account`
+ * flipping true once the borrower clicks the link and returns signed-in (which
+ * runs claim-account), or by Skip. The portal silently refetches the session,
+ * so the step moves on on its own once the account is claimed. */
 function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promise<void>; onSkip: () => void }) {
 	const [email, setEmail] = useState("");
 	const [submitting, setSubmitting] = useState(false);
+	const [sent, setSent] = useState(false);
 	const valid = email.includes("@") && email.includes(".");
 
 	async function submit() {
@@ -342,6 +353,29 @@ function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promis
 		setSubmitting(true);
 		await onSubmit(email.trim());
 		setSubmitting(false);
+		setSent(true);
+	}
+
+	if (sent) {
+		return (
+			<section>
+				<StepHeading n={2} title="Create your account" />
+				<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 text-center">
+					<h3 className="font-semibold text-slate-800">Check your email</h3>
+					<p className="text-sm text-slate-600">
+						We sent a sign-in link to <span className="font-medium text-slate-800">{email.trim()}</span>.
+						Click it to continue — this page will move on once you're signed in.
+					</p>
+					<button
+						type="button"
+						onClick={onSkip}
+						className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
+					>
+						Skip for now — you can create an account later
+					</button>
+				</div>
+			</section>
+		);
 	}
 
 	return (
@@ -367,7 +401,7 @@ function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promis
 					disabled={submitting || !valid}
 					className="w-full rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-3"
 				>
-					{submitting ? "Creating…" : "Continue"}
+					{submitting ? "Sending…" : "Continue"}
 				</button>
 				<button
 					type="button"

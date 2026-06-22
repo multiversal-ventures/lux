@@ -42,6 +42,10 @@ export function PartyDetail({
 	// Track that an explicit regenerate has run, so the "no suggestions" note only
 	// appears after the operator hit the arrow — never on first load.
 	const [regenerated, setRegenerated] = useState(false);
+	// Operator's own custom request items (added via "+ Add your own").
+	const [custom, setCustom] = useState<string[]>([]);
+	const [customInput, setCustomInput] = useState("");
+	const [addingOwn, setAddingOwn] = useState(false);
 	const sugg: PortalRequestItem[] = override ?? (suggestions.data ?? []);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
@@ -54,7 +58,16 @@ export function PartyDetail({
 	}, [msg]);
 
 	function selectedItems(): PortalRequestItem[] {
-		return sugg.filter((_, i) => selected.has(i));
+		const picked = sugg.filter((_, i) => selected.has(i));
+		const own: PortalRequestItem[] = custom.map((title) => ({ id: "", title, detail: "", action: "", source: "custom", priority: "medium" }));
+		return [...picked, ...own];
+	}
+
+	function addOwn() {
+		const t = customInput.trim();
+		if (!t) return;
+		setCustom((c) => [...c, t]);
+		setCustomInput("");
 	}
 
 	function partyContext(): string {
@@ -84,12 +97,16 @@ export function PartyDetail({
 	}
 
 	const canSend = selectedItems().length > 0 || msg.trim().length > 0;
+	// Items picked but no message yet → the primary action is "Draft with AI"
+	// (generate the message from the selected items), then it flips to Send.
+	const draftMode = selectedItems().length > 0 && !msg.trim();
 
 	async function sendMessage() {
 		if (!canSend) return;
 		await send.mutateAsync({ party_id: party.party_id, items: selectedItems(), message: msg.trim() || null });
 		setMsg("");
 		setSelected(new Set());
+		setCustom([]);
 	}
 
 	const portalUrl = party.portal_token
@@ -230,6 +247,25 @@ export function PartyDetail({
 								</button>
 							);
 						})}
+					{custom.map((c, i) => (
+						<span key={`c-${i}`} className="inline-flex items-center gap-1 text-xs rounded-full px-3 py-1 border bg-indigo-600 border-indigo-600 text-white">
+							✓ {c}
+							<button type="button" onClick={() => setCustom((cs) => cs.filter((_, j) => j !== i))} className="hover:text-indigo-200" aria-label="Remove">×</button>
+						</span>
+					))}
+					{addingOwn ? (
+						<input
+							autoFocus
+							value={customInput}
+							onChange={(e) => setCustomInput(e.target.value)}
+							onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOwn(); } if (e.key === "Escape") setAddingOwn(false); }}
+							onBlur={() => { addOwn(); setAddingOwn(false); }}
+							placeholder="Type a request, Enter to add"
+							className="text-xs rounded-full px-3 py-1 border border-indigo-400 outline-none w-48"
+						/>
+					) : (
+						<button type="button" onClick={() => setAddingOwn(true)} className="text-xs rounded-full px-3 py-1 border border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600">+ Add your own</button>
+					)}
 					<button
 						type="button"
 						onClick={generateMore}
@@ -243,37 +279,32 @@ export function PartyDetail({
 				</div>
 				{regenerated && !regen.isPending && sugg.length === 0 && (
 					<p className="text-xs text-slate-400">
-						No suggestions for this case yet — type your own request below.
+						No suggestions for this case yet — add your own above or type a message below.
 					</p>
 				)}
-				<div className="flex items-end gap-2">
-					<button
-						type="button"
-						onClick={generate}
-						disabled={draft.isPending || !canSend}
-						title="Draft a message with AI"
-						aria-label="Draft with AI"
-						className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-40 flex items-center justify-center"
-					>
-						<Sparkles size={18} />
-					</button>
+				{draftMode && (
+					<p className="text-[11px] text-violet-600">{selectedItems().length} selected — hit <span className="font-medium">Draft with AI</span>, then edit & send.</p>
+					)}
+					<div className="flex items-end gap-2">
 					<textarea
 						ref={textareaRef}
 						value={msg}
 						onChange={(e) => { setMsg(e.target.value); sendTyping(); }}
-						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); draftMode ? generate() : sendMessage(); } }}
 						rows={1}
-						placeholder={selected.size ? `${selected.size} selected — add a note…` : "Message…"}
+						placeholder={selectedItems().length ? "Add a note, or draft with AI →" : "Message…"}
 						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-40 overflow-y-auto"
 					/>
-					<button
-						type="button"
-						onClick={sendMessage}
-						disabled={send.isPending || !canSend}
-						className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
-					>
-						{send.isPending ? "…" : "Send"}
-					</button>
+					{draftMode ? (
+						<button type="button" onClick={generate} disabled={draft.isPending} className="shrink-0 h-10 rounded-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-medium px-4 inline-flex items-center gap-1.5">
+							<Sparkles size={16} />
+							{draft.isPending ? "Drafting…" : "Draft with AI"}
+						</button>
+					) : (
+						<button type="button" onClick={sendMessage} disabled={send.isPending || !canSend} className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4">
+							{send.isPending ? "…" : "Send"}
+						</button>
+					)}
 				</div>
 			</div>
 		</div>

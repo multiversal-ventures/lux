@@ -132,6 +132,14 @@ export function usePortalRealtime(caseId: string): { borrowerTyping: boolean; se
 				// Borrower verify / account-email / consent + messages + uploads
 				// all change party state — refetch the operator overview live.
 				qc.invalidateQueries({ queryKey: overviewKey(caseId) });
+				// Suggestions are a SEPARATE query from the overview. The live
+				// re-curate (PartyHubWorkflow) emits portal.suggestions.refreshed
+				// when the cached follow-up asks change — invalidate that query
+				// too so the modal shows fresh suggestions without a reload.
+				// Key must match usePortalSuggestions in useCreatePortalLink.ts.
+				if (t === "portal.suggestions.refreshed") {
+					qc.invalidateQueries({ queryKey: ["portal-suggestions", caseId] });
+				}
 			}
 		});
 		return () => {

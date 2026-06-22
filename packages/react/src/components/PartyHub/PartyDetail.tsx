@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ClipboardList, FileText, Link2, RotateCcw, X } from "lucide-react";
+import { Check, ClipboardList, FileText, Link2, RotateCcw, Tag, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useAttachDocument,
@@ -30,11 +30,14 @@ export function PartyDetail({
 	onRemoved?: () => void;
 }) {
 	const [composing, setComposing] = useState(false);
+	const [assigning, setAssigning] = useState(false);
 	const [copied, setCopied] = useState(false);
 	const [msg, setMsg] = useState("");
 	const del = useDeleteParty(caseId);
 	const reissue = useReissueLink(caseId);
+	const attach = useAttachDocument(caseId);
 	const send = useSendRequest(caseId);
+	const assignRole = party.role || "borrower";
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
 	async function sendMessage() {
@@ -153,41 +156,76 @@ export function PartyDetail({
 				)}
 			</div>
 
-			{/* Collapsible documents & roles */}
-			<details className="border-t border-slate-200 px-5 py-2 group">
-				<summary className="text-sm font-medium text-slate-600 cursor-pointer flex items-center justify-between">
-					<span>Documents &amp; roles</span>
-					<span className="text-xs text-slate-400">{party.documents.length + uploadedFiles.length}</span>
-				</summary>
-				<div className="mt-3 space-y-3">
-					<DocRoles party={party} caseDocuments={caseDocuments} caseId={caseId} />
-					{uploadedFiles.length > 0 && (
-						<div>
-							<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Shared documents</p>
-							<ul className="space-y-0.5">
-								{uploadedFiles.map((f, i) => (
-									<li key={i} className="flex items-center gap-2 text-sm text-slate-700"><span className="text-green-600" aria-hidden>✓</span>{f}</li>
-								))}
-							</ul>
-						</div>
-					)}
-				</div>
-			</details>
+			{/* Collapsible shared documents (role assignment is in the composer below) */}
+			{uploadedFiles.length > 0 && (
+				<details className="border-t border-slate-200 px-5 py-2 group">
+					<summary className="text-sm font-medium text-slate-600 cursor-pointer flex items-center justify-between">
+						<span>Shared documents</span>
+						<span className="text-xs text-slate-400">{uploadedFiles.length}</span>
+					</summary>
+					<ul className="mt-3 space-y-0.5">
+						{uploadedFiles.map((f, i) => (
+							<li key={i} className="flex items-center gap-2 text-sm text-slate-700"><span className="text-green-600" aria-hidden>✓</span>{f}</li>
+						))}
+					</ul>
+				</details>
+			)}
 
 			{/* Composer — chat message + structured request */}
 			<div className="border-t border-slate-200 px-4 py-3">
 				{composing ? (
 					<RequestComposer caseId={caseId} party={party} onSent={() => setComposing(false)} onCancel={() => setComposing(false)} />
 				) : (
-					<div className="flex items-end gap-2">
+					<div className="space-y-2">
+						{/* Chat-native role assignment: tap a document to mark this party on it */}
+						{assigning && (
+							caseDocuments.length > 0 ? (
+								<div>
+									<p className="text-xs text-slate-500 mb-1.5">Tap a document to mark {party.display_name || "them"} as <span className="font-medium">{roleLabel(assignRole)}</span> on it</p>
+									<div className="flex flex-wrap gap-1.5">
+										{caseDocuments.map((d) => {
+											const assigned = party.documents.some((pd) => pd.doc_id === d.doc_id);
+											return (
+												<button
+													key={d.doc_id}
+													type="button"
+													disabled={assigned || attach.isPending}
+													onClick={() => attach.mutate({ partyId: party.party_id, docId: d.doc_id, role: assignRole })}
+													className={`text-xs rounded-full px-3 py-1 border transition ${
+														assigned
+															? "bg-green-50 border-green-300 text-green-700"
+															: "bg-white border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-600"
+													}`}
+												>
+													{assigned ? "✓ " : "+ "}
+													{d.label}
+												</button>
+											);
+										})}
+									</div>
+								</div>
+							) : (
+								<p className="text-xs text-slate-400">No case documents to assign yet.</p>
+							)
+						)}
+						<div className="flex items-end gap-2">
 						<button
 							type="button"
 							onClick={() => setComposing(true)}
 							title="Request documents"
 							aria-label="Request documents"
-							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-40"
+							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-40 flex items-center justify-center"
 						>
 							<ClipboardList size={18} />
+						</button>
+						<button
+							type="button"
+							onClick={() => setAssigning((a) => !a)}
+							title="Assign a role on a document"
+							aria-label="Assign a role on a document"
+							className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${assigning ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 hover:bg-slate-200 text-slate-600"}`}
+						>
+							<Tag size={18} />
 						</button>
 						<textarea
 							value={msg}
@@ -205,6 +243,7 @@ export function PartyDetail({
 						>
 							Send
 						</button>
+					</div>
 					</div>
 				)}
 			</div>
@@ -241,34 +280,3 @@ function OpBubble({ m }: { m: ThreadItem }) {
 	);
 }
 
-/** Role-on-documents — existing relations + a compact assign control. */
-function DocRoles({ party, caseDocuments, caseId }: { party: PartyView; caseDocuments: CaseDocument[]; caseId: string }) {
-	const attach = useAttachDocument(caseId);
-	const [docId, setDocId] = useState("");
-	const [docRole, setDocRole] = useState(party.role || "borrower");
-
-	return (
-		<div>
-			<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Role on documents</p>
-			{party.documents.length > 0 ? (
-				<ul className="space-y-0.5 mb-2">
-					{party.documents.map((d) => (
-						<li key={d.doc_id} className="text-sm text-slate-700"><span className="font-medium">{roleLabel(d.role)}</span> on {d.label}</li>
-					))}
-				</ul>
-			) : (
-				<p className="text-sm text-slate-400 mb-2">Not assigned to any document.</p>
-			)}
-			{caseDocuments.length > 0 && (
-				<div className="flex flex-wrap gap-2 items-center">
-					<select value={docId} onChange={(e) => setDocId(e.target.value)} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-						<option value="">Choose a document…</option>
-						{caseDocuments.map((d) => <option key={d.doc_id} value={d.doc_id}>{d.label}</option>)}
-					</select>
-					<input value={docRole} onChange={(e) => setDocRole(e.target.value)} placeholder="role" className="w-28 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
-					<button type="button" onClick={() => docId && docRole.trim() && attach.mutate({ partyId: party.party_id, docId, role: docRole.trim() })} disabled={!docId || !docRole.trim() || attach.isPending} className="rounded-lg bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white text-sm px-3 py-1.5">Assign</button>
-				</div>
-			)}
-		</div>
-	);
-}

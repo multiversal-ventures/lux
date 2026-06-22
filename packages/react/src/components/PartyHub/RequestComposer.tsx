@@ -64,11 +64,15 @@ export function RequestComposer({ caseId, party, onSent, onCancel }: RequestComp
 
 	const canSend = selectedItems().length > 0 || message.trim().length > 0;
 
+	const title = party.display_name || "this borrower";
+
 	return (
 		<div className="space-y-4 border-t border-slate-200 pt-4">
+			<h3 className="text-sm font-semibold text-slate-800">Request from {title}</h3>
+
 			{items.length > 0 && (
 				<div>
-					<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Suggested — tap to add</p>
+					<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Suggested follow-ups</p>
 					<div className="flex flex-wrap gap-1.5">
 						{items.map((item, i) => {
 							const on = checked.has(i);
@@ -99,7 +103,8 @@ export function RequestComposer({ caseId, party, onSent, onCancel }: RequestComp
 				</div>
 			)}
 
-			<div className="flex gap-2">
+			<div>
+				<label className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5 block">Add a custom request</label>
 				<input
 					value={draftItem}
 					onChange={(e) => setDraftItem(e.target.value)}

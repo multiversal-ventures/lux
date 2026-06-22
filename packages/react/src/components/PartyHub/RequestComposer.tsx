@@ -67,26 +67,36 @@ export function RequestComposer({ caseId, party, onSent, onCancel }: RequestComp
 	return (
 		<div className="space-y-4 border-t border-slate-200 pt-4">
 			{items.length > 0 && (
-				<fieldset className="space-y-2">
-					<legend className="text-xs font-semibold uppercase tracking-wide text-slate-400">Suggested</legend>
-					{items.map((item, i) => (
-						<label key={i} className="flex gap-2 text-sm text-slate-700">
-							<input
-								type="checkbox"
-								checked={checked.has(i)}
-								onChange={() =>
-									setChecked((prev) => {
-										const next = new Set(prev);
-										next.has(i) ? next.delete(i) : next.add(i);
-										return next;
-									})
-								}
-								className="mt-1"
-							/>
-							<span>{item.title}</span>
-						</label>
-					))}
-				</fieldset>
+				<div>
+					<p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Suggested — tap to add</p>
+					<div className="flex flex-wrap gap-1.5">
+						{items.map((item, i) => {
+							const on = checked.has(i);
+							return (
+								<button
+									key={i}
+									type="button"
+									title={item.detail || item.title}
+									onClick={() =>
+										setChecked((prev) => {
+											const next = new Set(prev);
+											next.has(i) ? next.delete(i) : next.add(i);
+											return next;
+										})
+									}
+									className={`text-xs rounded-full px-3 py-1 border transition ${
+										on
+											? "bg-indigo-600 border-indigo-600 text-white"
+											: "bg-white border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-600"
+									}`}
+								>
+									{on ? "✓ " : "+ "}
+									{item.title}
+								</button>
+							);
+						})}
+					</div>
+				</div>
 			)}
 
 			<div className="flex gap-2">

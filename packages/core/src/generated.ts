@@ -902,6 +902,12 @@ export interface paths {
         /**
          * Draft Portal Request
          * @description AI-draft a borrower-friendly request message. Creates no message/event.
+         *
+         *     Durable when Temporal is up: starts ``PreparePartyAIMessageWorkflow`` (which
+         *     retries the AI step and caches the draft on the party's prepared row),
+         *     resolved to the case's latest prepared party. Falls back to calling
+         *     ``draft_request_text`` directly when Temporal is down or no prepared party
+         *     exists. Response shape (``{text}``) is unchanged either way.
          */
         post: operations["draft_portal_request_api_cases__case_id__portal_requests_draft_post"];
         delete?: never;
@@ -945,13 +951,38 @@ export interface paths {
          * Portal Suggestions
          * @description Suggested document/follow-up items for the borrower portal request modal.
          *
-         *     Derived (cheaply, no LLM) from the case's spec findings — the things
-         *     qualification flagged as needing follow-up or a missing document. The
-         *     operator checks off which to request. Deduped by (code, title).
+         *     Derived (cheaply) from the case's spec findings — the things qualification
+         *     flagged as needing follow-up or a missing document. The operator checks off
+         *     which to request. Deduped by normalized title and capped (see
+         *     ``curate_suggestions``).
          */
         get: operations["portal_suggestions_api_cases__case_id__portal_suggestions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/suggestions/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate Suggestions
+         * @description On-demand fresh suggestions that honor the operator's typed note.
+         *
+         *     Unlike GET /portal/suggestions, this never reads or writes the prepared
+         *     cache — it always regenerates. ``note`` is included as a required item;
+         *     ``exclude`` titles are not repeated (drives the 'generate more' control).
+         */
+        post: operations["regenerate_suggestions_api_cases__case_id__portal_suggestions_regenerate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4241,6 +4272,24 @@ export interface components {
             total_monthly_income?: number | null;
             user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
         };
+        /**
+         * RegenerateSuggestionsBody
+         * @description On-demand fresh suggestion generation for the composer.
+         *
+         *     ``note`` is the operator's free-text ask (MUST appear as an item); ``exclude``
+         *     is the already-shown titles to avoid repeating ('generate more').
+         */
+        RegenerateSuggestionsBody: {
+            /**
+             * Exclude
+             * @default []
+             */
+            exclude: string[];
+            /** Note */
+            note?: string | null;
+            /** Party Id */
+            party_id?: string | null;
+        };
         /** RegisterTenantRequest */
         RegisterTenantRequest: {
             /** Name */
@@ -6814,6 +6863,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalRequestItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_suggestions_api_cases__case_id__portal_suggestions_regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegenerateSuggestionsBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

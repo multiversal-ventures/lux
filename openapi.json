@@ -4534,6 +4534,44 @@
         "title": "RefinementResponse",
         "type": "object"
       },
+      "RegenerateSuggestionsBody": {
+        "description": "On-demand fresh suggestion generation for the composer.\n\n``note`` is the operator's free-text ask (MUST appear as an item); ``exclude``\nis the already-shown titles to avoid repeating ('generate more').",
+        "properties": {
+          "exclude": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Exclude",
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "party_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Id"
+          }
+        },
+        "title": "RegenerateSuggestionsBody",
+        "type": "object"
+      },
       "RegisterTenantRequest": {
         "properties": {
           "name": {
@@ -9511,7 +9549,7 @@
     },
     "/api/cases/{case_id}/portal/requests/draft": {
       "post": {
-        "description": "AI-draft a borrower-friendly request message. Creates no message/event.",
+        "description": "AI-draft a borrower-friendly request message. Creates no message/event.\n\nDurable when Temporal is up: starts ``PreparePartyAIMessageWorkflow`` (which\nretries the AI step and caches the draft on the party's prepared row),\nresolved to the case's latest prepared party. Falls back to calling\n``draft_request_text`` directly when Temporal is down or no prepared party\nexists. Response shape (``{text}``) is unchanged either way.",
         "operationId": "draft_portal_request_api_cases__case_id__portal_requests_draft_post",
         "parameters": [
           {
@@ -9619,7 +9657,7 @@
     },
     "/api/cases/{case_id}/portal/suggestions": {
       "get": {
-        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nDerived (cheaply, no LLM) from the case's spec findings \u2014 the things\nqualification flagged as needing follow-up or a missing document. The\noperator checks off which to request. Deduped by (code, title).",
+        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nDerived (cheaply) from the case's spec findings \u2014 the things qualification\nflagged as needing follow-up or a missing document. The operator checks off\nwhich to request. Deduped by normalized title and capped (see\n``curate_suggestions``).",
         "operationId": "portal_suggestions_api_cases__case_id__portal_suggestions_get",
         "parameters": [
           {
@@ -9665,6 +9703,69 @@
           }
         ],
         "summary": "Portal Suggestions",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/suggestions/regenerate": {
+      "post": {
+        "description": "On-demand fresh suggestions that honor the operator's typed note.\n\nUnlike GET /portal/suggestions, this never reads or writes the prepared\ncache \u2014 it always regenerates. ``note`` is included as a required item;\n``exclude`` titles are not repeated (drives the 'generate more' control).",
+        "operationId": "regenerate_suggestions_api_cases__case_id__portal_suggestions_regenerate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegenerateSuggestionsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PortalRequestItem"
+                  },
+                  "title": "Response Regenerate Suggestions Api Cases  Case Id  Portal Suggestions Regenerate Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Regenerate Suggestions",
         "tags": [
           "party"
         ]

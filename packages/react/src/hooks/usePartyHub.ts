@@ -17,6 +17,8 @@ export type DraftRequestBody = components["schemas"]["DraftRequestBody"];
 export type AddPartyBody = components["schemas"]["AddPartyBody"];
 export type PartyCreated = components["schemas"]["PartyCreatedResponse"];
 export type MyCaseLink = components["schemas"]["MyCaseLink"];
+export type PortalRequestItem = components["schemas"]["PortalRequestItem"];
+export type RegenerateSuggestionsBody = components["schemas"]["RegenerateSuggestionsBody"];
 export type CaseDocument = components["schemas"]["CaseDocument"];
 export type PartyDocument = components["schemas"]["PartyDocument"];
 
@@ -56,6 +58,16 @@ export function useDraftRequest(
 ): UseMutationResult<string, Error, DraftRequestBody> {
 	return useMutation<string, Error, DraftRequestBody>({
 		mutationFn: async (body) => (await getDefaultClient().draftPortalRequest(caseId, body)).text ?? "",
+	});
+}
+
+/** On-demand 'generate more' suggestions — feeds the operator's typed note and
+ * skips already-shown titles. Returns fresh items; no cache read/write. */
+export function useRegenerateSuggestions(
+	caseId: string,
+): UseMutationResult<PortalRequestItem[], Error, RegenerateSuggestionsBody> {
+	return useMutation<PortalRequestItem[], Error, RegenerateSuggestionsBody>({
+		mutationFn: async (body) => getDefaultClient().regeneratePortalSuggestions(caseId, body),
 	});
 }
 

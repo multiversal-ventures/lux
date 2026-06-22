@@ -322,6 +322,18 @@ export class VeritasClient {
 		);
 	}
 
+	/** On-demand fresh suggestions that honor the operator's typed note and skip
+	 * already-shown titles ('generate more'). Never reads/writes the prepared cache. */
+	async regeneratePortalSuggestions(
+		caseId: string,
+		body: components["schemas"]["RegenerateSuggestionsBody"],
+	): Promise<components["schemas"]["PortalRequestItem"][]> {
+		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
+			`/api/cases/${caseId}/portal/suggestions/regenerate`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
 	// -- Party Hub (operator) --------------------------------------------------
 
 	/** Operator typing signal — broadcast to the borrower's portal stream. */

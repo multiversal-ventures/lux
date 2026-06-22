@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Check, FileText, Files, Link2, RotateCcw, Sparkles, X } from "lucide-react";
+import { Check, FileText, Files, Link2, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useAttachDocument,
 	useDeleteParty,
 	useDraftRequest,
 	usePortalRealtime,
+	useRegenerateSuggestions,
 	useReissueLink,
 	useSendRequest,
 	type CaseDocument,
@@ -40,7 +41,21 @@ export function PartyDetail({
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
 	const suggestions = usePortalSuggestions(caseId);
-	const sugg: PortalRequestItem[] = suggestions.data ?? [];
+	const regen = useRegenerateSuggestions(caseId);
+	const [extra, setExtra] = useState<PortalRequestItem[]>([]);
+	// Displayed pills = curated suggestions + operator-regenerated extras, deduped
+	// by normalized title so 'generate more' never repeats what's already shown.
+	const sugg: PortalRequestItem[] = useMemo(() => {
+		const out: PortalRequestItem[] = [];
+		const seen = new Set<string>();
+		for (const item of [...(suggestions.data ?? []), ...extra]) {
+			const key = (item.title ?? "").trim().toLowerCase();
+			if (!key || seen.has(key)) continue;
+			seen.add(key);
+			out.push(item);
+		}
+		return out;
+	}, [suggestions.data, extra]);
 	const attach = useAttachDocument(caseId);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
@@ -57,8 +72,27 @@ export function PartyDetail({
 	}
 
 	async function generate() {
-		const text = await draft.mutateAsync({ items: selectedItems(), context: partyContext() });
+		// Feed the operator's typed note into the draft context so AI drafting
+		// considers it rather than ignoring/overwriting it.
+		const context = partyContext() + (msg.trim() ? `. The officer also wants: ${msg.trim()}` : "");
+		const text = await draft.mutateAsync({ items: selectedItems(), context });
 		setMsg(text); // editable draft — operator reviews/edits before sending
+	}
+
+	async function generateMore() {
+		const items = await regen.mutateAsync({
+			party_id: party.party_id,
+			note: msg.trim() || null,
+			exclude: sugg.map((s) => s.title).filter(Boolean) as string[],
+		});
+		setExtra((prev) => {
+			const seen = new Set([...prev, ...sugg].map((s) => (s.title ?? "").trim().toLowerCase()));
+			const add = items.filter((it) => {
+				const k = (it.title ?? "").trim().toLowerCase();
+				return k && !seen.has(k);
+			});
+			return [...prev, ...add];
+		});
 	}
 
 	const canSend = selectedItems().length > 0 || msg.trim().length > 0;
@@ -196,9 +230,8 @@ export function PartyDetail({
 
 			{/* Composer — suggestion pills sit directly above the message input */}
 			<div className="border-t border-slate-200 px-4 py-3 space-y-2">
-				{sugg.length > 0 && (
-					<div className="flex flex-wrap gap-1.5">
-						{sugg.map((item, i) => {
+				<div className="flex flex-wrap items-center gap-1.5">
+					{sugg.map((item, i) => {
 							const on = selected.has(i);
 							return (
 								<button
@@ -223,8 +256,17 @@ export function PartyDetail({
 								</button>
 							);
 						})}
-					</div>
-				)}
+					<button
+						type="button"
+						onClick={generateMore}
+						disabled={regen.isPending}
+						title="Generate more (uses your note)"
+						aria-label="Generate more suggestions"
+						className="shrink-0 h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-50 flex items-center justify-center"
+					>
+						<RefreshCw size={14} className={regen.isPending ? "animate-spin" : ""} />
+					</button>
+				</div>
 				<div className="flex items-end gap-2">
 					<button
 						type="button"

@@ -39,6 +39,9 @@ export function PartyDetail({
 	// Regenerate REPLACES the shown suggestions with the freshly returned set;
 	// null = show the originally curated suggestions.
 	const [override, setOverride] = useState<PortalRequestItem[] | null>(null);
+	// Track that an explicit regenerate has run, so the "no suggestions" note only
+	// appears after the operator hit the arrow — never on first load.
+	const [regenerated, setRegenerated] = useState(false);
 	const sugg: PortalRequestItem[] = override ?? (suggestions.data ?? []);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
@@ -77,6 +80,7 @@ export function PartyDetail({
 		// Regenerate REPLACES the shown suggestions; drop the stale pill selection.
 		setOverride(items);
 		setSelected(new Set());
+		setRegenerated(true); // unlocks the empty-state note when items come back []
 	}
 
 	const canSend = selectedItems().length > 0 || msg.trim().length > 0;
@@ -237,6 +241,11 @@ export function PartyDetail({
 						<RefreshCw size={14} className={regen.isPending ? "animate-spin" : ""} />
 					</button>
 				</div>
+				{regenerated && !regen.isPending && sugg.length === 0 && (
+					<p className="text-xs text-slate-400">
+						No suggestions for this case yet — type your own request below.
+					</p>
+				)}
 				<div className="flex items-end gap-2">
 					<button
 						type="button"

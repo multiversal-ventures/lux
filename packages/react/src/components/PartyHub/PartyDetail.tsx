@@ -74,6 +74,7 @@ export function PartyDetail({
 						{[roleLabel(party.role), partyTypeLabel(party.party_type)].filter(Boolean).join(" · ")}
 						{party.verified && <span className="text-green-600"> · ✓ Verified</span>}
 						{party.signed && <span className="text-green-600"> · ✓ Signed</span>}
+						{party.email && <span> · {party.email}</span>}
 						{!party.has_account && <span className="text-slate-400"> · No account</span>}
 					</p>
 					{party.documents.length > 0 && (

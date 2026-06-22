@@ -3705,6 +3705,11 @@
             "title": "Documents",
             "type": "array"
           },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          },
           "has_account": {
             "default": false,
             "title": "Has Account",
@@ -9447,7 +9452,7 @@
     },
     "/api/cases/{case_id}/portal/requests": {
       "post": {
-        "description": "Append a request to a party's portal thread, reusing its active token.\n\nThe token identity MUST equal the party's linked identity so the borrower\nresolves to their own party. A party with no linked identity can't be\nmessaged through the portal (409) \u2014 link it first.",
+        "description": "Append a request to a party's portal thread, reusing its active token.\n\nThe token is keyed by ``party_id``, so even an unmapped party (no linked\nidentity) can be messaged immediately \u2014 it always has a portal token. The\nlinked identity, when present, is carried into the token as metadata.",
         "operationId": "send_portal_request_api_cases__case_id__portal_requests_post",
         "parameters": [
           {

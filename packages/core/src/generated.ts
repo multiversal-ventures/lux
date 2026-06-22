@@ -879,9 +879,9 @@ export interface paths {
          * Send Portal Request
          * @description Append a request to a party's portal thread, reusing its active token.
          *
-         *     The token identity MUST equal the party's linked identity so the borrower
-         *     resolves to their own party. A party with no linked identity can't be
-         *     messaged through the portal (409) — link it first.
+         *     The token is keyed by ``party_id``, so even an unmapped party (no linked
+         *     identity) can be messaged immediately — it always has a portal token. The
+         *     linked identity, when present, is carried into the token as metadata.
          */
         post: operations["send_portal_request_api_cases__case_id__portal_requests_post"];
         delete?: never;
@@ -3771,6 +3771,11 @@ export interface components {
              * @default []
              */
             documents: components["schemas"]["PartyDocument"][];
+            /**
+             * Email
+             * @default
+             */
+            email: string;
             /**
              * Has Account
              * @default false

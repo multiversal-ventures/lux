@@ -1,6 +1,6 @@
 {
   "name": "@multiversal-ventures/lux-core",
-  "version": "0.2.38",
+  "version": "0.2.39",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"

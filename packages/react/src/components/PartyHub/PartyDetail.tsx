@@ -1,26 +1,26 @@
 import { useState } from "react";
-import { Check, ClipboardList, FileText, Link2, RotateCcw, Tag, X } from "lucide-react";
+import { Check, FileText, Link2, RotateCcw, Sparkles, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
-	useAttachDocument,
 	useDeleteParty,
+	useDraftRequest,
 	usePortalRealtime,
 	useReissueLink,
 	useSendRequest,
 	type CaseDocument,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
-import { RequestComposer } from "./RequestComposer.js";
+import { usePortalSuggestions, type PortalRequestItem } from "../../hooks/useCreatePortalLink.js";
 
 type ThreadItem = PartyView["thread"][number];
 
-/** Center pane: a chat-first view of the selected party — conversation up front,
- * link behind an icon, documents/roles tucked into a collapsible panel. */
+/** Center pane: a chat-first view of the selected party. The composer is the
+ * one place everything happens — suggested follow-ups are tap-to-add pills
+ * directly above the message input; selecting them + Send issues a request. */
 export function PartyDetail({
 	caseId,
 	party,
 	uploadedFiles,
-	caseDocuments,
 	onRemoved,
 }: {
 	caseId: string;
@@ -29,23 +29,41 @@ export function PartyDetail({
 	caseDocuments: CaseDocument[];
 	onRemoved?: () => void;
 }) {
-	const [composing, setComposing] = useState(false);
-	const [assigning, setAssigning] = useState(false);
-	const [copied, setCopied] = useState(false);
 	const [msg, setMsg] = useState("");
+	const [copied, setCopied] = useState(false);
+	const [selected, setSelected] = useState<Set<number>>(new Set());
 	const del = useDeleteParty(caseId);
 	const reissue = useReissueLink(caseId);
-	const attach = useAttachDocument(caseId);
 	const send = useSendRequest(caseId);
-	const assignRole = party.role || "borrower";
+	const draft = useDraftRequest(caseId);
+	const suggestions = usePortalSuggestions(caseId);
+	const sugg: PortalRequestItem[] = suggestions.data ?? [];
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
-	async function sendMessage() {
-		const text = msg.trim();
-		if (!text) return;
-		await send.mutateAsync({ party_id: party.party_id, items: [], message: text });
-		setMsg("");
+	function selectedItems(): PortalRequestItem[] {
+		return sugg.filter((_, i) => selected.has(i));
 	}
+
+	function partyContext(): string {
+		const who = [party.display_name, party.role ? `role: ${roleLabel(party.role)}` : ""].filter(Boolean).join(", ");
+		const docs = (party.documents ?? []).map((d) => `${roleLabel(d.role)} on ${d.label}`).join("; ");
+		return [who && `Borrower: ${who}`, docs && `Appears on: ${docs}`].filter(Boolean).join(". ");
+	}
+
+	async function generate() {
+		const text = await draft.mutateAsync({ items: selectedItems(), context: partyContext() });
+		setMsg(text); // editable draft — operator reviews/edits before sending
+	}
+
+	const canSend = selectedItems().length > 0 || msg.trim().length > 0;
+
+	async function sendMessage() {
+		if (!canSend) return;
+		await send.mutateAsync({ party_id: party.party_id, items: selectedItems(), message: msg.trim() || null });
+		setMsg("");
+		setSelected(new Set());
+	}
+
 	const portalUrl = party.portal_token
 		? `${typeof window !== "undefined" ? window.location.origin : ""}/portal?token=${party.portal_token}`
 		: null;
@@ -156,7 +174,7 @@ export function PartyDetail({
 				)}
 			</div>
 
-			{/* Collapsible shared documents (role assignment is in the composer below) */}
+			{/* Collapsible shared documents */}
 			{uploadedFiles.length > 0 && (
 				<details className="border-t border-slate-200 px-5 py-2 group">
 					<summary className="text-sm font-medium text-slate-600 cursor-pointer flex items-center justify-between">
@@ -171,81 +189,65 @@ export function PartyDetail({
 				</details>
 			)}
 
-			{/* Composer — chat message + structured request */}
-			<div className="border-t border-slate-200 px-4 py-3">
-				{composing ? (
-					<RequestComposer caseId={caseId} party={party} onSent={() => setComposing(false)} onCancel={() => setComposing(false)} />
-				) : (
-					<div className="space-y-2">
-						{/* Chat-native role assignment: tap a document to mark this party on it */}
-						{assigning && (
-							caseDocuments.length > 0 ? (
-								<div>
-									<p className="text-xs text-slate-500 mb-1.5">Tap a document to mark {party.display_name || "them"} as <span className="font-medium">{roleLabel(assignRole)}</span> on it</p>
-									<div className="flex flex-wrap gap-1.5">
-										{caseDocuments.map((d) => {
-											const assigned = party.documents.some((pd) => pd.doc_id === d.doc_id);
-											return (
-												<button
-													key={d.doc_id}
-													type="button"
-													disabled={assigned || attach.isPending}
-													onClick={() => attach.mutate({ partyId: party.party_id, docId: d.doc_id, role: assignRole })}
-													className={`text-xs rounded-full px-3 py-1 border transition ${
-														assigned
-															? "bg-green-50 border-green-300 text-green-700"
-															: "bg-white border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-600"
-													}`}
-												>
-													{assigned ? "✓ " : "+ "}
-													{d.label}
-												</button>
-											);
-										})}
-									</div>
-								</div>
-							) : (
-								<p className="text-xs text-slate-400">No case documents to assign yet.</p>
-							)
-						)}
-						<div className="flex items-end gap-2">
-						<button
-							type="button"
-							onClick={() => setComposing(true)}
-							title="Request documents"
-							aria-label="Request documents"
-							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-40 flex items-center justify-center"
-						>
-							<ClipboardList size={18} />
-						</button>
-						<button
-							type="button"
-							onClick={() => setAssigning((a) => !a)}
-							title="Assign a role on a document"
-							aria-label="Assign a role on a document"
-							className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${assigning ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 hover:bg-slate-200 text-slate-600"}`}
-						>
-							<Tag size={18} />
-						</button>
-						<textarea
-							value={msg}
-							onChange={(e) => { setMsg(e.target.value); sendTyping(); }}
-							onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-							rows={1}
-							placeholder="Message…"
-							className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32 disabled:opacity-50"
-						/>
-						<button
-							type="button"
-							onClick={sendMessage}
-							disabled={send.isPending || !msg.trim()}
-							className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
-						>
-							Send
-						</button>
-					</div>
+			{/* Composer — suggestion pills sit directly above the message input */}
+			<div className="border-t border-slate-200 px-4 py-3 space-y-2">
+				{sugg.length > 0 && (
+					<div className="flex flex-wrap gap-1.5">
+						{sugg.map((item, i) => {
+							const on = selected.has(i);
+							return (
+								<button
+									key={i}
+									type="button"
+									title={item.detail || item.title}
+									onClick={() =>
+										setSelected((prev) => {
+											const next = new Set(prev);
+											next.has(i) ? next.delete(i) : next.add(i);
+											return next;
+										})
+									}
+									className={`text-xs rounded-full px-3 py-1 border transition ${
+										on
+											? "bg-indigo-600 border-indigo-600 text-white"
+											: "bg-white border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-600"
+									}`}
+								>
+									{on ? "✓ " : "+ "}
+									{item.title}
+								</button>
+							);
+						})}
 					</div>
 				)}
+				<div className="flex items-end gap-2">
+					<button
+						type="button"
+						onClick={generate}
+						disabled={draft.isPending || !canSend}
+						title="Draft a message with AI"
+						aria-label="Draft with AI"
+						className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-40 flex items-center justify-center"
+					>
+						<Sparkles size={18} />
+					</button>
+					<textarea
+						value={msg}
+						onChange={(e) => { setMsg(e.target.value); sendTyping(); }}
+						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+						rows={1}
+						placeholder={selected.size ? `${selected.size} selected — add a note…` : "Message…"}
+						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
+					/>
+					<button
+						type="button"
+						onClick={sendMessage}
+						disabled={send.isPending || !canSend}
+						className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
+					>
+						{send.isPending ? "…" : "Send"}
+					</button>
+				</div>
 			</div>
 		</div>
 	);
@@ -279,4 +281,3 @@ function OpBubble({ m }: { m: ThreadItem }) {
 		</div>
 	);
 }
-

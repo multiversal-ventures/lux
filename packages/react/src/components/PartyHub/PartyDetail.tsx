@@ -37,8 +37,6 @@ export function PartyDetail({
 	const send = useSendRequest(caseId);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
-	const linked = !!party.linked_identity_id;
-
 	async function sendMessage() {
 		const text = msg.trim();
 		if (!text) return;
@@ -184,8 +182,7 @@ export function PartyDetail({
 						<button
 							type="button"
 							onClick={() => setComposing(true)}
-							disabled={!linked}
-							title={linked ? "Request documents" : "Link this party to a case identity first"}
+							title="Request documents"
 							aria-label="Request documents"
 							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-40"
 						>
@@ -196,8 +193,7 @@ export function PartyDetail({
 							onChange={(e) => { setMsg(e.target.value); sendTyping(); }}
 							onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
 							rows={1}
-							disabled={!linked}
-							placeholder={linked ? "Message…" : "Link an identity to message"}
+							placeholder="Message…"
 							className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32 disabled:opacity-50"
 						/>
 						<button

@@ -362,15 +362,24 @@ function AccountStep({
 	const [email, setEmail] = useState(initialEmail);
 	const [submitting, setSubmitting] = useState(false);
 	const [sent, setSent] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const valid = email.includes("@") && email.includes(".");
 	const title = returning ? "Use your email to continue" : "Create your account";
 
 	async function submit() {
 		if (!valid) return;
+		setError(null);
 		setSubmitting(true);
-		await onSubmit(email.trim());
-		setSubmitting(false);
-		setSent(true);
+		try {
+			await onSubmit(email.trim());
+			setSent(true);
+		} catch (e) {
+			// Surface the real reason (Firebase rate-limit / quota / domain) instead
+			// of leaving the button stuck on "Sending…".
+			setError(e instanceof Error ? e.message : "Couldn't send the email. Please try again.");
+		} finally {
+			setSubmitting(false);
+		}
 	}
 
 	if (sent) {
@@ -429,6 +438,7 @@ function AccountStep({
 					autoComplete="email"
 					className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
 				/>
+				{error && <p className="text-sm text-red-600" role="alert">{error}</p>}
 				<button
 					type="button"
 					onClick={submit}

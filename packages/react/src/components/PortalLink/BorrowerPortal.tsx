@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { FileText, Lock, Paperclip } from "lucide-react";
+import { FileText, Lock, Mail, Paperclip } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
@@ -378,15 +378,31 @@ function AccountStep({
 			<section>
 				<StepHeading n={2} title={title} />
 				<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 text-center">
-					<h3 className="font-semibold text-slate-800">Check your email</h3>
-					<p className="text-sm text-slate-600">
-						We sent a sign-in link to <span className="font-medium text-slate-800">{email.trim()}</span>.
-						Click it to continue — this page will move on once you're signed in.
+					<div className="mx-auto h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center">
+						<Mail size={22} className="text-indigo-600" />
+					</div>
+					<div>
+						<h3 className="font-semibold text-slate-800">Email sent — check your inbox</h3>
+						<p className="text-sm text-slate-600 mt-1">
+							We sent a secure sign-in link to <span className="font-medium text-slate-800">{email.trim()}</span>.
+							Open it to continue — this page moves on automatically once you're signed in.
+						</p>
+					</div>
+					<p className="text-xs text-amber-600">
+						Don't see it? Check your spam or junk folder — it can take a minute to arrive.
 					</p>
 					<button
 						type="button"
+						onClick={submit}
+						disabled={submitting}
+						className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+					>
+						{submitting ? "Resending…" : "Resend email"}
+					</button>
+					<button
+						type="button"
 						onClick={onSkip}
-						className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
+						className="block w-full text-center text-xs text-slate-400 hover:text-slate-600"
 					>
 						Skip for now — you can create an account later
 					</button>

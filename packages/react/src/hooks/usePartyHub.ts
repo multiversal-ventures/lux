@@ -110,7 +110,15 @@ export function usePortalRealtime(caseId: string): { borrowerTyping: boolean; se
 					if (timer) clearTimeout(timer);
 					timer = setTimeout(() => setBorrowerTyping(false), 3000);
 				}
-			} else if (t.startsWith("portal.") || t.startsWith("document.")) {
+			} else if (
+				t.startsWith("portal.") ||
+				t.startsWith("document.") ||
+				t.startsWith("identity.borrower.") ||
+				t.startsWith("identity.portal.") ||
+				t.startsWith("consent.")
+			) {
+				// Borrower verify / account-email / consent + messages + uploads
+				// all change party state — refetch the operator overview live.
 				qc.invalidateQueries({ queryKey: overviewKey(caseId) });
 			}
 		});

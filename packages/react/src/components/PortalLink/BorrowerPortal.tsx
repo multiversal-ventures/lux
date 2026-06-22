@@ -106,7 +106,12 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						onVerify={(code) => submitIntent([{ type: "verify", params: { code } }])}
 					/>
 				) : step === 2 ? (
-					<AccountStep onSubmit={createAccount} onSkip={() => setSkippedAccount(true)} />
+					<AccountStep
+						onSubmit={createAccount}
+						onSkip={() => setSkippedAccount(true)}
+						returning={!!session.account_email}
+						initialEmail={session.account_email ?? ""}
+					/>
 				) : (
 					<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
 				)}
@@ -342,11 +347,23 @@ function SignStep({ name, onSign }: { name: string; onSign: (signature: string) 
  * flipping true once the borrower clicks the link and returns signed-in (which
  * runs claim-account), or by Skip. The portal silently refetches the session,
  * so the step moves on on its own once the account is claimed. */
-function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promise<void>; onSkip: () => void }) {
-	const [email, setEmail] = useState("");
+function AccountStep({
+	onSubmit,
+	onSkip,
+	returning = false,
+	initialEmail = "",
+}: {
+	onSubmit: (email: string) => Promise<void>;
+	onSkip: () => void;
+	/** They've been here before (an email is already on file) — sign-in framing. */
+	returning?: boolean;
+	initialEmail?: string;
+}) {
+	const [email, setEmail] = useState(initialEmail);
 	const [submitting, setSubmitting] = useState(false);
 	const [sent, setSent] = useState(false);
 	const valid = email.includes("@") && email.includes(".");
+	const title = returning ? "Use your email to continue" : "Create your account";
 
 	async function submit() {
 		if (!valid) return;
@@ -359,7 +376,7 @@ function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promis
 	if (sent) {
 		return (
 			<section>
-				<StepHeading n={2} title="Create your account" />
+				<StepHeading n={2} title={title} />
 				<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 text-center">
 					<h3 className="font-semibold text-slate-800">Check your email</h3>
 					<p className="text-sm text-slate-600">
@@ -380,11 +397,12 @@ function AccountStep({ onSubmit, onSkip }: { onSubmit: (email: string) => Promis
 
 	return (
 		<section>
-			<StepHeading n={2} title="Create your account" />
+			<StepHeading n={2} title={title} />
 			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
 				<p className="text-sm text-slate-600">
-					Add your email so you can come back to your application anytime — we'll send you a
-					secure sign-in link.
+					{returning
+						? "Use your email to continue your application — we'll send you a secure sign-in link."
+						: "Add your email so you can come back to your application anytime — we'll send you a secure sign-in link."}
 				</p>
 				<input
 					type="email"

@@ -102,8 +102,6 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					<PartyDetail
 						caseId={caseId}
 						party={selected}
-						uploadedFiles={overview.data?.uploaded_files ?? []}
-						caseDocuments={overview.data?.case_documents ?? []}
 						onRemoved={() => setSelectedId(null)}
 					/>
 				) : (

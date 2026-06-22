@@ -1,15 +1,13 @@
-import { useMemo, useState } from "react";
-import { Check, FileText, Files, Link2, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, FileText, Link2, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
-	useAttachDocument,
 	useDeleteParty,
 	useDraftRequest,
 	usePortalRealtime,
 	useRegenerateSuggestions,
 	useReissueLink,
 	useSendRequest,
-	type CaseDocument,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
 import { usePortalSuggestions, type PortalRequestItem } from "../../hooks/useCreatePortalLink.js";
@@ -22,44 +20,35 @@ type ThreadItem = PartyView["thread"][number];
 export function PartyDetail({
 	caseId,
 	party,
-	uploadedFiles,
-	caseDocuments,
 	onRemoved,
 }: {
 	caseId: string;
 	party: PartyView;
-	uploadedFiles: string[];
-	caseDocuments: CaseDocument[];
 	onRemoved?: () => void;
 }) {
 	const [msg, setMsg] = useState("");
 	const [copied, setCopied] = useState(false);
 	const [selected, setSelected] = useState<Set<number>>(new Set());
-	const [docsOpen, setDocsOpen] = useState(false);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const del = useDeleteParty(caseId);
 	const reissue = useReissueLink(caseId);
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
 	const suggestions = usePortalSuggestions(caseId);
 	const regen = useRegenerateSuggestions(caseId);
-	const [extra, setExtra] = useState<PortalRequestItem[]>([]);
-	// Displayed pills = curated suggestions + operator-regenerated extras, deduped
-	// by normalized title so 'generate more' never repeats what's already shown.
-	const sugg: PortalRequestItem[] = useMemo(() => {
-		const out: PortalRequestItem[] = [];
-		const seen = new Set<string>();
-		for (const item of [...(suggestions.data ?? []), ...extra]) {
-			const key = (item.title ?? "").trim().toLowerCase();
-			if (!key || seen.has(key)) continue;
-			seen.add(key);
-			out.push(item);
-		}
-		return out;
-	}, [suggestions.data, extra]);
-	const attach = useAttachDocument(caseId);
+	// Regenerate REPLACES the shown suggestions with the freshly returned set;
+	// null = show the originally curated suggestions.
+	const [override, setOverride] = useState<PortalRequestItem[] | null>(null);
+	const sugg: PortalRequestItem[] = override ?? (suggestions.data ?? []);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 
-	const docCount = caseDocuments.length + uploadedFiles.length;
+	// Auto-grow the composer with its content, then scroll past the cap (160px).
+	useEffect(() => {
+		const el = textareaRef.current;
+		if (!el) return;
+		el.style.height = "auto";
+		el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+	}, [msg]);
 
 	function selectedItems(): PortalRequestItem[] {
 		return sugg.filter((_, i) => selected.has(i));
@@ -85,14 +74,9 @@ export function PartyDetail({
 			note: msg.trim() || null,
 			exclude: sugg.map((s) => s.title).filter(Boolean) as string[],
 		});
-		setExtra((prev) => {
-			const seen = new Set([...prev, ...sugg].map((s) => (s.title ?? "").trim().toLowerCase()));
-			const add = items.filter((it) => {
-				const k = (it.title ?? "").trim().toLowerCase();
-				return k && !seen.has(k);
-			});
-			return [...prev, ...add];
-		});
+		// Regenerate REPLACES the shown suggestions; drop the stale pill selection.
+		setOverride(items);
+		setSelected(new Set());
 	}
 
 	const canSend = selectedItems().length > 0 || msg.trim().length > 0;
@@ -126,7 +110,7 @@ export function PartyDetail({
 	}
 
 	return (
-		<div className="relative flex flex-col h-full">
+		<div className="flex flex-col h-full">
 			{/* Compact header */}
 			<header className="border-b border-slate-200 px-5 py-3 flex items-center gap-3">
 				<div className="min-w-0 flex-1">
@@ -148,20 +132,6 @@ export function PartyDetail({
 						</div>
 					)}
 				</div>
-				<button
-					type="button"
-					onClick={() => setDocsOpen(true)}
-					title="Documents"
-					aria-label="Documents"
-					className="relative shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center"
-				>
-					<Files size={16} />
-					{docCount > 0 && (
-						<span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[10px] font-semibold flex items-center justify-center">
-							{docCount}
-						</span>
-					)}
-				</button>
 				{party.access_code && (
 					<button
 						type="button"
@@ -279,12 +249,13 @@ export function PartyDetail({
 						<Sparkles size={18} />
 					</button>
 					<textarea
+						ref={textareaRef}
 						value={msg}
 						onChange={(e) => { setMsg(e.target.value); sendTyping(); }}
 						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
 						rows={1}
 						placeholder={selected.size ? `${selected.size} selected — add a note…` : "Message…"}
-						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
+						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-40 overflow-y-auto"
 					/>
 					<button
 						type="button"
@@ -295,122 +266,6 @@ export function PartyDetail({
 						{send.isPending ? "…" : "Send"}
 					</button>
 				</div>
-			</div>
-
-			{docsOpen && (
-				<DocumentsDrawer
-					party={party}
-					uploadedFiles={uploadedFiles}
-					caseDocuments={caseDocuments}
-					attaching={attach.isPending}
-					onAssign={(docId, role) => attach.mutate({ partyId: party.party_id, docId, role })}
-					onClose={() => setDocsOpen(false)}
-				/>
-			)}
-		</div>
-	);
-}
-
-/** Right slide-over: a scrollable, searchable home for everything document-related
- * on this party — what they've shared, plus every case document with a tap-to-assign
- * role control (role assignment lives here now, not in the composer). */
-function DocumentsDrawer({
-	party,
-	uploadedFiles,
-	caseDocuments,
-	attaching,
-	onAssign,
-	onClose,
-}: {
-	party: PartyView;
-	uploadedFiles: string[];
-	caseDocuments: CaseDocument[];
-	attaching: boolean;
-	onAssign: (docId: string, role: string) => void;
-	onClose: () => void;
-}) {
-	const [q, setQ] = useState("");
-	const needle = q.trim().toLowerCase();
-	const matches = (s: string) => !needle || s.toLowerCase().includes(needle);
-
-	const shared = useMemo(() => uploadedFiles.filter((f) => matches(f)), [uploadedFiles, needle]);
-	const docs = useMemo(() => caseDocuments.filter((d) => matches(d.label)), [caseDocuments, needle]);
-	const assigned = useMemo(() => new Map(party.documents.map((d) => [d.doc_id, d.role])), [party.documents]);
-
-	return (
-		<div className="absolute inset-y-0 right-0 w-80 max-w-[85%] bg-white border-l border-slate-200 shadow-xl z-20 flex flex-col">
-			<div className="border-b border-slate-200 px-4 py-3 space-y-2">
-				<div className="flex items-center justify-between">
-					<h3 className="text-sm font-semibold text-slate-900">Documents</h3>
-					<button
-						type="button"
-						onClick={onClose}
-						title="Close"
-						aria-label="Close documents"
-						className="h-8 w-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center"
-					>
-						<X size={16} />
-					</button>
-				</div>
-				<input
-					value={q}
-					onChange={(e) => setQ(e.target.value)}
-					placeholder="Search documents…"
-					className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"
-				/>
-			</div>
-
-			<div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
-				<section className="space-y-2">
-					<h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-						Shared by {party.display_name || "them"}
-					</h4>
-					{shared.length === 0 ? (
-						<p className="text-xs text-slate-400">{uploadedFiles.length ? "No matches." : "Nothing shared yet."}</p>
-					) : (
-						<ul className="space-y-1">
-							{shared.map((f, i) => (
-								<li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-									<span className="text-green-600" aria-hidden>✓</span>
-									<span className="truncate">{f}</span>
-								</li>
-							))}
-						</ul>
-					)}
-				</section>
-
-				<section className="space-y-2">
-					<h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Case documents</h4>
-					{docs.length === 0 ? (
-						<p className="text-xs text-slate-400">{caseDocuments.length ? "No matches." : "No case documents."}</p>
-					) : (
-						<ul className="space-y-1.5">
-							{docs.map((d) => {
-								const role = assigned.get(d.doc_id);
-								return (
-									<li key={d.doc_id} className="flex items-center gap-2">
-										<FileText size={14} className="shrink-0 text-slate-400" />
-										<span className="flex-1 min-w-0 truncate text-sm text-slate-700">{d.label}</span>
-										{role !== undefined ? (
-											<span className="shrink-0 text-[11px] bg-green-50 text-green-700 rounded-full px-2 py-0.5 whitespace-nowrap">
-												✓ {roleLabel(role)}
-											</span>
-										) : (
-											<button
-												type="button"
-												onClick={() => onAssign(d.doc_id, party.role || "borrower")}
-												disabled={attaching}
-												className="shrink-0 text-[11px] rounded-full border border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-600 px-2 py-0.5 disabled:opacity-50 whitespace-nowrap"
-											>
-												+ Assign
-											</button>
-										)}
-									</li>
-								);
-							})}
-						</ul>
-					)}
-				</section>
 			</div>
 		</div>
 	);

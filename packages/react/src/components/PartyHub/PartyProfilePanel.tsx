@@ -1,7 +1,8 @@
-import { FileText, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
+import { ChevronRight, FileText, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import type { PartyProfile } from "../../hooks/usePartyHub.js";
 import { identifierTypeLabel, partyTypeLabel, roleLabel } from "../../labels.js";
 import { Avatar } from "../Avatar.js";
+import type { PartyMentionRef } from "./PartyHub.js";
 
 /** "What we know about this party" — the operator profile panel.
  *
@@ -10,7 +11,15 @@ import { Avatar } from "../Avatar.js";
  * unmask. COMPACT: this renders inline-expanded inside the ~260px party-list
  * sidebar (not a center pane), so the avatar is small, cards are tight, and
  * long values (emails, addresses) wrap/truncate rather than overflow. */
-export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
+export function PartyProfilePanel({
+	profile,
+	onOpenDocument,
+}: {
+	profile: PartyProfile;
+	/** When set, "Mentioned in" rows carrying a `file_id` become clickable and
+	 * call this with the mention so the host can open the document viewer. */
+	onOpenDocument?: (mention: PartyMentionRef) => void;
+}) {
 	const shortId = profile.party_id.slice(0, 8);
 	const maskedIdentifier =
 		profile.identifier?.last4 && profile.identifier?.type
@@ -66,17 +75,46 @@ export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
 					<Empty>No documents yet.</Empty>
 				) : (
 					<ul className="space-y-1">
-						{profile.mentioned_in.map((m) => (
-							<li key={m.doc_id} className="flex items-center gap-1.5 text-xs text-slate-700">
-								<FileText size={13} className="shrink-0 text-slate-400" />
-								<span className="truncate min-w-0">{m.label || "Document"}</span>
-								{m.role && (
-									<span className="ml-auto shrink-0 text-[10px] bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">
-										{roleLabel(m.role)}
-									</span>
-								)}
-							</li>
-						))}
+						{profile.mentioned_in.map((m) => {
+							const clickable = !!onOpenDocument && !!m.file_id;
+							const roleChip = m.role ? (
+								<span className="ml-auto shrink-0 text-[10px] bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">
+									{roleLabel(m.role)}
+								</span>
+							) : null;
+							if (clickable) {
+								return (
+									<li key={m.doc_id}>
+										<button
+											type="button"
+											onClick={() =>
+												onOpenDocument?.({
+													doc_id: m.doc_id,
+													label: m.label || "Document",
+													file_id: m.file_id,
+													page: m.page,
+													bbox: m.bbox,
+												})
+											}
+											title="Open this document"
+											className="group flex w-full items-center gap-1.5 text-xs text-slate-700 hover:text-indigo-700"
+										>
+											<FileText size={13} className="shrink-0 text-slate-400 group-hover:text-indigo-500" />
+											<span className="truncate min-w-0 group-hover:underline">{m.label || "Document"}</span>
+											{roleChip}
+											<ChevronRight size={13} className="shrink-0 text-slate-300 group-hover:text-indigo-500" />
+										</button>
+									</li>
+								);
+							}
+							return (
+								<li key={m.doc_id} className="flex items-center gap-1.5 text-xs text-slate-700">
+									<FileText size={13} className="shrink-0 text-slate-400" />
+									<span className="truncate min-w-0">{m.label || "Document"}</span>
+									{roleChip}
+								</li>
+							);
+						})}
 					</ul>
 				)}
 			</Card>

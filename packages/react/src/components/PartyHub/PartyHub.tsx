@@ -12,9 +12,24 @@ import { PartyDetail } from "./PartyDetail.js";
 import { PartyProfilePanel } from "./PartyProfilePanel.js";
 import { AddPartyPanel } from "./AddPartyPanel.js";
 
+/** A clickable "Mentioned in" document, as handed to the host. */
+export interface PartyMentionRef {
+	doc_id: string;
+	label: string;
+	file_id?: string | null;
+	page?: number | null;
+	bbox?: number[] | null;
+}
+
 export interface PartyHubProps {
 	caseId: string;
 	className?: string;
+	/**
+	 * Optional host callback to open a document the party is mentioned in. When
+	 * provided, "Mentioned in" rows that carry a `file_id` become clickable; the
+	 * host typically navigates to its document viewer (`?file=&page=&bbox=`).
+	 */
+	onOpenDocument?: (mention: PartyMentionRef) => void;
 }
 
 type Filter = "all" | "open" | "verified" | "no_account";
@@ -24,7 +39,7 @@ type Filter = "all" | "open" | "verified" | "no_account";
  * the people & entities on a case, and a central view of the selected party's
  * conversation, portal link, status, and shared documents. Composed from lux.
  */
-export function PartyHub({ caseId, className }: PartyHubProps) {
+export function PartyHub({ caseId, className, onOpenDocument }: PartyHubProps) {
 	const overview = usePortalOverview(caseId);
 	const candidates = usePortalCandidates(caseId);
 	const del = useDeleteParty(caseId);
@@ -84,7 +99,7 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					{filtered.length === 0 ? (
 						<p className="p-4 text-sm text-slate-400">No matching people.</p>
 					) : (
-						filtered.map((p) => <PartyRow key={p.party_id} caseId={caseId} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id) setSelectedId(null); } }); }} />)
+						filtered.map((p) => <PartyRow key={p.party_id} caseId={caseId} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} onOpenDocument={onOpenDocument} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id) setSelectedId(null); } }); }} />)
 					)}
 				</div>
 
@@ -137,7 +152,7 @@ function filterParties(parties: PartyView[], search: string, filter: Filter): Pa
 	});
 }
 
-function PartyRow({ caseId, party, active, onClick, onDelete }: { caseId: string; party: PartyView; active: boolean; onClick: () => void; onDelete: () => void }) {
+function PartyRow({ caseId, party, active, onClick, onDelete, onOpenDocument }: { caseId: string; party: PartyView; active: boolean; onClick: () => void; onDelete: () => void; onOpenDocument?: (mention: PartyMentionRef) => void }) {
 	const open = party.thread.some((m) => m.kind === "request" && m.status === "open");
 	// The selected row expands its profile inline beneath itself; the others stay
 	// collapsed. The profile only fetches for the active id (others pass null).
@@ -171,7 +186,7 @@ function PartyRow({ caseId, party, active, onClick, onDelete }: { caseId: string
 					{profile.isLoading ? (
 						<p className="py-2 text-xs text-slate-400">Loading profile…</p>
 					) : profile.data ? (
-						<PartyProfilePanel profile={profile.data} />
+						<PartyProfilePanel profile={profile.data} onOpenDocument={onOpenDocument} />
 					) : (
 						<p className="py-2 text-xs text-slate-400">Couldn’t load this party’s profile.</p>
 					)}

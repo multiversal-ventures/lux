@@ -4001,10 +4001,20 @@ export interface components {
         /**
          * PartyMention
          * @description A document this party appears on, and their role on it.
+         *
+         *     ``file_id``/``page``/``bbox`` locate the appearance so the operator UI can
+         *     deep-link into the document viewer (``?file=&page=&bbox=``). All three are
+         *     best-effort: a mention with no resolvable source still carries doc_id, label
+         *     and role. ``bbox`` is a normalized ``{x, y, width, height}`` (0-1 fractions)
+         *     when the source record exposes one, else ``None``.
          */
         PartyMention: {
+            /** Bbox */
+            bbox?: number[] | null;
             /** Doc Id */
             doc_id: string;
+            /** File Id */
+            file_id?: string | null;
             /**
              * Label
              * @default

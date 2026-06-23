@@ -3794,11 +3794,36 @@
         "type": "object"
       },
       "PartyMention": {
-        "description": "A document this party appears on, and their role on it.",
+        "description": "A document this party appears on, and their role on it.\n\n``file_id``/``page``/``bbox`` locate the appearance so the operator UI can\ndeep-link into the document viewer (``?file=&page=&bbox=``). All three are\nbest-effort: a mention with no resolvable source still carries doc_id, label\nand role. ``bbox`` is a normalized ``{x, y, width, height}`` (0-1 fractions)\nwhen the source record exposes one, else ``None``.",
         "properties": {
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox"
+          },
           "doc_id": {
             "title": "Doc Id",
             "type": "string"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
           },
           "label": {
             "default": "",

@@ -62,6 +62,10 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const [finishing, setFinishing] = useState(false);
 	const [replyText, setReplyText] = useState("");
 	const [sendingReply, setSendingReply] = useState(false);
+	// WhatsApp-style composer editing: the message_id loaded into the reply
+	// composer for editing (null = compose a new reply). The pencil on a bubble
+	// sets it; the send button flips Send → Save.
+	const [editingId, setEditingId] = useState<string | null>(null);
 
 	if (loading) {
 		return <div className={wrap(className)}><p className="text-slate-500">Loading…</p></div>;
@@ -118,8 +122,22 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 		const t = replyText.trim();
 		if (!t) return;
 		setSendingReply(true);
-		await submitIntent([{ type: "reply", params: { text: t } }]);
+		if (editingId) {
+			await submitIntent([{ type: "edit_message", params: { message_id: editingId, text: t } }]);
+			setEditingId(null);
+		} else {
+			await submitIntent([{ type: "reply", params: { text: t } }]);
+		}
 		setSendingReply(false);
+		setReplyText("");
+	}
+
+	function startEdit(m: ThreadMessage) {
+		setEditingId(m.message_id);
+		setReplyText(m.body ?? "");
+	}
+	function cancelEdit() {
+		setEditingId(null);
 		setReplyText("");
 	}
 
@@ -195,12 +213,11 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 										officerName={session.officer_name}
 										officerAvatar={session.officer_avatar}
 										borrowerName={session.entity?.name || "You"}
+										isEditing={m.message_id === editingId}
 										onDelete={() =>
 											submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
 										}
-										onEdit={(body) =>
-											submitIntent([{ type: "edit_message", params: { message_id: m.message_id, text: body } }])
-										}
+										onStartEdit={startEdit}
 									/>
 								</div>
 							);
@@ -231,23 +248,34 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						{finishing ? "Submitting…" : "I've sent everything — submit"}
 					</button>
 				)}
+				{editingId && (
+					<div className="flex items-center justify-between text-xs text-indigo-600 mb-1">
+						<span className="font-medium">Editing message</span>
+						<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">
+							Cancel
+						</button>
+					</div>
+				)}
 				<div className="flex items-end gap-2">
 					<input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={(e) => onFiles(e.target.files)} />
-					<button
-						type="button"
-						onClick={() => fileRef.current?.click()}
-						disabled={uploading}
-						aria-label="Attach documents"
-						className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
-					>
-						<Paperclip size={18} />
-					</button>
+					{/* No attaching while editing an existing message — edit is text-only. */}
+					{!editingId && (
+						<button
+							type="button"
+							onClick={() => fileRef.current?.click()}
+							disabled={uploading}
+							aria-label="Attach documents"
+							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
+						>
+							<Paperclip size={18} />
+						</button>
+					)}
 					<textarea
 						value={replyText}
 						onChange={(e) => { setReplyText(e.target.value); onTyping(); }}
 						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
 						rows={1}
-						placeholder="Message…"
+						placeholder={editingId ? "Edit message…" : "Message…"}
 						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
 					/>
 					<button
@@ -256,7 +284,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						disabled={sendingReply || !replyText.trim()}
 						className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
 					>
-						Send
+						{editingId ? "Save" : "Send"}
 					</button>
 				</div>
 			</div>
@@ -286,41 +314,33 @@ function Bubble({
 	m,
 	showOfficerHeader,
 	showAvatar,
+	isEditing,
 	officerName,
 	officerAvatar,
 	borrowerName,
 	onDelete,
-	onEdit,
+	onStartEdit,
 }: {
 	m: ThreadMessage;
 	showOfficerHeader: boolean;
 	showAvatar: boolean;
+	/** This bubble's message is loaded in the reply composer for editing —
+	 * highlight it so the borrower sees what they're editing. */
+	isEditing: boolean;
 	officerName: string;
 	officerAvatar: string;
 	borrowerName: string;
 	onDelete: () => void;
-	onEdit: (body: string) => void;
+	/** Pencil click → load this message into the bottom reply composer. */
+	onStartEdit: (m: ThreadMessage) => void;
 }) {
 	const mine = m.author_kind === "borrower";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
 	const deleted = m.deleted === true;
-	// Inline edit: the bubble body becomes a textarea prefilled with the body.
-	const [editing, setEditing] = useState(false);
-	const [draftBody, setDraftBody] = useState(m.body ?? "");
 	// The borrower can modify only their OWN non-upload, non-deleted messages
 	// (uploads are case events with no row; deleted messages are tombstones).
 	const canModify = mine && m.kind !== "upload" && !deleted;
-
-	function saveEdit() {
-		const next = draftBody.trim();
-		if (next && next !== (m.body ?? "")) onEdit(next);
-		setEditing(false);
-	}
-	function cancelEdit() {
-		setDraftBody(m.body ?? "");
-		setEditing(false);
-	}
 
 	// Avatar column (40px, matching the operator side): the face on the last
 	// bubble of a run, a spacer otherwise so consecutive bubbles in the run stay
@@ -339,24 +359,6 @@ function Bubble({
 	const inner = deleted ? (
 		<div className={`inline-flex items-center gap-1.5 max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
 			<Ban size={13} className="shrink-0" /> This message was deleted
-		</div>
-	) : editing ? (
-		<div className="w-64 max-w-full rounded-2xl border border-indigo-300 bg-white p-2 shadow-sm">
-			<textarea
-				value={draftBody}
-				onChange={(e) => setDraftBody(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") cancelEdit();
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit();
-				}}
-				rows={2}
-				autoFocus
-				className="w-full resize-none rounded-lg bg-slate-50 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-			/>
-			<div className="mt-1 flex justify-end gap-3 text-xs">
-				<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">Cancel</button>
-				<button type="button" onClick={saveEdit} className="font-semibold text-indigo-600 hover:text-indigo-800">Save</button>
-			</div>
 		</div>
 	) : m.kind === "upload" ? (
 		m.processing ? (
@@ -386,7 +388,7 @@ function Bubble({
 	);
 
 	return (
-		<div className={`group flex flex-col w-full ${align}`}>
+		<div className={`group flex flex-col w-full ${align} ${isEditing ? "rounded-xl ring-2 ring-indigo-300" : ""}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
 			{/* Row reads inward from the speaker's side: [avatar][edit][delete][bubble]
 			    for the officer (left), mirrored for the borrower (right). */}
@@ -394,12 +396,12 @@ function Bubble({
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 					{/* Edit + delete show ONLY on the borrower's own non-deleted, non-upload
-					    bubbles, and are hidden while editing. */}
-					{canModify && !editing && (
+					    bubbles. The pencil loads this message into the bottom composer. */}
+					{canModify && (
 						<div className={`flex items-center gap-0.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 							<button
 								type="button"
-								onClick={() => { setDraftBody(m.body ?? ""); setEditing(true); }}
+								onClick={() => onStartEdit(m)}
 								aria-label="Edit message"
 								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
 							>

@@ -64,6 +64,10 @@ export function PartyDetail({
 	loading?: boolean;
 }) {
 	const [msg, setMsg] = useState("");
+	// WhatsApp-style composer editing: the message_id being edited (null = compose
+	// new). Set when the operator clicks a bubble's pencil — the composer loads the
+	// body and its primary button flips Send → Save.
+	const [editingId, setEditingId] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [webcamOpen, setWebcamOpen] = useState(false);
 	const setAvatar = useSetOfficerAvatar();
@@ -147,6 +151,8 @@ export function PartyDetail({
 		setSelected(new Set());
 		setCustom([]);
 		setRegenerated(false);
+		setEditingId(null);
+		setMsg("");
 	}, [party.party_id]);
 
 	function selectedItems(): PortalRequestItem[] {
@@ -236,6 +242,23 @@ export function PartyDetail({
 		setMsg("");
 		setSelected(new Set());
 		setCustom([]);
+	}
+
+	// Composer edit mode: load a bubble's body into the composer and focus it.
+	function startEdit(m: ThreadItem) {
+		setEditingId(m.message_id);
+		setMsg(m.body ?? "");
+		textareaRef.current?.focus();
+	}
+	function cancelEdit() {
+		setEditingId(null);
+		setMsg("");
+	}
+	function saveEdit() {
+		if (!editingId || !msg.trim()) return;
+		editMessage.mutate({ partyId: party.party_id, messageId: editingId, body: msg.trim() });
+		setEditingId(null);
+		setMsg("");
 	}
 
 	const portalUrl = party.portal_token
@@ -414,6 +437,7 @@ export function PartyDetail({
 										<OpBubble
 											m={m}
 											showAvatar={endsRun}
+											isEditing={m.message_id === editingId}
 											officerName={officerName ?? ""}
 											officerAvatar={officerAvatar ?? ""}
 											borrowerName={party.display_name || roleLabel(party.role)}
@@ -422,13 +446,7 @@ export function PartyDetail({
 											onDelete={() =>
 												deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
 											}
-											onEdit={(body) =>
-												editMessage.mutate({
-													partyId: party.party_id,
-													messageId: m.message_id,
-													body,
-												})
-											}
+											onStartEdit={startEdit}
 										/>
 									</div>
 								);
@@ -446,8 +464,23 @@ export function PartyDetail({
 						<div ref={bottomRef} />
 					</div>
 
-					{/* Composer — suggestion pills sit directly above the message input */}
+					{/* Composer — suggestion pills sit directly above the message input.
+					    In edit mode (editingId set) the pills/AI controls are hidden and
+					    the primary button becomes Save. */}
 					<div className="border-t border-slate-200 px-4 py-3 space-y-2">
+						{editingId && (
+							<div className="flex items-center justify-between text-xs text-indigo-600">
+								<span className="font-medium">Editing message</span>
+								<button
+									type="button"
+									onClick={cancelEdit}
+									className="text-slate-500 hover:text-slate-700"
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+						{!editingId && (
 						<div className="flex flex-wrap items-center gap-1.5">
 							{sugg.map((item, i) => {
 								const on = selected.has(i);
@@ -529,12 +562,13 @@ export function PartyDetail({
 								<RefreshCw size={14} className={regen.isPending ? "animate-spin" : ""} />
 							</button>
 						</div>
-						{regenerated && !regen.isPending && sugg.length === 0 && (
+						)}
+						{!editingId && regenerated && !regen.isPending && sugg.length === 0 && (
 							<p className="text-xs text-slate-400">
 								No suggestions for this case yet — add your own above or type a message below.
 							</p>
 						)}
-						{draftMode && (
+						{!editingId && draftMode && (
 							<p className="text-[11px] text-violet-600">
 								{selectedItems().length} selected — hit{" "}
 								<span className="font-medium">Draft with AI</span>, then edit & send.
@@ -551,14 +585,29 @@ export function PartyDetail({
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										draftMode ? generate() : sendMessage();
+										editingId ? saveEdit() : draftMode ? generate() : sendMessage();
 									}
 								}}
 								rows={1}
-								placeholder={selectedItems().length ? "Add a note, or draft with AI →" : "Message…"}
+								placeholder={
+									editingId
+										? "Edit message…"
+										: selectedItems().length
+											? "Add a note, or draft with AI →"
+											: "Message…"
+								}
 								className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-40 overflow-y-auto"
 							/>
-							{draftMode ? (
+							{editingId ? (
+								<button
+									type="button"
+									onClick={saveEdit}
+									disabled={editMessage.isPending || !msg.trim()}
+									className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
+								>
+									{editMessage.isPending ? "…" : "Save"}
+								</button>
+							) : draftMode ? (
 								<button
 									type="button"
 									onClick={generate}
@@ -604,45 +653,37 @@ export function PartyDetail({
 function OpBubble({
 	m,
 	showAvatar,
+	isEditing,
 	officerName,
 	officerAvatar,
 	borrowerName,
 	onAvatarClick,
 	onOpenDocument,
 	onDelete,
-	onEdit,
+	onStartEdit,
 }: {
 	m: ThreadItem;
 	showAvatar: boolean;
+	/** This bubble's message is currently loaded in the composer for editing —
+	 * highlight it so the operator sees what they're editing. */
+	isEditing: boolean;
 	officerName: string;
 	officerAvatar: string;
 	borrowerName: string;
 	onAvatarClick: () => void;
 	onOpenDocument?: (mention: PartyMentionRef) => void;
 	onDelete: () => void;
-	onEdit: (body: string) => void;
+	/** Pencil click → load this message into the bottom composer (WhatsApp-style). */
+	onStartEdit: (m: ThreadItem) => void;
 }) {
 	const mine = m.author_kind === "operator";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
 	const deleted = m.deleted === true;
-	// Inline edit: the bubble body becomes a textarea prefilled with the body.
-	const [editing, setEditing] = useState(false);
-	const [draftBody, setDraftBody] = useState(m.body ?? "");
 	// Own-only + never on uploads/deleted: the operator may modify only their OWN
 	// (operator-authored) message rows. Uploads are synthesized from events (no
 	// row); deleted messages are tombstones.
 	const canModify = mine && m.kind !== "upload" && !deleted;
-
-	function saveEdit() {
-		const next = draftBody.trim();
-		if (next && next !== (m.body ?? "")) onEdit(next);
-		setEditing(false);
-	}
-	function cancelEdit() {
-		setDraftBody(m.body ?? "");
-		setEditing(false);
-	}
 
 	// Avatar column (28px): the face on the last bubble of a run, a spacer
 	// otherwise. The operator's own avatar is clickable → opens webcam capture.
@@ -667,32 +708,6 @@ function OpBubble({
 			className={`inline-flex items-center gap-1.5 max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}
 		>
 			<Ban size={13} className="shrink-0" /> This message was deleted
-		</div>
-	) : editing ? (
-		<div className="w-64 max-w-full rounded-2xl border border-indigo-300 bg-white p-2 shadow-sm">
-			<textarea
-				value={draftBody}
-				onChange={(e) => setDraftBody(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") cancelEdit();
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit();
-				}}
-				rows={2}
-				autoFocus
-				className="w-full resize-none rounded-lg bg-slate-50 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-			/>
-			<div className="mt-1 flex justify-end gap-3 text-xs">
-				<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">
-					Cancel
-				</button>
-				<button
-					type="button"
-					onClick={saveEdit}
-					className="font-semibold text-indigo-600 hover:text-indigo-800"
-				>
-					Save
-				</button>
-			</div>
 		</div>
 	) : m.kind === "upload" ? (
 		m.processing ? (
@@ -747,20 +762,17 @@ function OpBubble({
 	);
 
 	return (
-		<div className={`group flex flex-col w-full ${align}`}>
+		<div className={`group flex flex-col w-full ${align} ${isEditing ? "rounded-xl ring-2 ring-indigo-300" : ""}`}>
 			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 					{/* Edit + delete show ONLY on the operator's own non-deleted, non-upload
-					    bubbles, and are hidden while editing. */}
-					{canModify && !editing && (
+					    bubbles. The pencil loads this message into the bottom composer. */}
+					{canModify && (
 						<div className={`flex items-center gap-0.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 							<button
 								type="button"
-								onClick={() => {
-									setDraftBody(m.body ?? "");
-									setEditing(true);
-								}}
+								onClick={() => onStartEdit(m)}
 								aria-label="Edit message"
 								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
 							>

@@ -1114,6 +1114,18 @@ type Intent = components["schemas"]["Intent"];
 
 /** HTTP header name used to authenticate portal API requests. */
 const PORTAL_AUTH_HEADER = "X-Portal-Token" as const;
+/** Ephemeral verify-proof header. The access code is a per-browser-session gate;
+ * after the borrower enters it the server returns a short-lived, token-bound proof
+ * the client holds IN MEMORY (never persisted) and presents here. A refresh wipes
+ * it → no header → if there's no claimed account the borrower re-enters the code. */
+const PORTAL_VERIFY_HEADER = "X-Portal-Verify" as const;
+
+/** Build the portal request headers, attaching the verify-proof only when held. */
+function portalHeaders(token: string, verifyProof?: string | null, extra?: Record<string, string>): Record<string, string> {
+	const headers: Record<string, string> = { [PORTAL_AUTH_HEADER]: token, ...(extra ?? {}) };
+	if (verifyProof) headers[PORTAL_VERIFY_HEADER] = verifyProof;
+	return headers;
+}
 
 export interface PortalClientConfig {
 	/** Base URL of the Veritas API (e.g. "" for same-origin, "https://api.example.com" for external). */
@@ -1145,13 +1157,14 @@ export type SubmitIntentsResult =
 export function createPortalClient(config: PortalClientConfig = {}) {
 	const base = config.baseUrl ?? "";
 
-	async function fetchSession(token: string): Promise<FetchSessionResult> {
+	async function fetchSession(token: string, verifyProof?: string | null): Promise<FetchSessionResult> {
 		try {
 			// Token in X-Portal-Token header only — never in URL query param.
 			// URL query params appear in server access logs and browser history;
-			// the header path keeps the token out of both.
+			// the header path keeps the token out of both. The in-memory verify-proof
+			// (when held) rides along so an in-session refetch stays verified.
 			const res = await fetch(`${base}/api/portal/session`, {
-				headers: { [PORTAL_AUTH_HEADER]: token },
+				headers: portalHeaders(token, verifyProof),
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
@@ -1187,14 +1200,12 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		sessionId: string,
 		token: string,
 		intents: Intent[],
+		verifyProof?: string | null,
 	): Promise<SubmitIntentsResult> {
 		try {
 			const res = await fetch(`${base}/api/portal/session/${sessionId}/intents`, {
 				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					[PORTAL_AUTH_HEADER]: token,
-				},
+				headers: portalHeaders(token, verifyProof, { "Content-Type": "application/json" }),
 				body: JSON.stringify({ intents }),
 			});
 			if (!res.ok) {
@@ -1293,13 +1304,14 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 	function streamPortalEvents(
 		token: string,
 		onPing: (ping: { type: string; actor?: string }) => void,
+		verifyProof?: string | null,
 	): () => void {
 		const controller = new AbortController();
 		(async () => {
 			let res: Response;
 			try {
 				res = await fetch(`${base}/api/portal/stream`, {
-					headers: { [PORTAL_AUTH_HEADER]: token },
+					headers: portalHeaders(token, verifyProof),
 					signal: controller.signal,
 				});
 			} catch {

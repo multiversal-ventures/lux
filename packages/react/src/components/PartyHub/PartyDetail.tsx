@@ -25,6 +25,7 @@ import {
 	useMarkThreadRead,
 	usePortalRealtime,
 	useRegenerateSuggestions,
+	useReissueLink,
 	useSendRequest,
 } from "../../hooks/usePartyHub.js";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
@@ -77,6 +78,7 @@ export function PartyDetail({
 	const didInitialScroll = useRef(false);
 	const del = useDeleteParty(caseId);
 	const clearThread = useClearThread(caseId);
+	const reissue = useReissueLink(caseId);
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
 	// Party-aware: suggestions are shaped by THIS party's role + the documents
@@ -286,11 +288,23 @@ export function PartyDetail({
 					)}
 				</div>
 				{party.access_code && (
-					<div className="shrink-0 text-right">
-						<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>
-						<p className="font-mono font-semibold text-slate-800 tracking-widest">
-							{party.access_code}
-						</p>
+					<div className="shrink-0 flex items-center gap-1.5">
+						<div className="text-right">
+							<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>
+							<p className="font-mono font-semibold text-slate-800 tracking-widest">
+								{party.access_code}
+							</p>
+						</div>
+						<button
+							type="button"
+							onClick={() => reissue.mutate(party.party_id)}
+							disabled={reissue.isPending}
+							title="Regenerate access code"
+							aria-label="Regenerate access code"
+							className="h-7 w-7 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 disabled:opacity-50 flex items-center justify-center"
+						>
+							<RefreshCw size={13} className={reissue.isPending ? "animate-spin" : ""} />
+						</button>
 					</div>
 				)}
 				{portalUrl && (

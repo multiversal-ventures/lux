@@ -4416,6 +4416,11 @@ export interface components {
              *     }
              */
             verification: components["schemas"]["VerificationState"];
+            /**
+             * Verify Proof
+             * @default
+             */
+            verify_proof: string;
         };
         /**
          * ProductResponse
@@ -8400,6 +8405,7 @@ export interface operations {
             };
             header?: {
                 "X-Portal-Token"?: string | null;
+                "X-Portal-Verify"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -8434,6 +8440,7 @@ export interface operations {
             };
             header?: {
                 "X-Portal-Token"?: string | null;
+                "X-Portal-Verify"?: string | null;
             };
             path: {
                 session_id: string;

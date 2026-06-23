@@ -768,6 +768,23 @@ export class VeritasClient {
 		options?: { cursor?: number },
 	): () => void {
 		const controller = new AbortController();
+		// Resume cursor — advanced as events arrive so a reconnect backfills only
+		// what was missed (server replays events after this id, then goes live).
+		let lastEventId = options?.cursor ?? 0;
+		let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+		let attempts = 0;
+
+		// The server stream is bounded (max-lifetime ~10 min) and also drops on an
+		// api restart. Without reconnect the operator's live updates silently die
+		// until a page reload. Reconnect with backoff + the resume cursor.
+		const scheduleReconnect = () => {
+			if (controller.signal.aborted) return;
+			attempts += 1;
+			const backoff = Math.min(1000 * 2 ** Math.min(attempts, 4), 15_000);
+			reconnectTimer = setTimeout(() => {
+				if (!controller.signal.aborted) void run();
+			}, backoff);
+		};
 
 		const run = async () => {
 			let token: string | null = null;
@@ -782,10 +799,9 @@ export class VeritasClient {
 			// Pass cursor so the server starts from after the last known event_id.
 			// This prevents historical case.system.completed from immediately
 			// closing the stream on reconnect after a case has completed extraction.
-			const cursor = options?.cursor;
 			const streamUrl =
-				cursor != null && cursor > 0
-					? this.resolvePath(`/api/cases/${caseId}/events/stream?cursor=${cursor}`)
+				lastEventId > 0
+					? this.resolvePath(`/api/cases/${caseId}/events/stream?cursor=${lastEventId}`)
 					: this.resolvePath(`/api/cases/${caseId}/events/stream`);
 
 			let res: Response;
@@ -797,22 +813,28 @@ export class VeritasClient {
 			} catch {
 				if (!controller.signal.aborted) {
 					onError?.(new Error("Failed to connect to event stream"));
+					scheduleReconnect();
 				}
 				return;
 			}
 
 			// Invalid upstream (502/500/HTML error page): never read the body as
 			// a stream — that holds a socket open against the browser's 6-conn
-			// per-host limit until the dev server appears to hang. Bail early.
+			// per-host limit until the dev server appears to hang. Bail early
+			// (but still reconnect — the api may be mid-restart).
 			if (!res.ok) {
 				onError?.(new Error(`Event stream HTTP ${res.status}`));
+				scheduleReconnect();
 				return;
 			}
 
 			if (!res.body) {
 				onError?.(new Error("No response body from event stream"));
+				scheduleReconnect();
 				return;
 			}
+			// Connected — reset backoff so the next drop reconnects promptly.
+			attempts = 0;
 
 			// Idle watchdog: a half-open/invalid upstream can accept the socket
 			// then send nothing — reader.read() awaits forever, leaking a
@@ -843,15 +865,24 @@ export class VeritasClient {
 						if (!raw || raw === "[DONE]") continue;
 						try {
 							const event = JSON.parse(raw) as VeritasCaseEvent;
+							// Advance the resume cursor past real (persisted) events so a
+							// reconnect backfills only what was missed. Transient pings
+							// (typing/read) carry event_id 0 — don't move the cursor.
+							const eid = (event as { event_id?: number }).event_id ?? 0;
+							if (eid > lastEventId) lastEventId = eid;
 							onEvent(event);
 						} catch {
 							/* malformed — skip */
 						}
 					}
 				}
+				// Stream ended cleanly (server max-lifetime close) — reconnect to
+				// keep live updates flowing.
+				scheduleReconnect();
 			} catch {
 				if (!controller.signal.aborted) {
 					onError?.(new Error("Event stream disconnected"));
+					scheduleReconnect();
 				}
 			} finally {
 				if (idleTimer != null) clearTimeout(idleTimer);
@@ -859,7 +890,10 @@ export class VeritasClient {
 		};
 
 		void run();
-		return () => controller.abort();
+		return () => {
+			controller.abort();
+			if (reconnectTimer != null) clearTimeout(reconnectTimer);
+		};
 	}
 
 	async listSamples(): Promise<SampleListResponse> {
@@ -1114,6 +1148,18 @@ type Intent = components["schemas"]["Intent"];
 
 /** HTTP header name used to authenticate portal API requests. */
 const PORTAL_AUTH_HEADER = "X-Portal-Token" as const;
+/** Ephemeral verify-proof header. The access code is a per-browser-session gate;
+ * after the borrower enters it the server returns a short-lived, token-bound proof
+ * the client holds IN MEMORY (never persisted) and presents here. A refresh wipes
+ * it → no header → if there's no claimed account the borrower re-enters the code. */
+const PORTAL_VERIFY_HEADER = "X-Portal-Verify" as const;
+
+/** Build the portal request headers, attaching the verify-proof only when held. */
+function portalHeaders(token: string, verifyProof?: string | null, extra?: Record<string, string>): Record<string, string> {
+	const headers: Record<string, string> = { [PORTAL_AUTH_HEADER]: token, ...(extra ?? {}) };
+	if (verifyProof) headers[PORTAL_VERIFY_HEADER] = verifyProof;
+	return headers;
+}
 
 export interface PortalClientConfig {
 	/** Base URL of the Veritas API (e.g. "" for same-origin, "https://api.example.com" for external). */
@@ -1145,13 +1191,14 @@ export type SubmitIntentsResult =
 export function createPortalClient(config: PortalClientConfig = {}) {
 	const base = config.baseUrl ?? "";
 
-	async function fetchSession(token: string): Promise<FetchSessionResult> {
+	async function fetchSession(token: string, verifyProof?: string | null): Promise<FetchSessionResult> {
 		try {
 			// Token in X-Portal-Token header only — never in URL query param.
 			// URL query params appear in server access logs and browser history;
-			// the header path keeps the token out of both.
+			// the header path keeps the token out of both. The in-memory verify-proof
+			// (when held) rides along so an in-session refetch stays verified.
 			const res = await fetch(`${base}/api/portal/session`, {
-				headers: { [PORTAL_AUTH_HEADER]: token },
+				headers: portalHeaders(token, verifyProof),
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
@@ -1187,14 +1234,12 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		sessionId: string,
 		token: string,
 		intents: Intent[],
+		verifyProof?: string | null,
 	): Promise<SubmitIntentsResult> {
 		try {
 			const res = await fetch(`${base}/api/portal/session/${sessionId}/intents`, {
 				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					[PORTAL_AUTH_HEADER]: token,
-				},
+				headers: portalHeaders(token, verifyProof, { "Content-Type": "application/json" }),
 				body: JSON.stringify({ intents }),
 			});
 			if (!res.ok) {
@@ -1293,13 +1338,14 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 	function streamPortalEvents(
 		token: string,
 		onPing: (ping: { type: string; actor?: string }) => void,
+		verifyProof?: string | null,
 	): () => void {
 		const controller = new AbortController();
 		(async () => {
 			let res: Response;
 			try {
 				res = await fetch(`${base}/api/portal/stream`, {
-					headers: { [PORTAL_AUTH_HEADER]: token },
+					headers: portalHeaders(token, verifyProof),
 					signal: controller.signal,
 				});
 			} catch {

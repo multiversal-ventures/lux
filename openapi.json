@@ -4397,6 +4397,11 @@
               "level": 0,
               "verified": false
             }
+          },
+          "verify_proof": {
+            "default": "",
+            "title": "Verify Proof",
+            "type": "string"
           }
         },
         "required": [
@@ -12198,6 +12203,22 @@
               ],
               "title": "X-Portal-Token"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Verify",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Verify"
+            }
           }
         ],
         "responses": {
@@ -12274,6 +12295,22 @@
                 }
               ],
               "title": "X-Portal-Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portal-Verify",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portal-Verify"
             }
           }
         ],

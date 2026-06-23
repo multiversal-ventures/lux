@@ -25,6 +25,7 @@ import {
 	useMarkThreadRead,
 	usePortalRealtime,
 	useRegenerateSuggestions,
+	useReissueLink,
 	useSendRequest,
 } from "../../hooks/usePartyHub.js";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
@@ -63,6 +64,10 @@ export function PartyDetail({
 	loading?: boolean;
 }) {
 	const [msg, setMsg] = useState("");
+	// WhatsApp-style composer editing: the message_id being edited (null = compose
+	// new). Set when the operator clicks a bubble's pencil — the composer loads the
+	// body and its primary button flips Send → Save.
+	const [editingId, setEditingId] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [webcamOpen, setWebcamOpen] = useState(false);
 	const setAvatar = useSetOfficerAvatar();
@@ -77,6 +82,7 @@ export function PartyDetail({
 	const didInitialScroll = useRef(false);
 	const del = useDeleteParty(caseId);
 	const clearThread = useClearThread(caseId);
+	const reissue = useReissueLink(caseId);
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
 	// Party-aware: suggestions are shaped by THIS party's role + the documents
@@ -145,6 +151,8 @@ export function PartyDetail({
 		setSelected(new Set());
 		setCustom([]);
 		setRegenerated(false);
+		setEditingId(null);
+		setMsg("");
 	}, [party.party_id]);
 
 	function selectedItems(): PortalRequestItem[] {
@@ -236,6 +244,23 @@ export function PartyDetail({
 		setCustom([]);
 	}
 
+	// Composer edit mode: load a bubble's body into the composer and focus it.
+	function startEdit(m: ThreadItem) {
+		setEditingId(m.message_id);
+		setMsg(m.body ?? "");
+		textareaRef.current?.focus();
+	}
+	function cancelEdit() {
+		setEditingId(null);
+		setMsg("");
+	}
+	function saveEdit() {
+		if (!editingId || !msg.trim()) return;
+		editMessage.mutate({ partyId: party.party_id, messageId: editingId, body: msg.trim() });
+		setEditingId(null);
+		setMsg("");
+	}
+
 	const portalUrl = party.portal_token
 		? `${typeof window !== "undefined" ? window.location.origin : ""}/portal?token=${party.portal_token}`
 		: null;
@@ -286,11 +311,23 @@ export function PartyDetail({
 					)}
 				</div>
 				{party.access_code && (
-					<div className="shrink-0 text-right">
-						<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>
-						<p className="font-mono font-semibold text-slate-800 tracking-widest">
-							{party.access_code}
-						</p>
+					<div className="shrink-0 flex items-center gap-1.5">
+						<div className="text-right">
+							<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>
+							<p className="font-mono font-semibold text-slate-800 tracking-widest">
+								{party.access_code}
+							</p>
+						</div>
+						<button
+							type="button"
+							onClick={() => reissue.mutate(party.party_id)}
+							disabled={reissue.isPending}
+							title="Regenerate access code"
+							aria-label="Regenerate access code"
+							className="h-7 w-7 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 disabled:opacity-50 flex items-center justify-center"
+						>
+							<RefreshCw size={13} className={reissue.isPending ? "animate-spin" : ""} />
+						</button>
 					</div>
 				)}
 				{portalUrl && (
@@ -338,7 +375,7 @@ export function PartyDetail({
 			{/* Conversation — the main area (always; the profile now lives in the sidebar) */}
 			<>
 					{/* Conversation — the main area */}
-					<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-slate-50">
+					<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-slate-50">
 						{loading && party.thread.length === 0 ? (
 							<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
 								<Loader2 size={22} className="animate-spin" />
@@ -390,16 +427,22 @@ export function PartyDetail({
 								// messages read as one speaker, alternating sides.
 								const prev = party.thread[i - 1];
 								const next = party.thread[i + 1];
+								const startsRun = !prev || prev.author_kind !== m.author_kind;
 								const endsRun = !next || next.author_kind !== m.author_kind;
 								// WhatsApp-style date pill before the first message and at
 								// each calendar-day boundary.
 								const showDay = i === 0 || !isSameDay(prev.created_at, m.created_at);
+								// Tight grouping: same-author runs hug (mt-0.5); a new speaker
+								// or a day boundary gets clear separation (mt-3). First row flush.
+								const rowGap = i === 0 ? "" : startsRun || showDay ? "mt-3" : "mt-0.5";
 								return (
-									<div key={m.message_id}>
+									<div key={m.message_id} className={rowGap}>
 										{showDay && <DateSeparator iso={m.created_at} />}
 										<OpBubble
 											m={m}
 											showAvatar={endsRun}
+											endsRun={endsRun}
+											isEditing={m.message_id === editingId}
 											officerName={officerName ?? ""}
 											officerAvatar={officerAvatar ?? ""}
 											borrowerName={party.display_name || roleLabel(party.role)}
@@ -408,13 +451,7 @@ export function PartyDetail({
 											onDelete={() =>
 												deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
 											}
-											onEdit={(body) =>
-												editMessage.mutate({
-													partyId: party.party_id,
-													messageId: m.message_id,
-													body,
-												})
-											}
+											onStartEdit={startEdit}
 										/>
 									</div>
 								);
@@ -432,8 +469,23 @@ export function PartyDetail({
 						<div ref={bottomRef} />
 					</div>
 
-					{/* Composer — suggestion pills sit directly above the message input */}
+					{/* Composer — suggestion pills sit directly above the message input.
+					    In edit mode (editingId set) the pills/AI controls are hidden and
+					    the primary button becomes Save. */}
 					<div className="border-t border-slate-200 px-4 py-3 space-y-2">
+						{editingId && (
+							<div className="flex items-center justify-between text-xs text-indigo-600">
+								<span className="font-medium">Editing message</span>
+								<button
+									type="button"
+									onClick={cancelEdit}
+									className="text-slate-500 hover:text-slate-700"
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+						{!editingId && (
 						<div className="flex flex-wrap items-center gap-1.5">
 							{sugg.map((item, i) => {
 								const on = selected.has(i);
@@ -515,12 +567,13 @@ export function PartyDetail({
 								<RefreshCw size={14} className={regen.isPending ? "animate-spin" : ""} />
 							</button>
 						</div>
-						{regenerated && !regen.isPending && sugg.length === 0 && (
+						)}
+						{!editingId && regenerated && !regen.isPending && sugg.length === 0 && (
 							<p className="text-xs text-slate-400">
 								No suggestions for this case yet — add your own above or type a message below.
 							</p>
 						)}
-						{draftMode && (
+						{!editingId && draftMode && (
 							<p className="text-[11px] text-violet-600">
 								{selectedItems().length} selected — hit{" "}
 								<span className="font-medium">Draft with AI</span>, then edit & send.
@@ -537,14 +590,29 @@ export function PartyDetail({
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										draftMode ? generate() : sendMessage();
+										editingId ? saveEdit() : draftMode ? generate() : sendMessage();
 									}
 								}}
 								rows={1}
-								placeholder={selectedItems().length ? "Add a note, or draft with AI →" : "Message…"}
+								placeholder={
+									editingId
+										? "Edit message…"
+										: selectedItems().length
+											? "Add a note, or draft with AI →"
+											: "Message…"
+								}
 								className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-40 overflow-y-auto"
 							/>
-							{draftMode ? (
+							{editingId ? (
+								<button
+									type="button"
+									onClick={saveEdit}
+									disabled={editMessage.isPending || !msg.trim()}
+									className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
+								>
+									{editMessage.isPending ? "…" : "Save"}
+								</button>
+							) : draftMode ? (
 								<button
 									type="button"
 									onClick={generate}
@@ -590,45 +658,60 @@ export function PartyDetail({
 function OpBubble({
 	m,
 	showAvatar,
+	endsRun,
+	isEditing,
 	officerName,
 	officerAvatar,
 	borrowerName,
 	onAvatarClick,
 	onOpenDocument,
 	onDelete,
-	onEdit,
+	onStartEdit,
 }: {
 	m: ThreadItem;
 	showAvatar: boolean;
+	/** Last bubble of a consecutive same-author run — gets the WhatsApp tail
+	 * corner (`rounded-br-md`/`rounded-bl-md`). Mid-run bubbles stay fully round. */
+	endsRun: boolean;
+	/** This bubble's message is currently loaded in the composer for editing —
+	 * highlight it so the operator sees what they're editing. */
+	isEditing: boolean;
 	officerName: string;
 	officerAvatar: string;
 	borrowerName: string;
 	onAvatarClick: () => void;
 	onOpenDocument?: (mention: PartyMentionRef) => void;
 	onDelete: () => void;
-	onEdit: (body: string) => void;
+	/** Pencil click → load this message into the bottom composer (WhatsApp-style). */
+	onStartEdit: (m: ThreadItem) => void;
 }) {
 	const mine = m.author_kind === "operator";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
 	const deleted = m.deleted === true;
-	// Inline edit: the bubble body becomes a textarea prefilled with the body.
-	const [editing, setEditing] = useState(false);
-	const [draftBody, setDraftBody] = useState(m.body ?? "");
 	// Own-only + never on uploads/deleted: the operator may modify only their OWN
 	// (operator-authored) message rows. Uploads are synthesized from events (no
 	// row); deleted messages are tombstones.
 	const canModify = mine && m.kind !== "upload" && !deleted;
 
-	function saveEdit() {
-		const next = draftBody.trim();
-		if (next && next !== (m.body ?? "")) onEdit(next);
-		setEditing(false);
-	}
-	function cancelEdit() {
-		setDraftBody(m.body ?? "");
-		setEditing(false);
-	}
+	// WhatsApp bubble shape: fully rounded mid-run; the last bubble of a run gets
+	// a small tail corner on the speaker's inner-bottom edge (own → bottom-right,
+	// incoming → bottom-left).
+	const tail = endsRun ? (mine ? "rounded-br-md" : "rounded-bl-md") : "";
+	const bubbleShape = `rounded-2xl ${tail} shadow-sm`;
+
+	// In-bubble meta row (WhatsApp): time + "· edited" + ✓/✓✓ receipt, tucked
+	// bottom-right INSIDE the bubble. Muted against the bubble background.
+	const meta = !deleted && (
+		<span
+			className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] leading-none ${mine ? "text-indigo-200" : "text-slate-400"}`}
+		>
+			{clockTime(m.created_at)}
+			{m.edited && <span>· edited</span>}
+			{mine &&
+				(m.read ? <CheckCheck size={12} /> : <Check size={12} />)}
+		</span>
+	);
 
 	// Avatar column (28px): the face on the last bubble of a run, a spacer
 	// otherwise. The operator's own avatar is clickable → opens webcam capture.
@@ -650,40 +733,14 @@ function OpBubble({
 
 	const inner = deleted ? (
 		<div
-			className={`inline-flex items-center gap-1.5 max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}
+			className={`inline-flex items-center gap-1.5 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}
 		>
 			<Ban size={13} className="shrink-0" /> This message was deleted
-		</div>
-	) : editing ? (
-		<div className="w-64 max-w-full rounded-2xl border border-indigo-300 bg-white p-2 shadow-sm">
-			<textarea
-				value={draftBody}
-				onChange={(e) => setDraftBody(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") cancelEdit();
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit();
-				}}
-				rows={2}
-				autoFocus
-				className="w-full resize-none rounded-lg bg-slate-50 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-			/>
-			<div className="mt-1 flex justify-end gap-3 text-xs">
-				<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">
-					Cancel
-				</button>
-				<button
-					type="button"
-					onClick={saveEdit}
-					className="font-semibold text-indigo-600 hover:text-indigo-800"
-				>
-					Save
-				</button>
-			</div>
 		</div>
 	) : m.kind === "upload" ? (
 		m.processing ? (
 			// Still extracting — a muted, non-clickable "Processing…" placeholder.
-			<div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400">
+			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm bg-slate-100 text-slate-400`}>
 				<Loader2 size={14} className="shrink-0 animate-spin" />
 				<span className="truncate min-w-0">{m.body}</span>
 				<span className="shrink-0 italic">· Processing…</span>
@@ -703,14 +760,14 @@ function OpBubble({
 					})
 				}
 				title="Open this document"
-				className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm text-left transition ${mine ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700"}`}
+				className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm text-left transition ${mine ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700"}`}
 			>
 				<FileText size={14} className="shrink-0" />
 				<span className="truncate min-w-0 underline-offset-2 hover:underline">{m.body}</span>
 			</button>
 		) : (
 			<div
-				className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}
+				className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}
 			>
 				<FileText size={14} />
 				{m.body}
@@ -718,9 +775,8 @@ function OpBubble({
 		)
 	) : (
 		<div
-			className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}
+			className={`max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}
 		>
-			<p className="text-[10px] opacity-70 mb-0.5">{mine ? "You" : "Borrower"}</p>
 			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
 			{items.length > 0 && (
 				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
@@ -729,24 +785,22 @@ function OpBubble({
 					))}
 				</ul>
 			)}
+			{meta}
 		</div>
 	);
 
 	return (
-		<div className={`group flex flex-col w-full ${align}`}>
+		<div className={`group flex flex-col w-full ${align} ${isEditing ? "rounded-xl ring-2 ring-indigo-300" : ""}`}>
 			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 					{/* Edit + delete show ONLY on the operator's own non-deleted, non-upload
-					    bubbles, and are hidden while editing. */}
-					{canModify && !editing && (
+					    bubbles. The pencil loads this message into the bottom composer. */}
+					{canModify && (
 						<div className={`flex items-center gap-0.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 							<button
 								type="button"
-								onClick={() => {
-									setDraftBody(m.body ?? "");
-									setEditing(true);
-								}}
+								onClick={() => onStartEdit(m)}
 								aria-label="Edit message"
 								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
 							>
@@ -765,23 +819,6 @@ function OpBubble({
 					{inner}
 				</div>
 			</div>
-			{showAvatar && (
-				<span
-					className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}
-				>
-					{clockTime(m.created_at)}
-					{m.edited && !deleted && <span>· edited</span>}
-					{/* On the operator's OWN bubbles, the ✓/✓✓ receipt reflects whether
-					    the borrower has read it (✓✓ = read). Not shown on tombstones. */}
-					{mine &&
-						!deleted &&
-						(m.read ? (
-							<CheckCheck size={12} className="text-indigo-400" />
-						) : (
-							<Check size={12} className="text-slate-400" />
-						))}
-				</span>
-			)}
 		</div>
 	);
 }

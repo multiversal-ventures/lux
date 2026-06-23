@@ -104,6 +104,50 @@ export function PartyProfilePanel({
 				)}
 			</Card>
 
+			{/* Uploaded-docs card: files uploaded in THIS party's chat only. */}
+			{(profile.uploaded_docs ?? []).length > 0 && (
+				<Card title="Uploaded docs">
+					<ul className="space-y-1">
+						{profile.uploaded_docs.map((d) => {
+							const clickable = !!onOpenDocument && !!d.file_id && !!d.doc_id && !d.processing;
+							if (clickable) {
+								return (
+									<li key={d.file_id ?? d.label}>
+										<button
+											type="button"
+											onClick={() =>
+												onOpenDocument?.({
+													doc_id: d.doc_id,
+													label: d.label || "Uploaded document",
+													file_id: d.file_id,
+												})
+											}
+											title="Open this uploaded document"
+											className="group flex w-full items-center gap-1.5 text-xs text-slate-700 hover:text-indigo-700"
+										>
+											<FileText size={13} className="shrink-0 text-slate-400 group-hover:text-indigo-500" />
+											<span className="truncate min-w-0 group-hover:underline">{d.label || "Uploaded document"}</span>
+											<ChevronRight size={13} className="ml-auto shrink-0 text-slate-300 group-hover:text-indigo-500" />
+										</button>
+									</li>
+								);
+							}
+							return (
+								<li key={d.file_id ?? d.label} className="flex items-center gap-1.5 text-xs text-slate-700">
+									<FileText size={13} className="shrink-0 text-slate-400" />
+									<span className="truncate min-w-0">{d.label || "Uploaded document"}</span>
+									{d.processing && (
+										<span className="ml-auto shrink-0 text-[10px] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5">
+											Processing
+										</span>
+									)}
+								</li>
+							);
+						})}
+					</ul>
+				</Card>
+			)}
+
 			{/* Other grounded facts */}
 			{(profile.extra ?? []).length > 0 && (
 				<Card title="Other">

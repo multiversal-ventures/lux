@@ -62,6 +62,10 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const [finishing, setFinishing] = useState(false);
 	const [replyText, setReplyText] = useState("");
 	const [sendingReply, setSendingReply] = useState(false);
+	// WhatsApp-style composer editing: the message_id loaded into the reply
+	// composer for editing (null = compose a new reply). The pencil on a bubble
+	// sets it; the send button flips Send → Save.
+	const [editingId, setEditingId] = useState<string | null>(null);
 
 	if (loading) {
 		return <div className={wrap(className)}><p className="text-slate-500">Loading…</p></div>;
@@ -118,8 +122,22 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 		const t = replyText.trim();
 		if (!t) return;
 		setSendingReply(true);
-		await submitIntent([{ type: "reply", params: { text: t } }]);
+		if (editingId) {
+			await submitIntent([{ type: "edit_message", params: { message_id: editingId, text: t } }]);
+			setEditingId(null);
+		} else {
+			await submitIntent([{ type: "reply", params: { text: t } }]);
+		}
 		setSendingReply(false);
+		setReplyText("");
+	}
+
+	function startEdit(m: ThreadMessage) {
+		setEditingId(m.message_id);
+		setReplyText(m.body ?? "");
+	}
+	function cancelEdit() {
+		setEditingId(null);
 		setReplyText("");
 	}
 
@@ -158,7 +176,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 				</p>
 			</header>
 
-			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-1 bg-slate-50">
+			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 bg-slate-50">
 				{loading && session.thread.length === 0 ? (
 					<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
 						<Loader2 size={22} className="animate-spin" />
@@ -185,22 +203,25 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 							// WhatsApp-style date pill before the first message and at
 							// each calendar-day boundary.
 							const showDay = i === 0 || !isSameDay(prev.created_at, m.created_at);
+							// Tight grouping: same-author runs hug (mt-0.5); a new speaker
+							// or a day boundary gets clear separation (mt-3). First row flush.
+							const rowGap = i === 0 ? "" : startsRun || showDay ? "mt-3" : "mt-0.5";
 							return (
-								<div key={m.message_id}>
+								<div key={m.message_id} className={rowGap}>
 									{showDay && <DateSeparator iso={m.created_at} />}
 									<Bubble
 										m={m}
 										showOfficerHeader={isOfficer && startsRun}
 										showAvatar={endsRun}
+										endsRun={endsRun}
 										officerName={session.officer_name}
 										officerAvatar={session.officer_avatar}
 										borrowerName={session.entity?.name || "You"}
+										isEditing={m.message_id === editingId}
 										onDelete={() =>
 											submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
 										}
-										onEdit={(body) =>
-											submitIntent([{ type: "edit_message", params: { message_id: m.message_id, text: body } }])
-										}
+										onStartEdit={startEdit}
 									/>
 								</div>
 							);
@@ -231,23 +252,34 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						{finishing ? "Submitting…" : "I've sent everything — submit"}
 					</button>
 				)}
+				{editingId && (
+					<div className="flex items-center justify-between text-xs text-indigo-600 mb-1">
+						<span className="font-medium">Editing message</span>
+						<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">
+							Cancel
+						</button>
+					</div>
+				)}
 				<div className="flex items-end gap-2">
 					<input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={(e) => onFiles(e.target.files)} />
-					<button
-						type="button"
-						onClick={() => fileRef.current?.click()}
-						disabled={uploading}
-						aria-label="Attach documents"
-						className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
-					>
-						<Paperclip size={18} />
-					</button>
+					{/* No attaching while editing an existing message — edit is text-only. */}
+					{!editingId && (
+						<button
+							type="button"
+							onClick={() => fileRef.current?.click()}
+							disabled={uploading}
+							aria-label="Attach documents"
+							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
+						>
+							<Paperclip size={18} />
+						</button>
+					)}
 					<textarea
 						value={replyText}
 						onChange={(e) => { setReplyText(e.target.value); onTyping(); }}
 						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
 						rows={1}
-						placeholder="Message…"
+						placeholder={editingId ? "Edit message…" : "Message…"}
 						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
 					/>
 					<button
@@ -256,7 +288,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						disabled={sendingReply || !replyText.trim()}
 						className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
 					>
-						Send
+						{editingId ? "Save" : "Send"}
 					</button>
 				</div>
 			</div>
@@ -286,41 +318,55 @@ function Bubble({
 	m,
 	showOfficerHeader,
 	showAvatar,
+	endsRun,
+	isEditing,
 	officerName,
 	officerAvatar,
 	borrowerName,
 	onDelete,
-	onEdit,
+	onStartEdit,
 }: {
 	m: ThreadMessage;
 	showOfficerHeader: boolean;
 	showAvatar: boolean;
+	/** Last bubble of a consecutive same-author run — gets the WhatsApp tail
+	 * corner (`rounded-br-md`/`rounded-bl-md`). Mid-run bubbles stay fully round. */
+	endsRun: boolean;
+	/** This bubble's message is loaded in the reply composer for editing —
+	 * highlight it so the borrower sees what they're editing. */
+	isEditing: boolean;
 	officerName: string;
 	officerAvatar: string;
 	borrowerName: string;
 	onDelete: () => void;
-	onEdit: (body: string) => void;
+	/** Pencil click → load this message into the bottom reply composer. */
+	onStartEdit: (m: ThreadMessage) => void;
 }) {
 	const mine = m.author_kind === "borrower";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
 	const deleted = m.deleted === true;
-	// Inline edit: the bubble body becomes a textarea prefilled with the body.
-	const [editing, setEditing] = useState(false);
-	const [draftBody, setDraftBody] = useState(m.body ?? "");
 	// The borrower can modify only their OWN non-upload, non-deleted messages
 	// (uploads are case events with no row; deleted messages are tombstones).
 	const canModify = mine && m.kind !== "upload" && !deleted;
 
-	function saveEdit() {
-		const next = draftBody.trim();
-		if (next && next !== (m.body ?? "")) onEdit(next);
-		setEditing(false);
-	}
-	function cancelEdit() {
-		setDraftBody(m.body ?? "");
-		setEditing(false);
-	}
+	// WhatsApp bubble shape: fully rounded mid-run; the last bubble of a run gets
+	// a small tail corner on the speaker's inner-bottom edge (own → bottom-right,
+	// incoming → bottom-left).
+	const tail = endsRun ? (mine ? "rounded-br-md" : "rounded-bl-md") : "";
+	const bubbleShape = `rounded-2xl ${tail} shadow-sm`;
+
+	// In-bubble meta row (WhatsApp): time + "· edited" + ✓/✓✓ receipt, tucked
+	// bottom-right INSIDE the bubble. Muted against the bubble background.
+	const meta = !deleted && (
+		<span
+			className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] leading-none ${mine ? "text-indigo-200" : "text-slate-400"}`}
+		>
+			{clockTime(m.created_at)}
+			{m.edited && <span>· edited</span>}
+			{mine && (m.read ? <CheckCheck size={12} /> : <Check size={12} />)}
+		</span>
+	);
 
 	// Avatar column (40px, matching the operator side): the face on the last
 	// bubble of a run, a spacer otherwise so consecutive bubbles in the run stay
@@ -337,56 +383,39 @@ function Bubble({
 	);
 
 	const inner = deleted ? (
-		<div className={`inline-flex items-center gap-1.5 max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
+		<div className={`inline-flex items-center gap-1.5 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
 			<Ban size={13} className="shrink-0" /> This message was deleted
-		</div>
-	) : editing ? (
-		<div className="w-64 max-w-full rounded-2xl border border-indigo-300 bg-white p-2 shadow-sm">
-			<textarea
-				value={draftBody}
-				onChange={(e) => setDraftBody(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") cancelEdit();
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit();
-				}}
-				rows={2}
-				autoFocus
-				className="w-full resize-none rounded-lg bg-slate-50 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-			/>
-			<div className="mt-1 flex justify-end gap-3 text-xs">
-				<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">Cancel</button>
-				<button type="button" onClick={saveEdit} className="font-semibold text-indigo-600 hover:text-indigo-800">Save</button>
-			</div>
 		</div>
 	) : m.kind === "upload" ? (
 		m.processing ? (
 			// Still being extracted — muted "Processing…" placeholder (the borrower
 			// has no doc viewer, so uploads are never clickable here).
-			<div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400">
+			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm bg-slate-100 text-slate-400`}>
 				<Loader2 size={14} className="shrink-0 animate-spin" />
 				<span className="truncate min-w-0">{m.body}</span>
 				<span className="shrink-0 italic">· Processing…</span>
 			</div>
 		) : (
-			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
 				<FileText size={14} />
 				<span className="truncate min-w-0">{m.body}</span>
 				<Check size={13} className={`shrink-0 ${mine ? "text-indigo-200" : "text-green-500"}`} />
 			</div>
 		)
 	) : (
-		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+		<div className={`max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
 			{items.length > 0 && (
 				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
 					{items.map((it, i) => <li key={i}>{it.title}</li>)}
 				</ul>
 			)}
+			{meta}
 		</div>
 	);
 
 	return (
-		<div className={`group flex flex-col w-full ${align}`}>
+		<div className={`group flex flex-col w-full ${align} ${isEditing ? "rounded-xl ring-2 ring-indigo-300" : ""}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
 			{/* Row reads inward from the speaker's side: [avatar][edit][delete][bubble]
 			    for the officer (left), mirrored for the borrower (right). */}
@@ -394,12 +423,12 @@ function Bubble({
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 					{/* Edit + delete show ONLY on the borrower's own non-deleted, non-upload
-					    bubbles, and are hidden while editing. */}
-					{canModify && !editing && (
+					    bubbles. The pencil loads this message into the bottom composer. */}
+					{canModify && (
 						<div className={`flex items-center gap-0.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
 							<button
 								type="button"
-								onClick={() => { setDraftBody(m.body ?? ""); setEditing(true); }}
+								onClick={() => onStartEdit(m)}
 								aria-label="Edit message"
 								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
 							>
@@ -418,15 +447,6 @@ function Bubble({
 					{inner}
 				</div>
 			</div>
-			{showAvatar && (
-				<span className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}>
-					{clockTime(m.created_at)}
-					{m.edited && !deleted && <span>· edited</span>}
-					{/* On the borrower's OWN bubbles, the ✓/✓✓ receipt reflects whether
-					    the loan officer has read it (✓✓ = read). Not shown on tombstones. */}
-					{mine && !deleted && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
-				</span>
-			)}
 		</div>
 	);
 }

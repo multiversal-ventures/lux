@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Intent, PortalClientError, PortalSession } from "@multiversal-ventures/lux-core";
 import { createPortalClient } from "@multiversal-ventures/lux-core";
 
@@ -29,14 +29,30 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 
 	const client = useMemo(() => createPortalClient(), []);
 
+	// Ephemeral verify-proof: the access code is a per-browser-session gate; the
+	// claimed account is the only durable credential. The proof lives in MEMORY
+	// ONLY (a ref — never localStorage/sessionStorage), so a page refresh / new
+	// tab wipes it → no X-Portal-Verify header → if the borrower has no account
+	// the server re-asks the code. After they verify (intent returns a proof) the
+	// ref is set and in-session refetches stay verified.
+	const verifyProofRef = useRef<string | null>(null);
+
+	// Absorb a fresh proof from any session response into the in-memory ref.
+	const absorbProof = useCallback((s: PortalSession | null) => {
+		if (s?.verify_proof) verifyProofRef.current = s.verify_proof;
+	}, []);
+
 	// Silent refresh — updates the session without the loading flicker (used by
 	// the real-time stream so new messages just appear).
 	const refreshSession = useCallback(
 		async (t: string) => {
-			const result = await client.fetchSession(t);
-			if (!result.error) setSession(result.session);
+			const result = await client.fetchSession(t, verifyProofRef.current);
+			if (!result.error) {
+				absorbProof(result.session);
+				setSession(result.session);
+			}
 		},
-		[client],
+		[client, absorbProof],
 	);
 
 	// Real-time: refetch the (privacy-gated) session on any portal ping; show a
@@ -45,6 +61,7 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 		if (!token) return;
 		let typingTimer: ReturnType<typeof setTimeout> | undefined;
 		const unsub = client.streamPortalEvents(token, (ping) => {
+			// (stream gates on the same proof; pings only trigger a gated refetch)
 			if (ping.type === "portal.typing") {
 				if (ping.actor === "operator") {
 					setOperatorTyping(true);
@@ -54,7 +71,7 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 			} else {
 				void refreshSession(token);
 			}
-		});
+		}, verifyProofRef.current);
 		return () => {
 			unsub();
 			if (typingTimer) clearTimeout(typingTimer);
@@ -69,15 +86,16 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 		async (t: string) => {
 			setLoading(true);
 			setError(null);
-			const result = await client.fetchSession(t);
+			const result = await client.fetchSession(t, verifyProofRef.current);
 			if (result.error) {
 				setError(result.error);
 			} else {
+				absorbProof(result.session);
 				setSession(result.session);
 			}
 			setLoading(false);
 		},
-		[client],
+		[client, absorbProof],
 	);
 
 	useEffect(() => {
@@ -96,14 +114,22 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 				return;
 			}
 			setError(null);
-			const result = await client.submitIntents(session.session_id, token, intents);
+			const result = await client.submitIntents(
+				session.session_id,
+				token,
+				intents,
+				verifyProofRef.current,
+			);
 			if (result.error) {
 				setError(result.error);
 			} else if (result.session) {
+				// A verify intent returns a fresh proof — capture it so subsequent
+				// in-session refetches stay verified (until a real refresh wipes it).
+				absorbProof(result.session);
 				setSession(result.session);
 			}
 		},
-		[client, session, token],
+		[client, session, token, absorbProof],
 	);
 
 	const uploadDocuments = useCallback(

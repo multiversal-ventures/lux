@@ -2140,6 +2140,20 @@
         "title": "DraftResponse",
         "type": "object"
       },
+      "EditMessageBody": {
+        "description": "Operator edits the body of one of their OWN thread messages.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "EditMessageBody",
+        "type": "object"
+      },
       "EntityGroupResponse": {
         "properties": {
           "case_id": {
@@ -6682,6 +6696,16 @@
             "title": "Created At",
             "type": "string"
           },
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "edited": {
+            "default": false,
+            "title": "Edited",
+            "type": "boolean"
+          },
           "items": {
             "default": [],
             "items": {
@@ -9567,7 +9591,7 @@
     },
     "/api/cases/{case_id}/portal/parties/{party_id}/messages/{message_id}": {
       "delete": {
-        "description": "Operator deletes one message from a party's thread.\n\nThe operator may delete ANY message in their own case's thread (request,\nreply, or operator chat). Guarded against IDOR: case access is verified, the\nmessage must exist, belong to the URL party, and that party must belong to\nthe URL case. Upload bubbles are synthesized from events (non-row ids), so\n``get_message`` returns None for them \u2014 they 404 here and stay undeletable.\nAfter delete, publishes ``portal.thread_changed`` so both sides refetch.",
+        "description": "Operator soft-deletes one of their OWN messages from a party's thread.\n\nOwn-only: the operator may delete ONLY operator-authored messages \u2014 never a\nborrower's message. Guarded against IDOR: case access is verified, the\nmessage must exist, belong to the URL party, and that party must belong to\nthe URL case. Upload bubbles are synthesized from events (non-row ids), so\n``get_message`` returns None for them \u2014 they 404 here and stay undeletable.\nThe delete is SOFT (``deleted_at`` set, row kept) so the thread shows a\ntombstone. After delete, publishes ``portal.thread_changed`` so both sides\nrefetch.",
         "operationId": "delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete",
         "parameters": [
           {
@@ -9630,6 +9654,84 @@
           }
         ],
         "summary": "Delete Party Message",
+        "tags": [
+          "party"
+        ]
+      },
+      "patch": {
+        "description": "Operator edits the body of one of their OWN messages on a party's thread.\n\nOwn-only: only operator-authored messages may be edited \u2014 never a borrower's.\nGuarded against IDOR: case access is verified, the message must exist, belong\nto the URL party, and that party must belong to the URL case. A deleted\nmessage can't be edited (404 \u2014 its content is gone). An empty/whitespace body\nis rejected (422). After the edit, publishes ``portal.thread_changed`` so\nboth sides refetch.",
+        "operationId": "edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "title": "Message Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditMessageBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Edit Party Message Api Cases  Case Id  Portal Parties  Party Id  Messages  Message Id  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Edit Party Message",
         "tags": [
           "party"
         ]

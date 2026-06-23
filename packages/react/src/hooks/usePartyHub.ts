@@ -194,9 +194,10 @@ export function useClearThread(caseId: string): UseMutationResult<unknown, Error
 	});
 }
 
-/** Delete a single message from a party's thread (operator side); refreshes
- * overview. The operator may delete any request/reply/operator message; upload
- * bubbles are not deletable (the server 404s). */
+/** Soft-delete a single message from a party's thread (operator side); refreshes
+ * overview. Own-only: the operator may delete only their own messages; upload
+ * bubbles are not deletable (the server 404s). The row is kept so the thread
+ * renders a deleted tombstone. */
 export function useDeleteMessage(
 	caseId: string,
 ): UseMutationResult<unknown, Error, { partyId: string; messageId: string }> {
@@ -204,6 +205,20 @@ export function useDeleteMessage(
 	return useMutation<unknown, Error, { partyId: string; messageId: string }>({
 		mutationFn: async ({ partyId, messageId }) =>
 			getDefaultClient().deletePartyMessage(caseId, partyId, messageId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
+/** Edit one of the operator's OWN messages on a party's thread; refreshes
+ * overview. Own-only: the server 403s on a borrower message. The bubble gets an
+ * "· edited" indicator. */
+export function useEditMessage(
+	caseId: string,
+): UseMutationResult<unknown, Error, { partyId: string; messageId: string; body: string }> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, { partyId: string; messageId: string; body: string }>({
+		mutationFn: async ({ partyId, messageId, body }) =>
+			getDefaultClient().editPartyMessage(caseId, partyId, messageId, body),
 		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
 	});
 }

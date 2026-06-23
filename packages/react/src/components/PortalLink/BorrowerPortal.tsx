@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, CheckCheck, FileText, Loader2, Lock, Mail, Paperclip, Trash2 } from "lucide-react";
+import { Check, CheckCheck, FileText, Loader2, Lock, Mail, Paperclip, Pencil, Trash2 } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
@@ -198,6 +198,9 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 										onDelete={() =>
 											submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
 										}
+										onEdit={(body) =>
+											submitIntent([{ type: "edit_message", params: { message_id: m.message_id, text: body } }])
+										}
 									/>
 								</div>
 							);
@@ -287,6 +290,7 @@ function Bubble({
 	officerAvatar,
 	borrowerName,
 	onDelete,
+	onEdit,
 }: {
 	m: ThreadMessage;
 	showOfficerHeader: boolean;
@@ -295,13 +299,28 @@ function Bubble({
 	officerAvatar: string;
 	borrowerName: string;
 	onDelete: () => void;
+	onEdit: (body: string) => void;
 }) {
 	const mine = m.author_kind === "borrower";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
-	// The borrower can delete only their OWN non-upload messages (uploads are
-	// case events with no deletable row).
-	const canDelete = mine && m.kind !== "upload";
+	const deleted = m.deleted === true;
+	// Inline edit: the bubble body becomes a textarea prefilled with the body.
+	const [editing, setEditing] = useState(false);
+	const [draftBody, setDraftBody] = useState(m.body ?? "");
+	// The borrower can modify only their OWN non-upload, non-deleted messages
+	// (uploads are case events with no row; deleted messages are tombstones).
+	const canModify = mine && m.kind !== "upload" && !deleted;
+
+	function saveEdit() {
+		const next = draftBody.trim();
+		if (next && next !== (m.body ?? "")) onEdit(next);
+		setEditing(false);
+	}
+	function cancelEdit() {
+		setDraftBody(m.body ?? "");
+		setEditing(false);
+	}
 
 	// Avatar column (40px, matching the operator side): the face on the last
 	// bubble of a run, a spacer otherwise so consecutive bubbles in the run stay
@@ -317,39 +336,72 @@ function Bubble({
 		<span className="shrink-0" style={{ width: 40 }} />
 	);
 
-	const inner =
-		m.kind === "upload" ? (
-			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-				<FileText size={14} />{m.body}
+	const inner = deleted ? (
+		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
+			🚫 This message was deleted
+		</div>
+	) : editing ? (
+		<div className="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-white border border-indigo-300 text-slate-800">
+			<textarea
+				value={draftBody}
+				onChange={(e) => setDraftBody(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === "Escape") cancelEdit();
+					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit();
+				}}
+				rows={2}
+				autoFocus
+				className="w-56 resize-none rounded border border-slate-200 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+			/>
+			<div className="mt-1 flex justify-end gap-2 text-[11px]">
+				<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">Cancel</button>
+				<button type="button" onClick={saveEdit} className="font-medium text-indigo-600 hover:text-indigo-800">Save</button>
 			</div>
-		) : (
-			<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
-				{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
-				{items.length > 0 && (
-					<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
-						{items.map((it, i) => <li key={i}>{it.title}</li>)}
-					</ul>
-				)}
-			</div>
-		);
+		</div>
+	) : m.kind === "upload" ? (
+		<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+			<FileText size={14} />{m.body}
+		</div>
+	) : (
+		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+			{items.length > 0 && (
+				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
+					{items.map((it, i) => <li key={i}>{it.title}</li>)}
+				</ul>
+			)}
+		</div>
+	);
 
 	return (
 		<div className={`group flex flex-col w-full ${align}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
-			{/* Row reads inward from the speaker's side: [avatar][delete][bubble]
+			{/* Row reads inward from the speaker's side: [avatar][edit][delete][bubble]
 			    for the officer (left), mirrored for the borrower (right). */}
 			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
-					{canDelete && (
-						<button
-							type="button"
-							onClick={onDelete}
-							aria-label="Delete message"
-							className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
-						>
-							<Trash2 size={13} />
-						</button>
+					{/* Edit + delete show ONLY on the borrower's own non-deleted, non-upload
+					    bubbles, and are hidden while editing. */}
+					{canModify && !editing && (
+						<div className={`flex items-center gap-0.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
+							<button
+								type="button"
+								onClick={() => { setDraftBody(m.body ?? ""); setEditing(true); }}
+								aria-label="Edit message"
+								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
+							>
+								<Pencil size={13} />
+							</button>
+							<button
+								type="button"
+								onClick={onDelete}
+								aria-label="Delete message"
+								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
+							>
+								<Trash2 size={13} />
+							</button>
+						</div>
 					)}
 					{inner}
 				</div>
@@ -357,9 +409,10 @@ function Bubble({
 			{showAvatar && (
 				<span className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}>
 					{clockTime(m.created_at)}
+					{m.edited && !deleted && <span>· edited</span>}
 					{/* On the borrower's OWN bubbles, the ✓/✓✓ receipt reflects whether
-					    the loan officer has read it (✓✓ = read). */}
-					{mine && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
+					    the loan officer has read it (✓✓ = read). Not shown on tombstones. */}
+					{mine && !deleted && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
 				</span>
 			)}
 		</div>

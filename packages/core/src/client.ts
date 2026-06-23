@@ -435,13 +435,29 @@ export class VeritasClient {
 		);
 	}
 
-	/** Delete a single message from a party's thread (operator side). The operator
-	 * may delete any request/reply/operator message in their case's thread; upload
-	 * bubbles are synthesized from events and are not deletable (the server 404s). */
+	/** Soft-delete a single message from a party's thread (operator side). Own-only:
+	 * the operator may delete only operator-authored messages (the server 403s on a
+	 * borrower message); upload bubbles are not deletable (the server 404s). The row
+	 * is kept so the thread renders a deleted tombstone. */
 	async deletePartyMessage(caseId: string, partyId: string, messageId: string): Promise<void> {
 		await this.requestJson<unknown>(
 			`/api/cases/${caseId}/portal/parties/${partyId}/messages/${encodeURIComponent(messageId)}`,
 			{ method: "DELETE" },
+		);
+	}
+
+	/** Edit the body of one of the operator's OWN messages on a party's thread.
+	 * Own-only: the server 403s on a borrower message, 404s a deleted one, and 422s
+	 * an empty body. The bubble gets an "· edited" indicator. */
+	async editPartyMessage(
+		caseId: string,
+		partyId: string,
+		messageId: string,
+		body: string,
+	): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages/${encodeURIComponent(messageId)}`,
+			{ method: "PATCH", body: JSON.stringify({ body }) },
 		);
 	}
 

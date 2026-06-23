@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, CheckCheck, Eraser, FileText, Link2, Loader2, RefreshCw, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
+import { Check, CheckCheck, Eraser, FileText, Link2, Loader2, Pencil, RefreshCw, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
@@ -7,6 +7,7 @@ import { DateSeparator } from "../DateSeparator.js";
 import { WebcamCaptureModal } from "../WebcamCaptureModal.js";
 import {
 	useDeleteMessage,
+	useEditMessage,
 	useDeleteParty,
 	useClearThread,
 	useDraftRequest,
@@ -81,6 +82,7 @@ export function PartyDetail({
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 	const markRead = useMarkThreadRead(caseId);
 	const deleteMessage = useDeleteMessage(caseId);
+	const editMessage = useEditMessage(caseId);
 
 	// When the operator is viewing a party that has borrower messages, mark them
 	// read → the borrower's receipt flips to ✓✓. Fires on open (party switch) and
@@ -310,6 +312,9 @@ export function PartyDetail({
 									onDelete={() =>
 										deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
 									}
+									onEdit={(body) =>
+										editMessage.mutate({ partyId: party.party_id, messageId: m.message_id, body })
+									}
 								/>
 							</div>
 						);
@@ -443,6 +448,7 @@ function OpBubble({
 	borrowerName,
 	onAvatarClick,
 	onDelete,
+	onEdit,
 }: {
 	m: ThreadItem;
 	showAvatar: boolean;
@@ -451,12 +457,29 @@ function OpBubble({
 	borrowerName: string;
 	onAvatarClick: () => void;
 	onDelete: () => void;
+	onEdit: (body: string) => void;
 }) {
 	const mine = m.author_kind === "operator";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
-	// Uploads have no deletable row (they are synthesized from case events).
-	const canDelete = m.kind !== "upload";
+	const deleted = m.deleted === true;
+	// Inline edit: the bubble body becomes a textarea prefilled with the body.
+	const [editing, setEditing] = useState(false);
+	const [draftBody, setDraftBody] = useState(m.body ?? "");
+	// Own-only + never on uploads/deleted: the operator may modify only their OWN
+	// (operator-authored) message rows. Uploads are synthesized from events (no
+	// row); deleted messages are tombstones.
+	const canModify = mine && m.kind !== "upload" && !deleted;
+
+	function saveEdit() {
+		const next = draftBody.trim();
+		if (next && next !== (m.body ?? "")) onEdit(next);
+		setEditing(false);
+	}
+	function cancelEdit() {
+		setDraftBody(m.body ?? "");
+		setEditing(false);
+	}
 
 	// Avatar column (28px): the face on the last bubble of a run, a spacer
 	// otherwise. The operator's own avatar is clickable → opens webcam capture.
@@ -476,37 +499,70 @@ function OpBubble({
 		<span className="shrink-0" style={{ width: 40 }} />
 	);
 
-	const inner =
-		m.kind === "upload" ? (
-			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-				<FileText size={14} />{m.body}
+	const inner = deleted ? (
+		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
+			🚫 This message was deleted
+		</div>
+	) : editing ? (
+		<div className="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-white border border-indigo-300 text-slate-800">
+			<textarea
+				value={draftBody}
+				onChange={(e) => setDraftBody(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === "Escape") cancelEdit();
+					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit();
+				}}
+				rows={2}
+				autoFocus
+				className="w-56 resize-none rounded border border-slate-200 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+			/>
+			<div className="mt-1 flex justify-end gap-2 text-[11px]">
+				<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">Cancel</button>
+				<button type="button" onClick={saveEdit} className="font-medium text-indigo-600 hover:text-indigo-800">Save</button>
 			</div>
-		) : (
-			<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
-				<p className="text-[10px] opacity-70 mb-0.5">{mine ? "You" : "Borrower"}</p>
-				{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
-				{items.length > 0 && (
-					<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
-						{items.map((it, i) => <li key={i}>{it.title}</li>)}
-					</ul>
-				)}
-			</div>
-		);
+		</div>
+	) : m.kind === "upload" ? (
+		<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+			<FileText size={14} />{m.body}
+		</div>
+	) : (
+		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+			<p className="text-[10px] opacity-70 mb-0.5">{mine ? "You" : "Borrower"}</p>
+			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+			{items.length > 0 && (
+				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
+					{items.map((it, i) => <li key={i}>{it.title}</li>)}
+				</ul>
+			)}
+		</div>
+	);
 
 	return (
 		<div className={`group flex flex-col w-full ${align}`}>
 			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
-					{canDelete && (
-						<button
-							type="button"
-							onClick={onDelete}
-							aria-label="Delete message"
-							className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
-						>
-							<Trash2 size={13} />
-						</button>
+					{/* Edit + delete show ONLY on the operator's own non-deleted, non-upload
+					    bubbles, and are hidden while editing. */}
+					{canModify && !editing && (
+						<div className={`flex items-center gap-0.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
+							<button
+								type="button"
+								onClick={() => { setDraftBody(m.body ?? ""); setEditing(true); }}
+								aria-label="Edit message"
+								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
+							>
+								<Pencil size={13} />
+							</button>
+							<button
+								type="button"
+								onClick={onDelete}
+								aria-label="Delete message"
+								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
+							>
+								<Trash2 size={13} />
+							</button>
+						</div>
 					)}
 					{inner}
 				</div>
@@ -514,9 +570,10 @@ function OpBubble({
 			{showAvatar && (
 				<span className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}>
 					{clockTime(m.created_at)}
+					{m.edited && !deleted && <span>· edited</span>}
 					{/* On the operator's OWN bubbles, the ✓/✓✓ receipt reflects whether
-					    the borrower has read it (✓✓ = read). */}
-					{mine && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
+					    the borrower has read it (✓✓ = read). Not shown on tombstones. */}
+					{mine && !deleted && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
 				</span>
 			)}
 		</div>

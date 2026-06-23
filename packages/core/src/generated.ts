@@ -878,19 +878,32 @@ export interface paths {
         post?: never;
         /**
          * Delete Party Message
-         * @description Operator deletes one message from a party's thread.
+         * @description Operator soft-deletes one of their OWN messages from a party's thread.
          *
-         *     The operator may delete ANY message in their own case's thread (request,
-         *     reply, or operator chat). Guarded against IDOR: case access is verified, the
+         *     Own-only: the operator may delete ONLY operator-authored messages — never a
+         *     borrower's message. Guarded against IDOR: case access is verified, the
          *     message must exist, belong to the URL party, and that party must belong to
          *     the URL case. Upload bubbles are synthesized from events (non-row ids), so
          *     ``get_message`` returns None for them — they 404 here and stay undeletable.
-         *     After delete, publishes ``portal.thread_changed`` so both sides refetch.
+         *     The delete is SOFT (``deleted_at`` set, row kept) so the thread shows a
+         *     tombstone. After delete, publishes ``portal.thread_changed`` so both sides
+         *     refetch.
          */
         delete: operations["delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Edit Party Message
+         * @description Operator edits the body of one of their OWN messages on a party's thread.
+         *
+         *     Own-only: only operator-authored messages may be edited — never a borrower's.
+         *     Guarded against IDOR: case access is verified, the message must exist, belong
+         *     to the URL party, and that party must belong to the URL case. A deleted
+         *     message can't be edited (404 — its content is gone). An empty/whitespace body
+         *     is rejected (422). After the edit, publishes ``portal.thread_changed`` so
+         *     both sides refetch.
+         */
+        patch: operations["edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch"];
         trace?: never;
     };
     "/api/cases/{case_id}/portal/parties/{party_id}/read": {
@@ -3208,6 +3221,14 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * EditMessageBody
+         * @description Operator edits the body of one of their OWN thread messages.
+         */
+        EditMessageBody: {
+            /** Body */
+            body: string;
+        };
         /** EntityGroupResponse */
         EntityGroupResponse: {
             /**
@@ -5253,6 +5274,16 @@ export interface components {
              */
             created_at: string;
             /**
+             * Deleted
+             * @default false
+             */
+            deleted: boolean;
+            /**
+             * Edited
+             * @default false
+             */
+            edited: boolean;
+            /**
              * Items
              * @default []
              */
@@ -6925,6 +6956,45 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

@@ -23,6 +23,18 @@ beforeEach(() => {
 	vi.stubGlobal("fetch", vi.fn());
 });
 
+// The hook opens a real-time event stream (GET /api/portal/stream) on mount,
+// which issues its own fetch. Sequence-based tests must ignore that call so it
+// doesn't consume an intended mockResolvedValueOnce. This helper returns the
+// given responses in order for non-stream calls and a benign non-ok for stream.
+function seqFetch(responses: Partial<Response>[]) {
+	let i = 0;
+	return vi.fn(async (input: RequestInfo | URL) => {
+		if (String(input).includes("/portal/stream")) return { ok: false } as Response;
+		return responses[i++] as Response;
+	});
+}
+
 afterEach(() => {
 	vi.restoreAllMocks();
 });
@@ -81,12 +93,13 @@ describe("usePortalSession", () => {
 	it("submitIntent updates session on success", async () => {
 		const updatedSession = { ...SESSION_FIXTURE, case_state: "docs_submitted" };
 
-		vi.mocked(fetch)
-			.mockResolvedValueOnce({ ok: true, json: async () => SESSION_FIXTURE } as Response)
-			.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ session: updatedSession }),
-			} as Response);
+		vi.stubGlobal(
+			"fetch",
+			seqFetch([
+				{ ok: true, json: async () => SESSION_FIXTURE },
+				{ ok: true, json: async () => ({ session: updatedSession }) },
+			]),
+		);
 
 		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
@@ -100,9 +113,13 @@ describe("usePortalSession", () => {
 	});
 
 	it("submitIntent sets server error on non-ok HTTP response", async () => {
-		vi.mocked(fetch)
-			.mockResolvedValueOnce({ ok: true, json: async () => SESSION_FIXTURE } as Response)
-			.mockResolvedValueOnce({ ok: false, status: 409 } as Response);
+		vi.stubGlobal(
+			"fetch",
+			seqFetch([
+				{ ok: true, json: async () => SESSION_FIXTURE },
+				{ ok: false, status: 409 },
+			]),
+		);
 
 		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));

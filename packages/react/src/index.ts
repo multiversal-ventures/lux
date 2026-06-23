@@ -10,6 +10,9 @@ export type {
 } from "./store/index.js";
 
 
+// Humanized relative timestamps for chat bubbles ("just now", "5m ago", …).
+export { timeAgo } from "./timeAgo.js";
+
 // SDK session primitives (from refactor/lux-as-sdk architecture)
 export { SessionProvider } from "./SessionProvider.js";
 export { useSession } from "./useSession.js";

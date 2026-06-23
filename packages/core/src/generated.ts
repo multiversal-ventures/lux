@@ -866,6 +866,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Party Message
+         * @description Operator deletes one message from a party's thread.
+         *
+         *     The operator may delete ANY message in their own case's thread (request,
+         *     reply, or operator chat). Guarded against IDOR: case access is verified, the
+         *     message must exist, belong to the URL party, and that party must belong to
+         *     the URL case. Upload bubbles are synthesized from events (non-row ids), so
+         *     ``get_message`` returns None for them — they 404 here and stay undeletable.
+         *     After delete, publishes ``portal.thread_changed`` so both sides refetch.
+         */
+        delete: operations["delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/parties/{party_id}/read": {
         parameters: {
             query?: never;
@@ -3638,6 +3665,8 @@ export interface components {
             granted?: boolean | null;
             /** Level */
             level?: number | null;
+            /** Message Id */
+            message_id?: string | null;
             /** Signature */
             signature?: string | null;
             /** Text */
@@ -6788,6 +6817,41 @@ export interface operations {
             path: {
                 case_id: string;
                 party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+                message_id: string;
             };
             cookie?: never;
         };

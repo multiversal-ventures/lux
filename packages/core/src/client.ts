@@ -435,6 +435,16 @@ export class VeritasClient {
 		);
 	}
 
+	/** Delete a single message from a party's thread (operator side). The operator
+	 * may delete any request/reply/operator message in their case's thread; upload
+	 * bubbles are synthesized from events and are not deletable (the server 404s). */
+	async deletePartyMessage(caseId: string, partyId: string, messageId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages/${encodeURIComponent(messageId)}`,
+			{ method: "DELETE" },
+		);
+	}
+
 	/** Reissue a party's portal link — resets the access code and attempt counter. */
 	async reissueLink(caseId: string, partyId: string): Promise<void> {
 		await this.requestJson<unknown>(

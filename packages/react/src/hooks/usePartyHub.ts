@@ -194,6 +194,20 @@ export function useClearThread(caseId: string): UseMutationResult<unknown, Error
 	});
 }
 
+/** Delete a single message from a party's thread (operator side); refreshes
+ * overview. The operator may delete any request/reply/operator message; upload
+ * bubbles are not deletable (the server 404s). */
+export function useDeleteMessage(
+	caseId: string,
+): UseMutationResult<unknown, Error, { partyId: string; messageId: string }> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, { partyId: string; messageId: string }>({
+		mutationFn: async ({ partyId, messageId }) =>
+			getDefaultClient().deletePartyMessage(caseId, partyId, messageId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
 /** Reissue a party's portal link (reset access code); refreshes overview. */
 export function useReissueLink(caseId: string): UseMutationResult<unknown, Error, string> {
 	const qc = useQueryClient();

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
-import { Check, CheckCheck, FileText, Headset, Lock, Mail, Paperclip } from "lucide-react";
+import { Check, CheckCheck, FileText, Headset, Lock, Mail, Paperclip, Trash2 } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
+import { timeAgo } from "../../timeAgo.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
@@ -152,6 +153,9 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 							key={m.message_id}
 							m={m}
 							showOfficerHeader={startsOfficerRun}
+							onDelete={() =>
+								submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
+							}
 						/>
 					);
 				})}
@@ -247,11 +251,23 @@ function ReadReceipt({ read }: { read: boolean }) {
 
 /** A single chat bubble — officer left, borrower right; uploads as file chips.
  * Officer bubbles starting a run get the "Your loan officer" header; the
- * borrower's own bubbles get a ✓/✓✓ read receipt. */
-function Bubble({ m, showOfficerHeader }: { m: ThreadMessage; showOfficerHeader: boolean }) {
+ * borrower's own bubbles get a ✓/✓✓ read receipt, a relative timestamp, and a
+ * hover delete (their own request/reply messages only — never uploads). */
+function Bubble({
+	m,
+	showOfficerHeader,
+	onDelete,
+}: {
+	m: ThreadMessage;
+	showOfficerHeader: boolean;
+	onDelete: () => void;
+}) {
 	const mine = m.author_kind === "borrower";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
+	// The borrower can delete only their OWN non-upload messages (uploads are
+	// case events with no deletable row).
+	const canDelete = mine && m.kind !== "upload";
 
 	const inner =
 		m.kind === "upload" ? (
@@ -270,10 +286,25 @@ function Bubble({ m, showOfficerHeader }: { m: ThreadMessage; showOfficerHeader:
 		);
 
 	return (
-		<div className={`flex flex-col ${align}`}>
+		<div className={`group flex flex-col ${align}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
-			{inner}
+			<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
+				{canDelete && (
+					<button
+						type="button"
+						onClick={onDelete}
+						aria-label="Delete message"
+						className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
+					>
+						<Trash2 size={13} />
+					</button>
+				)}
+				{inner}
+			</div>
 			{mine && <ReadReceipt read={!!m.read} />}
+			<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-1" : "pl-1"}`}>
+				{timeAgo(m.created_at)}
+			</span>
 		</div>
 	);
 }

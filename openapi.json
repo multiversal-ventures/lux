@@ -170,7 +170,7 @@
         "type": "object"
       },
       "AttachDocBody": {
-        "description": "Set a party's role on a case document (spec-style entity↔document relation).",
+        "description": "Set a party's role on a case document (spec-style entity\u2194document relation).",
         "properties": {
           "doc_id": {
             "format": "uuid",
@@ -789,7 +789,7 @@
       },
       "CaseEventData": {
         "additionalProperties": true,
-        "description": "Loose, open shape of a case event's ``event_data`` JSONB.\n\nAll fields optional and extra keys allowed — different event types carry\ndifferent payloads. The typed fields are the cross-cutting ones the UI\nreads: the ``_agent`` meta, the ``_display`` render-ready block, the\ncorrection op (``field``/``old_value``/``new_value``,\n``reason``/``score_basis``/``reasoning``), the severity badge, and a\nfree-text ``message``.",
+        "description": "Loose, open shape of a case event's ``event_data`` JSONB.\n\nAll fields optional and extra keys allowed \u2014 different event types carry\ndifferent payloads. The typed fields are the cross-cutting ones the UI\nreads: the ``_agent`` meta, the ``_display`` render-ready block, the\ncorrection op (``field``/``old_value``/``new_value``,\n``reason``/``score_basis``/``reasoning``), the severity badge, and a\nfree-text ``message``.",
         "properties": {
           "_agent": {
             "anyOf": [
@@ -888,7 +888,7 @@
         "type": "object"
       },
       "CaseEventResponse": {
-        "description": "One audit/case event — history row and SSE stream payload share it.",
+        "description": "One audit/case event \u2014 history row and SSE stream payload share it.",
         "properties": {
           "created_at": {
             "anyOf": [
@@ -1819,7 +1819,7 @@
         "type": "object"
       },
       "CreateTenantRequest": {
-        "description": "Body for POST /auth/create-tenant — authenticated user self-registers a tenant.",
+        "description": "Body for POST /auth/create-tenant \u2014 authenticated user self-registers a tenant.",
         "properties": {
           "name": {
             "description": "Organization name",
@@ -2108,7 +2108,7 @@
         "type": "object"
       },
       "DraftRequestBody": {
-        "description": "Draft-only — turns selected items into borrower-friendly text.",
+        "description": "Draft-only \u2014 turns selected items into borrower-friendly text.",
         "properties": {
           "context": {
             "default": "",
@@ -2350,7 +2350,7 @@
         "type": "object"
       },
       "EventDisplayField": {
-        "description": "One render-ready label/value row in an event's ``_display`` block.\n\n``value`` is already humanized server-side (refs resolved to names, doc-ids\nto ``W-2 p.1`` labels, snake_case to words); it may be a scalar, a list, or\na nested object — the consumer renders it structurally without interpreting.",
+        "description": "One render-ready label/value row in an event's ``_display`` block.\n\n``value`` is already humanized server-side (refs resolved to names, doc-ids\nto ``W-2 p.1`` labels, snake_case to words); it may be a scalar, a list, or\na nested object \u2014 the consumer renders it structurally without interpreting.",
         "properties": {
           "label": {
             "title": "Label",
@@ -2420,7 +2420,7 @@
         "type": "object"
       },
       "EventDisplayOpChange": {
-        "description": "A before→after value change on a correction op (humanized).",
+        "description": "A before\u2192after value change on a correction op (humanized).",
         "properties": {
           "field": {
             "anyOf": [
@@ -2543,7 +2543,7 @@
         "type": "object"
       },
       "ExtractionSourceRef": {
-        "description": "Page + bbox provenance carried alongside an input extraction.\n\n``file_id`` is the underlying file UUID — hosts wire this into their\ndocument viewer's ``?file=…&page=…`` deep-link convention (page_number is\n1-based, matching ``pages.page_number``).",
+        "description": "Page + bbox provenance carried alongside an input extraction.\n\n``file_id`` is the underlying file UUID \u2014 hosts wire this into their\ndocument viewer's ``?file=\u2026&page=\u2026`` deep-link convention (page_number is\n1-based, matching ``pages.page_number``).",
         "properties": {
           "bbox": {
             "anyOf": [
@@ -3056,7 +3056,7 @@
         "type": "object"
       },
       "InputProvenance": {
-        "description": "Single contributing extraction for a derivation input.\n\n`value` is the engine-side normalized value the derivation actually\nsaw; `raw_value` is the unparsed text the extraction stored. Together\nwith `doc_id` + `canonical_key` they let the UI render\n``W2.wages_y1 → $5,000`` chips that click through to a specific\npage/bbox.",
+        "description": "Single contributing extraction for a derivation input.\n\n`value` is the engine-side normalized value the derivation actually\nsaw; `raw_value` is the unparsed text the extraction stored. Together\nwith `doc_id` + `canonical_key` they let the UI render\n``W2.wages_y1 \u2192 $5,000`` chips that click through to a specific\npage/bbox.",
         "properties": {
           "canonical_key": {
             "title": "Canonical Key",
@@ -3257,6 +3257,17 @@
             ],
             "title": "Level"
           },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
           "signature": {
             "anyOf": [
               {
@@ -3365,7 +3376,7 @@
         "type": "object"
       },
       "JoinTenantRequest": {
-        "description": "Body for POST /auth/tenant/join — user redeems a tenant invite code.",
+        "description": "Body for POST /auth/tenant/join \u2014 user redeems a tenant invite code.",
         "properties": {
           "code": {
             "description": "Tenant join code issued by an admin",
@@ -3414,7 +3425,7 @@
         "type": "object"
       },
       "KbaQuestion": {
-        "description": "A knowledge-based-auth question derived from the case's identity facts.\n\nOnly the prompt is sent — never the expected answer. The borrower's answer\nis checked server-side (see veritas.domains.identity.kba).",
+        "description": "A knowledge-based-auth question derived from the case's identity facts.\n\nOnly the prompt is sent \u2014 never the expected answer. The borrower's answer\nis checked server-side (see veritas.domains.identity.kba).",
         "properties": {
           "choices": {
             "default": [],
@@ -3858,7 +3869,7 @@
         "type": "object"
       },
       "PortalLinkStatusResponse": {
-        "description": "Operator-facing status of a case's borrower portal link.\n\n``status``: ``none`` (never issued), ``waiting`` (issued, borrower hasn't\nsubmitted), ``submitted`` (borrower finished — link consumed).",
+        "description": "Operator-facing status of a case's borrower portal link.\n\n``status``: ``none`` (never issued), ``waiting`` (issued, borrower hasn't\nsubmitted), ``submitted`` (borrower finished \u2014 link consumed).",
         "properties": {
           "item_count": {
             "default": 0,
@@ -4114,7 +4125,7 @@
         "type": "object"
       },
       "ProductResponse": {
-        "description": "Tenant-scoped loan product configuration.\n\nReturned by ``GET /products`` (a tenant's own catalog) and consumed by\nLux to drive ``<ApproachPicker>`` / ``<ProductPicker>`` data-driven.\nThe shape mirrors ``policy.product_registry.TenantProductView`` —\nevery field that matters for runtime resolution + UI rendering, so\nthe host never has to consult any other endpoint to render an\naccurate picker.\n\n``initial_required_inputs`` carries the operator-supplied schema for\nfields flagged ``required_at_create: true`` on any of the product's\nspecs. The Create Case modal renders this directly via\n``<DynamicUserInputsFormFields>`` and blocks submission until every\nlisted field has a valid value — single round-trip, no separate\nschema endpoint. An empty list means the product has no must-know-\nupfront values; the modal can skip rendering the form altogether.",
+        "description": "Tenant-scoped loan product configuration.\n\nReturned by ``GET /products`` (a tenant's own catalog) and consumed by\nLux to drive ``<ApproachPicker>`` / ``<ProductPicker>`` data-driven.\nThe shape mirrors ``policy.product_registry.TenantProductView`` \u2014\nevery field that matters for runtime resolution + UI rendering, so\nthe host never has to consult any other endpoint to render an\naccurate picker.\n\n``initial_required_inputs`` carries the operator-supplied schema for\nfields flagged ``required_at_create: true`` on any of the product's\nspecs. The Create Case modal renders this directly via\n``<DynamicUserInputsFormFields>`` and blocks submission until every\nlisted field has a valid value \u2014 single round-trip, no separate\nschema endpoint. An empty list means the product has no must-know-\nupfront values; the modal can skip rendering the form altogether.",
         "properties": {
           "agency": {
             "title": "Agency",
@@ -4787,7 +4798,7 @@
         "type": "object"
       },
       "ReportCatalogResponse": {
-        "description": "Response from GET /cases/{case_id}/reports.\n\n``income_report_name`` is the resolved income report for the scenario's\nproducts — callers should use this instead of guessing from product IDs,\nbecause product data may not be loaded yet when the UI renders.\n\n``credit_available`` is true when the case has at least one uploaded\ncredit report document (CreditReport, SoftPullCreditReport, or\nHardPullCreditReport). Used by the export modal to enable Credit/DTI\ncheckboxes without relying on a previously-generated credit report.",
+        "description": "Response from GET /cases/{case_id}/reports.\n\n``income_report_name`` is the resolved income report for the scenario's\nproducts \u2014 callers should use this instead of guessing from product IDs,\nbecause product data may not be loaded yet when the UI renders.\n\n``credit_available`` is true when the case has at least one uploaded\ncredit report document (CreditReport, SoftPullCreditReport, or\nHardPullCreditReport). Used by the export modal to enable Credit/DTI\ncheckboxes without relying on a previously-generated credit report.",
         "properties": {
           "credit_available": {
             "default": false,
@@ -6027,7 +6038,7 @@
         "type": "object"
       },
       "SpecSummaryResultResponse": {
-        "description": "Aggregated headline result derived from a set of ``SpecResultResponse`` rows.\n\nVeritas computes one of these for every entity that holds spec results\n(scenarios, refinements, future entities). The same shape carries any\npolicy domain — income, asset verification, DTI, reserves, etc. — so\nconsumers never special-case on \"income\".\n\nThe ``strategy`` field names the aggregation rule. For now the only\nimplemented rule is ``max_value``: bucket eligible results by spec-name\nprefix, sum within each bucket, return the max bucket total. Additional\nstrategies (sum across buckets, weighted average, percentile, …) can be\nintroduced later as a backwards-compatible widening of the enum.",
+        "description": "Aggregated headline result derived from a set of ``SpecResultResponse`` rows.\n\nVeritas computes one of these for every entity that holds spec results\n(scenarios, refinements, future entities). The same shape carries any\npolicy domain \u2014 income, asset verification, DTI, reserves, etc. \u2014 so\nconsumers never special-case on \"income\".\n\nThe ``strategy`` field names the aggregation rule. For now the only\nimplemented rule is ``max_value``: bucket eligible results by spec-name\nprefix, sum within each bucket, return the max bucket total. Additional\nstrategies (sum across buckets, weighted average, percentile, \u2026) can be\nintroduced later as a backwards-compatible widening of the enum.",
         "properties": {
           "domain": {
             "anyOf": [
@@ -6333,7 +6344,7 @@
         "type": "object"
       },
       "StructuredDocument": {
-        "description": "One document's extractions grouped into ontology regions.\n\n``regions`` maps region_id → value:\n  static          → dict[str, Any]   (canonical_key suffix → raw value)\n  table/adaptive  → list[dict]       (one dict per extracted row)",
+        "description": "One document's extractions grouped into ontology regions.\n\n``regions`` maps region_id \u2192 value:\n  static          \u2192 dict[str, Any]   (canonical_key suffix \u2192 raw value)\n  table/adaptive  \u2192 list[dict]       (one dict per extracted row)",
         "properties": {
           "doc_id": {
             "format": "uuid",
@@ -6389,7 +6400,7 @@
         "type": "object"
       },
       "SuggestedProductsResponse": {
-        "description": "Document-driven product suggestion for a case.\n\nComputed by the post-stitch hook (see\n``temporal.activities.stitch.stitch_activity``) and persisted on\n``cases.suggested_product_ids``. The ``case.products.suggested`` SSE\nevent carries the same payload so the UI can live-update without\npolling.\n\n``suggested_product_ids`` is empty (and ``computed_at`` ``None``)\nwhen stitch hasn't run yet for the case — the UI should show the\nfull picker in that case rather than nothing.",
+        "description": "Document-driven product suggestion for a case.\n\nComputed by the post-stitch hook (see\n``temporal.activities.stitch.stitch_activity``) and persisted on\n``cases.suggested_product_ids``. The ``case.products.suggested`` SSE\nevent carries the same payload so the UI can live-update without\npolling.\n\n``suggested_product_ids`` is empty (and ``computed_at`` ``None``)\nwhen stitch hasn't run yet for the case \u2014 the UI should show the\nfull picker in that case rather than nothing.",
         "properties": {
           "case_id": {
             "format": "uuid",
@@ -7018,7 +7029,7 @@
         "type": "object"
       },
       "UserInputsProductSectionResponse": {
-        "description": "Operator-adjustable fields scoped to one product (e.g. all FNMA knobs).\n\nExcludes any field that came from a shared override group — those\nare emitted ONCE in ``UserInputsSchemaResponse.groups`` instead, so\nthe UI doesn't render duplicate pickers across QM products in a\nmulti-product scenario.",
+        "description": "Operator-adjustable fields scoped to one product (e.g. all FNMA knobs).\n\nExcludes any field that came from a shared override group \u2014 those\nare emitted ONCE in ``UserInputsSchemaResponse.groups`` instead, so\nthe UI doesn't render duplicate pickers across QM products in a\nmulti-product scenario.",
         "properties": {
           "display_name": {
             "title": "Display Name",
@@ -7045,7 +7056,7 @@
         "type": "object"
       },
       "UserInputsSchemaResponse": {
-        "description": "Full operator-adjustable schema for a scenario/refinement.\n\nTwo-tier rendering surface:\n\n  * ``groups``  — shared sections (one per active override group). A\n    scenario picking all QM products renders a single \"Qualified\n    Mortgage\" group with Y1/Y2 pickers.\n  * ``products`` — per-product sections holding product-specific +\n    spec-level overrides (group-sourced fields are stripped).\n\nThe host writes user-chosen values to\n``context[product_id].inputs[<field_name>]`` regardless of which\nsection the field lives in. Group sections fan their writes out to\nevery product in ``applies_to_products``; product sections write\ndirectly.",
+        "description": "Full operator-adjustable schema for a scenario/refinement.\n\nTwo-tier rendering surface:\n\n  * ``groups``  \u2014 shared sections (one per active override group). A\n    scenario picking all QM products renders a single \"Qualified\n    Mortgage\" group with Y1/Y2 pickers.\n  * ``products`` \u2014 per-product sections holding product-specific +\n    spec-level overrides (group-sourced fields are stripped).\n\nThe host writes user-chosen values to\n``context[product_id].inputs[<field_name>]`` regardless of which\nsection the field lives in. Group sections fan their writes out to\nevery product in ``applies_to_products``; product sections write\ndirectly.",
         "properties": {
           "groups": {
             "default": [],
@@ -7139,7 +7150,7 @@
   "paths": {
     "/api/ai/specs/generate": {
       "post": {
-        "description": "Generate a Veritas spec YAML from a plain-text product description.\n\nRestricted to tenant/operator scope — the same gate every spec-lifecycle\nendpoint in ``api/specs.py`` (create / submit / approve / reject / retire)\nuses. AI-assisted generation is part of the same authoring surface.",
+        "description": "Generate a Veritas spec YAML from a plain-text product description.\n\nRestricted to tenant/operator scope \u2014 the same gate every spec-lifecycle\nendpoint in ``api/specs.py`` (create / submit / approve / reject / retire)\nuses. AI-assisted generation is part of the same authoring surface.",
         "operationId": "generate_spec_api_ai_specs_generate_post",
         "requestBody": {
           "content": {
@@ -7186,7 +7197,7 @@
     },
     "/api/ai/specs/generate/stream": {
       "post": {
-        "description": "Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.\nFinal event is a line starting with META: followed by JSON {name, domain, version}.\n\nTenant/operator only — see ``generate_spec`` for the trust-boundary rationale.",
+        "description": "Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.\nFinal event is a line starting with META: followed by JSON {name, domain, version}.\n\nTenant/operator only \u2014 see ``generate_spec`` for the trust-boundary rationale.",
         "operationId": "generate_spec_stream_api_ai_specs_generate_stream_post",
         "requestBody": {
           "content": {
@@ -7278,7 +7289,7 @@
     },
     "/api/auth/me": {
       "get": {
-        "description": "Return the authenticated caller's identity and tenant status.\n\nUsed by frontends to determine: who am I, do I have a tenant,\nwhat's my role? The response shape is intentionally flat and\nstable — frontends depend on it.",
+        "description": "Return the authenticated caller's identity and tenant status.\n\nUsed by frontends to determine: who am I, do I have a tenant,\nwhat's my role? The response shape is intentionally flat and\nstable \u2014 frontends depend on it.",
         "operationId": "auth_me_api_auth_me_get",
         "responses": {
           "200": {
@@ -7307,7 +7318,7 @@
     },
     "/api/auth/tenant/join": {
       "post": {
-        "description": "Redeem a tenant invite code to enroll the authenticated user.\n\n- Caller must be an authenticated user (JWT). Tenant-credential and\n  portal callers are rejected — they already have scope.\n- User cannot switch tenants via this path; if they're already in a\n  tenant, return 409. Admins handle moves.\n- Code validation + consume is atomic in the repo.",
+        "description": "Redeem a tenant invite code to enroll the authenticated user.\n\n- Caller must be an authenticated user (JWT). Tenant-credential and\n  portal callers are rejected \u2014 they already have scope.\n- User cannot switch tenants via this path; if they're already in a\n  tenant, return 409. Admins handle moves.\n- Code validation + consume is atomic in the repo.",
         "operationId": "join_tenant_with_code_api_auth_tenant_join_post",
         "requestBody": {
           "content": {
@@ -7354,7 +7365,7 @@
     },
     "/api/cases": {
       "get": {
-        "description": "List cases visible to the caller, newest first.\n\n- Tenant/operator callers see every case in their tenant.\n- Portal/entity callers (PORTAL_PERMS does not include ``read:all``) only\n  see the single case their token is bound to. Without this filter, a\n  portal token would leak the existence of every sibling case in the\n  tenant — the exact failure mode ``verify_case_access`` prevents on\n  single-case routes.",
+        "description": "List cases visible to the caller, newest first.\n\n- Tenant/operator callers see every case in their tenant.\n- Portal/entity callers (PORTAL_PERMS does not include ``read:all``) only\n  see the single case their token is bound to. Without this filter, a\n  portal token would leak the existence of every sibling case in the\n  tenant \u2014 the exact failure mode ``verify_case_access`` prevents on\n  single-case routes.",
         "operationId": "list_cases_api_cases_get",
         "parameters": [
           {
@@ -7423,7 +7434,7 @@
         ]
       },
       "post": {
-        "description": "Create a new case. Tenant/operator only — portal callers cannot mint cases.",
+        "description": "Create a new case. Tenant/operator only \u2014 portal callers cannot mint cases.",
         "operationId": "create_case_api_cases_post",
         "requestBody": {
           "content": {
@@ -7564,7 +7575,7 @@
         ]
       },
       "patch": {
-        "description": "Update mutable case metadata (currently: display name).\n\nOnly the fields present in the request body are modified.\nTenant/operator only — portal tokens cannot rename cases.",
+        "description": "Update mutable case metadata (currently: display name).\n\nOnly the fields present in the request body are modified.\nTenant/operator only \u2014 portal tokens cannot rename cases.",
         "operationId": "update_case_api_cases__case_id__patch",
         "parameters": [
           {
@@ -7623,7 +7634,7 @@
     },
     "/api/cases/{case_id}/attestation": {
       "get": {
-        "description": "Return the case's Signed Tree Head as a signed in-toto attestation.\n\nThe artifact carries the in-toto Statement (subject = source documents,\npredicate = the Merkle Signed Tree Head), a detached signature, the schema\ncatalog, a compact JWS for offline verification, and the issuer public JWK.\n\nPass ``?format=jws`` to receive only ``{\"jws\": \"<compact-jws>\"}`` — useful\nfor clients that verify the JWS directly without the expanded artifact.\n\nErrors: 409 when the case is not finalized, 422 when its audit log is empty,\n404 when the case does not exist, 404/403 when the caller may not access it.",
+        "description": "Return the case's Signed Tree Head as a signed in-toto attestation.\n\nThe artifact carries the in-toto Statement (subject = source documents,\npredicate = the Merkle Signed Tree Head), a detached signature, the schema\ncatalog, a compact JWS for offline verification, and the issuer public JWK.\n\nPass ``?format=jws`` to receive only ``{\"jws\": \"<compact-jws>\"}`` \u2014 useful\nfor clients that verify the JWS directly without the expanded artifact.\n\nErrors: 409 when the case is not finalized, 422 when its audit log is empty,\n404 when the case does not exist, 404/403 when the caller may not access it.",
         "operationId": "get_attestation_api_cases__case_id__attestation_get",
         "parameters": [
           {
@@ -7743,7 +7754,7 @@
     },
     "/api/cases/{case_id}/audit/functions": {
       "get": {
-        "description": "All domain function calls for a case — for compliance queries.\n\nRestricted to tenant/operator scope: portal callers should not introspect\nthe calculation audit trail.",
+        "description": "All domain function calls for a case \u2014 for compliance queries.\n\nRestricted to tenant/operator scope: portal callers should not introspect\nthe calculation audit trail.",
         "operationId": "get_case_function_calls_api_cases__case_id__audit_functions_get",
         "parameters": [
           {
@@ -7952,7 +7963,7 @@
     },
     "/api/cases/{case_id}/consistency": {
       "get": {
-        "description": "Return a Merkle consistency proof between sizes ``from`` and ``to``.\n\nProves the audit log at the smaller size is an untampered prefix of the log\nat the larger size — the append-only guarantee. Both roots are returned so\na verifier can confirm each independently.\n\nErrors: 400 for an invalid range (require ``1 <= from <= to <= tree_size``),\n404 when the case does not exist, 409 when the case is not finalized.",
+        "description": "Return a Merkle consistency proof between sizes ``from`` and ``to``.\n\nProves the audit log at the smaller size is an untampered prefix of the log\nat the larger size \u2014 the append-only guarantee. Both roots are returned so\na verifier can confirm each independently.\n\nErrors: 400 for an invalid range (require ``1 <= from <= to <= tree_size``),\n404 when the case does not exist, 409 when the case is not finalized.",
         "operationId": "get_consistency_proof_api_cases__case_id__consistency_get",
         "parameters": [
           {
@@ -8361,7 +8372,7 @@
     },
     "/api/cases/{case_id}/events/stream": {
       "get": {
-        "description": "SSE stream of case events. Polls Postgres by event_id cursor.\n\nClients connect and receive events as they arrive:\n    data: {\"event_id\": 1, \"event_type\": \"qualify.spec.evaluated\", ...}\n\nPass ``?cursor=N`` to start from event_id N+1 (exclusive). The client\nshould backfill historical events via ``GET /events`` first, record the\nlast event_id, then open this stream with ``?cursor=<last_id>``. This\nprevents the stream from replaying historical ``case.system.completed``\nevents on every reconnect — which would cause an immediate ``stream.end``\neven though the case is still receiving refinement events.",
+        "description": "SSE stream of case events. Polls Postgres by event_id cursor.\n\nClients connect and receive events as they arrive:\n    data: {\"event_id\": 1, \"event_type\": \"qualify.spec.evaluated\", ...}\n\nPass ``?cursor=N`` to start from event_id N+1 (exclusive). The client\nshould backfill historical events via ``GET /events`` first, record the\nlast event_id, then open this stream with ``?cursor=<last_id>``. This\nprevents the stream from replaying historical ``case.system.completed``\nevents on every reconnect \u2014 which would cause an immediate ``stream.end``\neven though the case is still receiving refinement events.",
         "operationId": "stream_events_api_cases__case_id__events_stream_get",
         "parameters": [
           {
@@ -8473,7 +8484,7 @@
     },
     "/api/cases/{case_id}/extractions": {
       "get": {
-        "description": "List extractions (with sources) for a case.\n\nFilters (in priority order):\n  ?doc_id=   — single document\n  ?doc_type= — all docs of this type (optionally narrowed by ?tax_year=)\n  (none)     — all docs in the case",
+        "description": "List extractions (with sources) for a case.\n\nFilters (in priority order):\n  ?doc_id=   \u2014 single document\n  ?doc_type= \u2014 all docs of this type (optionally narrowed by ?tax_year=)\n  (none)     \u2014 all docs in the case",
         "operationId": "list_extractions_api_cases__case_id__extractions_get",
         "parameters": [
           {
@@ -8575,7 +8586,7 @@
     },
     "/api/cases/{case_id}/extractions/structured": {
       "get": {
-        "description": "Return extractions grouped into ontology regions for a document type.\n\nLoads the ontology (DB-first, disk fallback) and assembles per-document\nstructured views that organise field/row extractions by region.\n\nFilters:\n  ?doc_type=<str>         — required; selects all docs of this type\n  &doc_id=<uuid>          — optional; narrows to a single document",
+        "description": "Return extractions grouped into ontology regions for a document type.\n\nLoads the ontology (DB-first, disk fallback) and assembles per-document\nstructured views that organise field/row extractions by region.\n\nFilters:\n  ?doc_type=<str>         \u2014 required; selects all docs of this type\n  &doc_id=<uuid>          \u2014 optional; narrows to a single document",
         "operationId": "list_structured_extractions_api_cases__case_id__extractions_structured_get",
         "parameters": [
           {
@@ -8701,7 +8712,7 @@
         ]
       },
       "post": {
-        "description": "Upload PDF files to a case and trigger the intake → extract → identify pipeline.\n\nAccepts both tenant auth and portal token auth. ``authorized_case_id``\nrejects portal callers asking for a case other than the one their token\nwas minted for *before* any DB read; ``verify_case_access`` is kept as\nthe cross-tenant defense once the case row is loaded. Caller must carry\nthe ``write:files`` permission (PORTAL_PERMS / TENANT_PERMS).",
+        "description": "Upload PDF files to a case and trigger the intake \u2192 extract \u2192 identify pipeline.\n\nAccepts both tenant auth and portal token auth. ``authorized_case_id``\nrejects portal callers asking for a case other than the one their token\nwas minted for *before* any DB read; ``verify_case_access`` is kept as\nthe cross-tenant defense once the case row is loaded. Caller must carry\nthe ``write:files`` permission (PORTAL_PERMS / TENANT_PERMS).",
         "operationId": "upload_files_api_cases__case_id__files_post",
         "parameters": [
           {
@@ -9062,7 +9073,7 @@
         ]
       },
       "post": {
-        "description": "Issue a single-use, 48h borrower portal token for a case, with an\noptional document/follow-up request the borrower portal renders.\n\nTenant/operator only — portal callers cannot mint links. Ties the token to\nthe case's primary borrower entity so the borrower opens a no-login portal\nscoped to their own case. The operator's selected follow-up/completeness\nitems + custom items + message are persisted as a ``portal_request`` and\nshown on the borrower portal, attributed to the requesting tenant. Returns\nthe token + expiry; the client builds the shareable URL.",
+        "description": "Issue a single-use, 48h borrower portal token for a case, with an\noptional document/follow-up request the borrower portal renders.\n\nTenant/operator only \u2014 portal callers cannot mint links. Ties the token to\nthe case's primary borrower entity so the borrower opens a no-login portal\nscoped to their own case. The operator's selected follow-up/completeness\nitems + custom items + message are persisted as a ``portal_request`` and\nshown on the borrower portal, attributed to the requesting tenant. Returns\nthe token + expiry; the client builds the shareable URL.",
         "operationId": "create_portal_link_api_cases__case_id__portal_post",
         "parameters": [
           {
@@ -9493,9 +9504,79 @@
         ]
       }
     },
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages/{message_id}": {
+      "delete": {
+        "description": "Operator deletes one message from a party's thread.\n\nThe operator may delete ANY message in their own case's thread (request,\nreply, or operator chat). Guarded against IDOR: case access is verified, the\nmessage must exist, belong to the URL party, and that party must belong to\nthe URL case. Upload bubbles are synthesized from events (non-row ids), so\n``get_message`` returns None for them \u2014 they 404 here and stay undeletable.\nAfter delete, publishes ``portal.thread_changed`` so both sides refetch.",
+        "operationId": "delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "title": "Message Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Delete Party Message Api Cases  Case Id  Portal Parties  Party Id  Messages  Message Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Party Message",
+        "tags": [
+          "party"
+        ]
+      }
+    },
     "/api/cases/{case_id}/portal/parties/{party_id}/read": {
       "post": {
-        "description": "Operator marks a party's borrower messages as read → ✓✓ on the borrower side.\n\nStamps ``read_at`` on this party's unread borrower-authored messages. When\nanything actually flipped, publishes a transient ``portal.read`` signal to\nthe borrower's stream so their receipts update live (same mechanism as the\ntyping indicator). Idempotent — re-reading an already-read thread is a no-op.",
+        "description": "Operator marks a party's borrower messages as read \u2192 \u2713\u2713 on the borrower side.\n\nStamps ``read_at`` on this party's unread borrower-authored messages. When\nanything actually flipped, publishes a transient ``portal.read`` signal to\nthe borrower's stream so their receipts update live (same mechanism as the\ntyping indicator). Idempotent \u2014 re-reading an already-read thread is a no-op.",
         "operationId": "mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post",
         "parameters": [
           {
@@ -9617,7 +9698,7 @@
     },
     "/api/cases/{case_id}/portal/requests": {
       "post": {
-        "description": "Append a request to a party's portal thread, reusing its active token.\n\nThe token is keyed by ``party_id``, so even an unmapped party (no linked\nidentity) can be messaged immediately — it always has a portal token. The\nlinked identity, when present, is carried into the token as metadata.",
+        "description": "Append a request to a party's portal thread, reusing its active token.\n\nThe token is keyed by ``party_id``, so even an unmapped party (no linked\nidentity) can be messaged immediately \u2014 it always has a portal token. The\nlinked identity, when present, is carried into the token as metadata.",
         "operationId": "send_portal_request_api_cases__case_id__portal_requests_post",
         "parameters": [
           {
@@ -9784,7 +9865,7 @@
     },
     "/api/cases/{case_id}/portal/suggestions": {
       "get": {
-        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nPer-party when ``party_id`` is given: the suggestions are shaped by THAT\nparty's role (Primary vs Co-borrower) and the documents they appear on, so\ntwo parties on the same case get different asks. The prepared cache is\nper-party (``prepare_party_link`` curates with the party), so we serve that\nparty's row; on a miss we curate fresh WITH the party.\n\nWithout ``party_id`` the endpoint stays case-scoped (back-compat): serve the\nlatest prepared row for any party, else curate case-only.\n\nDerived from the case's spec findings + qualification report — the things\nqualification flagged as needing follow-up or a missing document. The\noperator checks off which to request. Deduped by normalized title and capped\n(see ``curate_suggestions``).",
+        "description": "Suggested document/follow-up items for the borrower portal request modal.\n\nPer-party when ``party_id`` is given: the suggestions are shaped by THAT\nparty's role (Primary vs Co-borrower) and the documents they appear on, so\ntwo parties on the same case get different asks. The prepared cache is\nper-party (``prepare_party_link`` curates with the party), so we serve that\nparty's row; on a miss we curate fresh WITH the party.\n\nWithout ``party_id`` the endpoint stays case-scoped (back-compat): serve the\nlatest prepared row for any party, else curate case-only.\n\nDerived from the case's spec findings + qualification report \u2014 the things\nqualification flagged as needing follow-up or a missing document. The\noperator checks off which to request. Deduped by normalized title and capped\n(see ``curate_suggestions``).",
         "operationId": "portal_suggestions_api_cases__case_id__portal_suggestions_get",
         "parameters": [
           {
@@ -9854,7 +9935,7 @@
     },
     "/api/cases/{case_id}/portal/suggestions/regenerate": {
       "post": {
-        "description": "On-demand fresh suggestions that honor the operator's typed note.\n\nUnlike GET /portal/suggestions, this never reads or writes the prepared\ncache — it always regenerates. ``note`` is included as a required item;\n``exclude`` titles are not repeated (drives the 'generate more' control).",
+        "description": "On-demand fresh suggestions that honor the operator's typed note.\n\nUnlike GET /portal/suggestions, this never reads or writes the prepared\ncache \u2014 it always regenerates. ``note`` is included as a required item;\n``exclude`` titles are not repeated (drives the 'generate more' control).",
         "operationId": "regenerate_suggestions_api_cases__case_id__portal_suggestions_regenerate_post",
         "parameters": [
           {
@@ -9917,7 +9998,7 @@
     },
     "/api/cases/{case_id}/portal/typing": {
       "post": {
-        "description": "Operator typing signal — transient, broadcast to the borrower stream.",
+        "description": "Operator typing signal \u2014 transient, broadcast to the borrower stream.",
         "operationId": "operator_typing_api_cases__case_id__portal_typing_post",
         "parameters": [
           {
@@ -9968,7 +10049,7 @@
     },
     "/api/cases/{case_id}/qualify": {
       "post": {
-        "description": "Trigger qualification on an already-extracted case.\n\nTenant/operator only — qualification is an underwriting decision, not a\nportal-user action. PORTAL_PERMS does not include any qualify capability.\n\nPass ?spec_id=<uuid> to run a specific DB-stored spec.\nWithout spec_id, runs all registered product specs.",
+        "description": "Trigger qualification on an already-extracted case.\n\nTenant/operator only \u2014 qualification is an underwriting decision, not a\nportal-user action. PORTAL_PERMS does not include any qualify capability.\n\nPass ?spec_id=<uuid> to run a specific DB-stored spec.\nWithout spec_id, runs all registered product specs.",
         "operationId": "qualify_case_api_cases__case_id__qualify_post",
         "parameters": [
           {
@@ -10036,7 +10117,7 @@
     },
     "/api/cases/{case_id}/relationships": {
       "get": {
-        "description": "List all relationships for a case with symmetric fan-out.\n\nEach symmetric relationship type is emitted twice (A→B and B→A) so callers\ncan traverse the graph in either direction without client-side mirroring.\nResults are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.",
+        "description": "List all relationships for a case with symmetric fan-out.\n\nEach symmetric relationship type is emitted twice (A\u2192B and B\u2192A) so callers\ncan traverse the graph in either direction without client-side mirroring.\nResults are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.",
         "operationId": "list_relationships_api_cases__case_id__relationships_get",
         "parameters": [
           {
@@ -10155,7 +10236,7 @@
     },
     "/api/cases/{case_id}/reports/{report_name}": {
       "post": {
-        "description": "Render *report_name* for *case_id* and persist the result.\n\nFor scenario-scoped reports (income_qm, etc.) pass scenario_id in the\nrequest body.  Returns 422 if scenario_id is required but absent.\n\nreport_id in the response is null when no manifest can be resolved (e.g.\ncase-level reports without a scenario); in that case the Report row is not\npersisted — only storage_key and generated_at are meaningful.",
+        "description": "Render *report_name* for *case_id* and persist the result.\n\nFor scenario-scoped reports (income_qm, etc.) pass scenario_id in the\nrequest body.  Returns 422 if scenario_id is required but absent.\n\nreport_id in the response is null when no manifest can be resolved (e.g.\ncase-level reports without a scenario); in that case the Report row is not\npersisted \u2014 only storage_key and generated_at are meaningful.",
         "operationId": "generate_report_api_cases__case_id__reports__report_name__post",
         "parameters": [
           {
@@ -10380,7 +10461,7 @@
     },
     "/api/cases/{case_id}/reprocess": {
       "post": {
-        "description": "Re-run the full pipeline (classify → extract → identify → qualify) on an already-uploaded case.\n\nSkips intake — uses files and pages already in the DB and FileStore.",
+        "description": "Re-run the full pipeline (classify \u2192 extract \u2192 identify \u2192 qualify) on an already-uploaded case.\n\nSkips intake \u2014 uses files and pages already in the DB and FileStore.",
         "operationId": "reprocess_case_api_cases__case_id__reprocess_post",
         "parameters": [
           {
@@ -10570,7 +10651,7 @@
     },
     "/api/cases/{case_id}/suggested_products": {
       "get": {
-        "description": "Return the document-driven product suggestion persisted on the case.\n\nPopulated by the post-stitch hook (see\n``temporal.activities.stitch.stitch_activity``). Returns an empty list\nwhen stitch hasn't run yet — the UI should fall back to showing the\nfull product list from ``GET /products`` in that case.\n\nLux subscribes to the ``case.products.suggested`` SSE event to\nlive-update when the suggestion arrives during the upload flow.",
+        "description": "Return the document-driven product suggestion persisted on the case.\n\nPopulated by the post-stitch hook (see\n``temporal.activities.stitch.stitch_activity``). Returns an empty list\nwhen stitch hasn't run yet \u2014 the UI should fall back to showing the\nfull product list from ``GET /products`` in that case.\n\nLux subscribes to the ``case.products.suggested`` SSE event to\nlive-update when the suggestion arrives during the upload flow.",
         "operationId": "get_suggested_products_api_cases__case_id__suggested_products_get",
         "parameters": [
           {
@@ -10670,7 +10751,7 @@
         ]
       },
       "post": {
-        "description": "Create a scenario for a case. Tenant/operator only — scenarios are an\nunderwriting-side concept; portal callers should not author them.",
+        "description": "Create a scenario for a case. Tenant/operator only \u2014 scenarios are an\nunderwriting-side concept; portal callers should not author them.",
         "operationId": "create_scenario_api_cases__id__scenarios_post",
         "parameters": [
           {
@@ -11113,7 +11194,7 @@
     },
     "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/start": {
       "post": {
-        "description": "Kick off a Temporal qualify workflow against an existing manifest.\n\nThe refinement (= ``SelectionManifest``) was created by ``POST\n/scenarios/{sid}/refinements`` with the operator's selections +\noverrides. This endpoint hands ``manifest_id`` to ``QualifyWorkflow``\nso the activity re-evaluates that manifest in place, writing fresh\n``spec_results`` rows and flipping the parent scenario from\n``running`` → ``completed`` / ``failed`` when it's done.\n\nThe workflow id is unique per run (``refinement-{rid}-run-{epoch}``)\nso re-running a refinement (e.g. after an extraction edit) doesn't\ncollide with the prior Temporal execution.",
+        "description": "Kick off a Temporal qualify workflow against an existing manifest.\n\nThe refinement (= ``SelectionManifest``) was created by ``POST\n/scenarios/{sid}/refinements`` with the operator's selections +\noverrides. This endpoint hands ``manifest_id`` to ``QualifyWorkflow``\nso the activity re-evaluates that manifest in place, writing fresh\n``spec_results`` rows and flipping the parent scenario from\n``running`` \u2192 ``completed`` / ``failed`` when it's done.\n\nThe workflow id is unique per run (``refinement-{rid}-run-{epoch}``)\nso re-running a refinement (e.g. after an extraction edit) doesn't\ncollide with the prior Temporal execution.",
         "operationId": "start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post",
         "parameters": [
           {
@@ -11320,7 +11401,7 @@
     },
     "/api/cases/{id}/scenarios/{sid}/summary": {
       "get": {
-        "description": "Return cached or freshly generated LLM narrative summary + name for a scenario.\n\nThin wrapper around ``ensure_scenario_summary`` — see that helper for\nthe actual generation + persistence logic. Pass ``?refresh=true`` to\nbust the DB cache and force regeneration.",
+        "description": "Return cached or freshly generated LLM narrative summary + name for a scenario.\n\nThin wrapper around ``ensure_scenario_summary`` \u2014 see that helper for\nthe actual generation + persistence logic. Pass ``?refresh=true`` to\nbust the DB cache and force regeneration.",
         "operationId": "get_scenario_summary_api_cases__id__scenarios__sid__summary_get",
         "parameters": [
           {
@@ -11527,7 +11608,7 @@
     },
     "/api/portal/claim-account": {
       "post": {
-        "description": "Attach a Firebase account to the borrower's portal — token-gated.\n\nAuth is the borrower's CURRENT portal token (proves they're the borrower for\nthis party); the Firebase id token is verified only to capture a trusted uid.\nUpserts a ``users`` row with role=borrower and links the party's\naccount_user_id, so future magic-link logins resolve to this account. NOT a\nJWT-authed endpoint, so it never hits the operator auto-provision path.",
+        "description": "Attach a Firebase account to the borrower's portal \u2014 token-gated.\n\nAuth is the borrower's CURRENT portal token (proves they're the borrower for\nthis party); the Firebase id token is verified only to capture a trusted uid.\nUpserts a ``users`` row with role=borrower and links the party's\naccount_user_id, so future magic-link logins resolve to this account. NOT a\nJWT-authed endpoint, so it never hits the operator auto-provision path.",
         "operationId": "claim_account_api_portal_claim_account_post",
         "parameters": [
           {
@@ -11634,7 +11715,7 @@
     },
     "/api/portal/session": {
       "get": {
-        "description": "Validate a portal token and return the composed session.\n\nThis is the primary entry point for entity-facing UIs. One call\nreturns everything the portal needs: entity info, checklist,\nconsent state, verification level, and upload config.\n\nThe token is read from the ``X-Portal-Token`` header (preferred — keeps it\nout of access logs and browser history). The ``?token=`` query param is\naccepted as a legacy fallback for SSE / iframe surfaces that can't set\nheaders.",
+        "description": "Validate a portal token and return the composed session.\n\nThis is the primary entry point for entity-facing UIs. One call\nreturns everything the portal needs: entity info, checklist,\nconsent state, verification level, and upload config.\n\nThe token is read from the ``X-Portal-Token`` header (preferred \u2014 keeps it\nout of access logs and browser history). The ``?token=`` query param is\naccepted as a legacy fallback for SSE / iframe surfaces that can't set\nheaders.",
         "operationId": "get_session_api_portal_session_get",
         "parameters": [
           {
@@ -11702,7 +11783,7 @@
     },
     "/api/portal/session/{session_id}/intents": {
       "post": {
-        "description": "Execute a batch of typed intents and return the refreshed session.\n\nIntents execute in array order. If one fails, remaining intents\nare skipped and partial results are returned with the error. Auth is the\nportal token (X-Portal-Token header preferred) — the same direct-validation\npath as GET /session, so the public no-login portal works without tenant\ncontext (resolve_caller's within-tenant path 401s for borrower callers).",
+        "description": "Execute a batch of typed intents and return the refreshed session.\n\nIntents execute in array order. If one fails, remaining intents\nare skipped and partial results are returned with the error. Auth is the\nportal token (X-Portal-Token header preferred) \u2014 the same direct-validation\npath as GET /session, so the public no-login portal works without tenant\ncontext (resolve_caller's within-tenant path 401s for borrower callers).",
         "operationId": "submit_intents_api_portal_session__session_id__intents_post",
         "parameters": [
           {
@@ -11789,7 +11870,7 @@
     },
     "/api/portal/stream": {
       "get": {
-        "description": "Real-time portal stream for the borrower (token-authed). Emits MINIMAL\npings only (event type + typing actor) — never event_data — so nothing\ninternal/PII leaks; the client refetches the gated session for content.",
+        "description": "Real-time portal stream for the borrower (token-authed). Emits MINIMAL\npings only (event type + typing actor) \u2014 never event_data \u2014 so nothing\ninternal/PII leaks; the client refetches the gated session for content.",
         "operationId": "portal_stream_api_portal_stream_get",
         "parameters": [
           {
@@ -11853,7 +11934,7 @@
     },
     "/api/portal/typing": {
       "post": {
-        "description": "Borrower typing signal — transient, broadcast to the operator stream.",
+        "description": "Borrower typing signal \u2014 transient, broadcast to the operator stream.",
         "operationId": "portal_typing_api_portal_typing_post",
         "parameters": [
           {
@@ -11921,7 +12002,7 @@
     },
     "/api/products": {
       "get": {
-        "description": "List the caller's tenant-scoped loan products.\n\nReturns the full ``TenantProductView`` for each row in\n``tenant_products`` (or the YAML fallback when the tenant hasn't been\nseeded yet — see ``policy.product_registry.list_tenant_products``).\nThe shape is rich enough for Lux to render the approach + product\npickers without a separate config endpoint.\n\n``initial_required_inputs`` is folded in per row so the Create Case\nmodal can render its dynamic form straight from this fetch (no\nsecond round-trip). Each row's schema comes from\n``initial_required_inputs_schema`` which is DB-first\n(``spec_versions`` + ``product_specs`` join, with a YAML fallback\nfor unseeded dev DBs). The wire shape is a flat\n``list[UserInputFieldResponse]`` — every entry on this list is\nalready scoped to a single product, so the groups+products wrapper\nused by the refine endpoint would degenerate to a single mirror\nentry. Products without any ``required_at_create`` inputs return\n``[]`` so the frontend can do a uniform ``fields.length === 0``\ncheck.",
+        "description": "List the caller's tenant-scoped loan products.\n\nReturns the full ``TenantProductView`` for each row in\n``tenant_products`` (or the YAML fallback when the tenant hasn't been\nseeded yet \u2014 see ``policy.product_registry.list_tenant_products``).\nThe shape is rich enough for Lux to render the approach + product\npickers without a separate config endpoint.\n\n``initial_required_inputs`` is folded in per row so the Create Case\nmodal can render its dynamic form straight from this fetch (no\nsecond round-trip). Each row's schema comes from\n``initial_required_inputs_schema`` which is DB-first\n(``spec_versions`` + ``product_specs`` join, with a YAML fallback\nfor unseeded dev DBs). The wire shape is a flat\n``list[UserInputFieldResponse]`` \u2014 every entry on this list is\nalready scoped to a single product, so the groups+products wrapper\nused by the refine endpoint would degenerate to a single mirror\nentry. Products without any ``required_at_create`` inputs return\n``[]`` so the frontend can do a uniform ``fields.length === 0``\ncheck.",
         "operationId": "list_products_api_products_get",
         "parameters": [
           {
@@ -12104,7 +12185,7 @@
     },
     "/api/quarantine/{quarantine_id}/rerun": {
       "post": {
-        "description": "Operator action: re-run the resolver on this case.\n\nTransitions the quarantine item back to 'proposed' so the resolver\nevaluates it fresh. Does not accept user edits — if direct editing is\nneeded, a support_admin uses the /decide endpoint.",
+        "description": "Operator action: re-run the resolver on this case.\n\nTransitions the quarantine item back to 'proposed' so the resolver\nevaluates it fresh. Does not accept user edits \u2014 if direct editing is\nneeded, a support_admin uses the /decide endpoint.",
         "operationId": "rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post",
         "parameters": [
           {
@@ -12202,7 +12283,7 @@
     },
     "/api/samples/create": {
       "post": {
-        "description": "Create a case from a pre-built sample.\n\nDownloads sample PDFs from GCS into the local file inbox, creates a\ncase record, and starts the Temporal pipeline — identical to a normal\nfile upload.",
+        "description": "Create a case from a pre-built sample.\n\nDownloads sample PDFs from GCS into the local file inbox, creates a\ncase record, and starts the Temporal pipeline \u2014 identical to a normal\nfile upload.",
         "operationId": "create_sample_case_api_samples_create_post",
         "requestBody": {
           "content": {
@@ -12798,7 +12879,7 @@
     },
     "/api/tenants/credentials": {
       "post": {
-        "description": "Create an additional API credential for the authenticated tenant.\n\nRestricted to tenant/operator callers — portal/entity tokens cannot mint\ntenant credentials (would be a privilege escalation from PORTAL_PERMS).",
+        "description": "Create an additional API credential for the authenticated tenant.\n\nRestricted to tenant/operator callers \u2014 portal/entity tokens cannot mint\ntenant credentials (would be a privilege escalation from PORTAL_PERMS).",
         "operationId": "create_credential_api_tenants_credentials_post",
         "responses": {
           "201": {
@@ -12825,7 +12906,7 @@
     },
     "/api/tenants/register": {
       "post": {
-        "description": "Register a new tenant. Returns API credentials — save the client_secret, it is shown once.",
+        "description": "Register a new tenant. Returns API credentials \u2014 save the client_secret, it is shown once.",
         "operationId": "register_tenant_api_tenants_register_post",
         "requestBody": {
           "content": {

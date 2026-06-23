@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Eraser, FileText, Link2, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
+import { Check, Eraser, FileText, Link2, RefreshCw, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
+import { timeAgo } from "../../timeAgo.js";
 import {
+	useDeleteMessage,
 	useDeleteParty,
 	useClearThread,
 	useDraftRequest,
@@ -55,6 +57,7 @@ export function PartyDetail({
 	const sugg: PortalRequestItem[] = override ?? (suggestions.data ?? []);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 	const markRead = useMarkThreadRead(caseId);
+	const deleteMessage = useDeleteMessage(caseId);
 
 	// When the operator is viewing a party that has borrower messages, mark them
 	// read → the borrower's receipt flips to ✓✓. Fires on open (party switch) and
@@ -236,7 +239,15 @@ export function PartyDetail({
 						{!portalUrl && <p className="text-xs text-amber-600">Link not ready — link this party to a case identity first.</p>}
 					</div>
 				) : (
-					party.thread.map((m) => <OpBubble key={m.message_id} m={m} />)
+					party.thread.map((m) => (
+						<OpBubble
+							key={m.message_id}
+							m={m}
+							onDelete={() =>
+								deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
+							}
+						/>
+					))
 				)}
 				{borrowerTyping && (
 					<div className="flex justify-start">
@@ -341,22 +352,23 @@ export function PartyDetail({
 	);
 }
 
-/** Operator-perspective chat bubble — "You" (operator) right, borrower left. */
-function OpBubble({ m }: { m: ThreadItem }) {
+/** Operator-perspective chat bubble — "You" (operator) right, borrower left.
+ * Every bubble shows a relative timestamp; non-upload bubbles get a hover delete
+ * (the operator may remove any request/reply/operator message in the thread).
+ * Upload bubbles are case events with no deletable row, so they get no delete. */
+function OpBubble({ m, onDelete }: { m: ThreadItem; onDelete: () => void }) {
 	const mine = m.author_kind === "operator";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
-	const align = mine ? "justify-end" : "justify-start";
-	if (m.kind === "upload") {
-		return (
-			<div className={`flex ${align}`}>
-				<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-					<FileText size={14} />{m.body}
-				</div>
+	const align = mine ? "items-end" : "items-start";
+	// Uploads have no deletable row (they are synthesized from case events).
+	const canDelete = m.kind !== "upload";
+
+	const inner =
+		m.kind === "upload" ? (
+			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+				<FileText size={14} />{m.body}
 			</div>
-		);
-	}
-	return (
-		<div className={`flex ${align}`}>
+		) : (
 			<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 				<p className="text-[10px] opacity-70 mb-0.5">{mine ? "You" : "Borrower"}</p>
 				{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
@@ -366,6 +378,26 @@ function OpBubble({ m }: { m: ThreadItem }) {
 					</ul>
 				)}
 			</div>
+		);
+
+	return (
+		<div className={`group flex flex-col ${align}`}>
+			<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
+				{canDelete && (
+					<button
+						type="button"
+						onClick={onDelete}
+						aria-label="Delete message"
+						className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
+					>
+						<Trash2 size={13} />
+					</button>
+				)}
+				{inner}
+			</div>
+			<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-1" : "pl-1"}`}>
+				{timeAgo(m.created_at)}
+			</span>
 		</div>
 	);
 }

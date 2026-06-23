@@ -866,6 +866,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Thread Read
+         * @description Operator marks a party's borrower messages as read → ✓✓ on the borrower side.
+         *
+         *     Stamps ``read_at`` on this party's unread borrower-authored messages. When
+         *     anything actually flipped, publishes a transient ``portal.read`` signal to
+         *     the borrower's stream so their receipts update live (same mechanism as the
+         *     typing indicator). Idempotent — re-reading an already-read thread is a no-op.
+         */
+        post: operations["mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
         parameters: {
             query?: never;
@@ -5140,6 +5165,11 @@ export interface components {
             kind: string;
             /** Message Id */
             message_id: string;
+            /**
+             * Read
+             * @default false
+             */
+            read: boolean;
             /** Status */
             status?: string | null;
         };
@@ -6752,6 +6782,40 @@ export interface operations {
         };
     };
     clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post: {
         parameters: {
             query?: never;
             header?: never;

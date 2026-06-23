@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { FileText, Lock, Mail, Paperclip } from "lucide-react";
+import { Check, CheckCheck, FileText, Headset, Lock, Mail, Paperclip } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
@@ -66,6 +66,10 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const signed = session.signed;
 	const step = !verified ? 1 : (!accountDone && !skippedAccount) ? 2 : !signed ? 3 : 4;
 	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
+	// Show the friendly "officer will reply" line when the borrower spoke last
+	// (the most recent message is theirs) and the officer isn't mid-reply.
+	const lastMsg = session.thread[session.thread.length - 1];
+	const waitingForReply = !!lastMsg && lastMsg.author_kind === "borrower" && !operatorTyping;
 
 	async function createAccount(email: string) {
 		await submitIntent([{ type: "set_email", params: { email } }]);
@@ -136,11 +140,30 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 						{session.request_message}
 					</div>
 				)}
-				{session.thread.map((m) => <Bubble key={m.message_id} m={m} />)}
+				{session.thread.map((m, i) => {
+					// "Your loan officer" label + avatar show on the FIRST officer
+					// bubble of each run (the previous message wasn't from the officer),
+					// so a back-to-back officer reply reads as one person speaking.
+					const prev = session.thread[i - 1];
+					const isOfficer = m.author_kind !== "borrower";
+					const startsOfficerRun = isOfficer && (!prev || prev.author_kind === "borrower");
+					return (
+						<Bubble
+							key={m.message_id}
+							m={m}
+							showOfficerHeader={startsOfficerRun}
+						/>
+					);
+				})}
 				{session.thread.length === 0 && !operatorTyping && (
 					<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
 				)}
 				{operatorTyping && <TypingBubble />}
+				{waitingForReply && (
+					<p className="text-center text-xs text-slate-400 mt-3">
+						Your loan officer will reply here — we'll let you know.
+					</p>
+				)}
 				{uploading && <div className="flex justify-end"><span className="text-xs text-slate-400">Uploading…</span></div>}
 			</div>
 
@@ -188,23 +211,54 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	);
 }
 
-/** A single chat bubble — officer left, borrower right; uploads as file chips. */
-function Bubble({ m }: { m: ThreadMessage }) {
+/** The loan officer's identity over a run of their bubbles — a small indigo
+ * avatar + "Your loan officer" label, so the conversation reads like a person,
+ * not an LLM. Rendered once at the start of each officer run. */
+function OfficerHeader() {
+	return (
+		<div className="flex items-center gap-2 mb-1 pl-1">
+			<span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+				<Headset size={13} />
+			</span>
+			<span className="text-xs font-medium text-slate-500">Your loan officer</span>
+		</div>
+	);
+}
+
+/** Read receipt under a borrower's own bubble: ✓ Sent → ✓✓ Read once the loan
+ * officer has read it. Borrower-authored messages only. */
+function ReadReceipt({ read }: { read: boolean }) {
+	return (
+		<div className="flex items-center justify-end gap-1 mt-0.5 pr-1">
+			{read ? (
+				<>
+					<CheckCheck size={12} className="text-indigo-400" />
+					<span className="text-[10px] text-indigo-400">Read</span>
+				</>
+			) : (
+				<>
+					<Check size={12} className="text-slate-400" />
+					<span className="text-[10px] text-slate-400">Sent</span>
+				</>
+			)}
+		</div>
+	);
+}
+
+/** A single chat bubble — officer left, borrower right; uploads as file chips.
+ * Officer bubbles starting a run get the "Your loan officer" header; the
+ * borrower's own bubbles get a ✓/✓✓ read receipt. */
+function Bubble({ m, showOfficerHeader }: { m: ThreadMessage; showOfficerHeader: boolean }) {
 	const mine = m.author_kind === "borrower";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
-	const align = mine ? "justify-end" : "justify-start";
+	const align = mine ? "items-end" : "items-start";
 
-	if (m.kind === "upload") {
-		return (
-			<div className={`flex ${align}`}>
-				<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-					<FileText size={14} />{m.body}
-				</div>
+	const inner =
+		m.kind === "upload" ? (
+			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+				<FileText size={14} />{m.body}
 			</div>
-		);
-	}
-	return (
-		<div className={`flex ${align}`}>
+		) : (
 			<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 				{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
 				{items.length > 0 && (
@@ -213,6 +267,13 @@ function Bubble({ m }: { m: ThreadMessage }) {
 					</ul>
 				)}
 			</div>
+		);
+
+	return (
+		<div className={`flex flex-col ${align}`}>
+			{!mine && showOfficerHeader && <OfficerHeader />}
+			{inner}
+			{mine && <ReadReceipt read={!!m.read} />}
 		</div>
 	);
 }

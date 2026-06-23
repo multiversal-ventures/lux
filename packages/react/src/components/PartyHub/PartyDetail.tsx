@@ -5,6 +5,7 @@ import {
 	useDeleteParty,
 	useClearThread,
 	useDraftRequest,
+	useMarkThreadRead,
 	usePortalRealtime,
 	useRegenerateSuggestions,
 	useReissueLink,
@@ -53,6 +54,17 @@ export function PartyDetail({
 	const [addingOwn, setAddingOwn] = useState(false);
 	const sugg: PortalRequestItem[] = override ?? (suggestions.data ?? []);
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
+	const markRead = useMarkThreadRead(caseId);
+
+	// When the operator is viewing a party that has borrower messages, mark them
+	// read → the borrower's receipt flips to ✓✓. Fires on open (party switch) and
+	// whenever new borrower messages arrive (thread length grows). The endpoint is
+	// idempotent, so re-firing with nothing unread is a cheap no-op.
+	const hasBorrowerMessages = party.thread.some((m) => m.author_kind === "borrower");
+	useEffect(() => {
+		if (hasBorrowerMessages) markRead.mutate(party.party_id);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [party.party_id, party.thread.length]);
 
 	// Auto-grow the composer with its content, then scroll past the cap (160px).
 	useEffect(() => {

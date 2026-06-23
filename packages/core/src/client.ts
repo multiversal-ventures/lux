@@ -443,6 +443,20 @@ export class VeritasClient {
 		);
 	}
 
+	/** Operator marks a party's borrower messages as read → flips the borrower's
+	 * receipt from ✓ (sent) to ✓✓ (read). Best-effort: a read receipt failing
+	 * must never break the operator view. */
+	async markThreadRead(caseId: string, partyId: string): Promise<void> {
+		try {
+			await this.requestJson<unknown>(
+				`/api/cases/${caseId}/portal/parties/${partyId}/read`,
+				{ method: "POST" },
+			);
+		} catch {
+			/* read receipt is best-effort */
+		}
+	}
+
 	/** Link a party to a resolved case identity. */
 	async linkParty(
 		caseId: string,

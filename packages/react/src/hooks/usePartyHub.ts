@@ -203,6 +203,17 @@ export function useReissueLink(caseId: string): UseMutationResult<unknown, Error
 	});
 }
 
+/** Operator marks a party's borrower messages as read → flips the borrower's
+ * receipt to ✓✓. Best-effort (client swallows errors); lightly refreshes the
+ * overview so the operator's own view reflects the read state. */
+export function useMarkThreadRead(caseId: string): UseMutationResult<unknown, Error, string> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, string>({
+		mutationFn: async (partyId) => getDefaultClient().markThreadRead(caseId, partyId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
 /** Link a party to a case identity; refreshes overview. */
 export function useLinkParty(
 	caseId: string,

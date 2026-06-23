@@ -160,12 +160,28 @@ export function usePortalRealtime(caseId: string): { borrowerTyping: boolean; se
 	return { borrowerTyping, sendTyping };
 }
 
-/** Delete a party; refreshes overview. */
-export function useDeleteParty(caseId: string): UseMutationResult<unknown, Error, string> {
+/** Delete a party; optimistically drops it from the list, then refetches. */
+export function useDeleteParty(caseId: string): UseMutationResult<unknown, Error, string, { prev?: PortalOverview }> {
 	const qc = useQueryClient();
-	return useMutation<unknown, Error, string>({
+	return useMutation<unknown, Error, string, { prev?: PortalOverview }>({
 		mutationFn: async (partyId) => getDefaultClient().deleteParty(caseId, partyId),
-		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+		// Optimistic: remove the row immediately so the UI updates without waiting
+		// on the refetch (a 204 + interval-refetch could otherwise look like nothing happened).
+		onMutate: async (partyId) => {
+			await qc.cancelQueries({ queryKey: overviewKey(caseId) });
+			const prev = qc.getQueryData<PortalOverview>(overviewKey(caseId));
+			if (prev) {
+				qc.setQueryData<PortalOverview>(overviewKey(caseId), {
+					...prev,
+					parties: (prev.parties ?? []).filter((p) => p.party_id !== partyId),
+				});
+			}
+			return { prev };
+		},
+		onError: (_e, _partyId, ctx) => {
+			if (ctx?.prev) qc.setQueryData(overviewKey(caseId), ctx.prev);
+		},
+		onSettled: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
 	});
 }
 

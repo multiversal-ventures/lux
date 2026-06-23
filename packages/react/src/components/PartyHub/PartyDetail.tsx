@@ -150,10 +150,28 @@ export function PartyDetail({
 		return [who && `Borrower: ${who}`, docs && `Appears on: ${docs}`].filter(Boolean).join(". ");
 	}
 
+	// A COMPACT window of the recent conversation for the draft AI — the last few
+	// turns so the draft follows on naturally (don't re-ask what's been answered)
+	// without shipping the whole thread (token control). Capped at 12 turns ×
+	// ~200 chars; uploads are generic ("[uploaded a document]") so no filename
+	// (PII) reaches the model.
+	function recentThread(): string {
+		const msgs = party.thread.filter((m) => !m.deleted).slice(-12);
+		if (msgs.length === 0) return "";
+		const lines = msgs.map((m) => {
+			const who = m.author_kind === "operator" ? "Officer" : "Borrower";
+			if (m.kind === "upload") return `${who}: [uploaded a document]`;
+			const body = (m.body ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+			return body ? `${who}: ${body}` : "";
+		}).filter(Boolean);
+		return lines.length ? `\nConversation so far (most recent last):\n${lines.join("\n")}` : "";
+	}
+
 	async function generate() {
-		// Feed the operator's typed note into the draft context so AI drafting
-		// considers it rather than ignoring/overwriting it.
-		const context = partyContext() + (msg.trim() ? `. The officer also wants: ${msg.trim()}` : "");
+		// Context = who the party is + the recent conversation (so the draft is a
+		// natural follow-up, not a cold re-ask) + the officer's typed note.
+		const context = partyContext() + recentThread()
+			+ (msg.trim() ? `\nThe officer also wants: ${msg.trim()}` : "");
 		const text = await draft.mutateAsync({ items: selectedItems(), context });
 		setMsg(text); // editable draft — operator reviews/edits before sending
 	}

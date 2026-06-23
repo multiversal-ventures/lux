@@ -7,9 +7,9 @@ import { Avatar } from "../Avatar.js";
  *
  * OPERATOR-facing: identifiers are MASKED (tail only, e.g. "SSN ••• 1234").
  * The full SSN/EIN never reaches the client, so there is nothing here to
- * unmask. Cards mirror the hub's card styling (rounded-xl, border-slate-200,
- * bg-white). Rows with no value are hidden; cards with no rows show an empty
- * state. */
+ * unmask. COMPACT: this renders inline-expanded inside the ~260px party-list
+ * sidebar (not a center pane), so the avatar is small, cards are tight, and
+ * long values (emails, addresses) wrap/truncate rather than overflow. */
 export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
 	const shortId = profile.party_id.slice(0, 8);
 	const maskedIdentifier =
@@ -18,25 +18,25 @@ export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
 			: null;
 
 	return (
-		<div className="flex-1 overflow-y-auto px-5 py-5 bg-slate-50 space-y-4">
-			{/* Header: avatar + name + role + short party id */}
-			<div className="flex items-center gap-4">
-				<Avatar size={64} name={profile.display_name || roleLabel(profile.role)} />
+		<div className="space-y-2.5">
+			{/* Header: small avatar + name + role + short party id */}
+			<div className="flex items-center gap-2.5">
+				<Avatar size={40} name={profile.display_name || roleLabel(profile.role)} />
 				<div className="min-w-0">
-					<h2 className="text-lg font-semibold text-slate-900 truncate">
+					<h2 className="text-sm font-semibold text-slate-900 truncate">
 						{profile.display_name || roleLabel(profile.role)}
 					</h2>
-					<p className="text-sm text-slate-500">
+					<p className="text-xs text-slate-500 truncate">
 						{[roleLabel(profile.role), partyTypeLabel(profile.party_type)]
 							.filter(Boolean)
 							.join(" · ")}
 					</p>
-					<p className="text-[11px] font-mono text-slate-400 mt-0.5">{shortId}</p>
+					<p className="text-[10px] font-mono text-slate-400">{shortId}</p>
 				</div>
 			</div>
 
-			{/* Status chips */}
-			<div className="flex flex-wrap gap-2">
+			{/* Status chips — wrap when narrow */}
+			<div className="flex flex-wrap gap-1.5">
 				<StatusChip on={!!profile.status?.verified} label="Verified" />
 				<StatusChip on={!!profile.status?.signed} label="Signed" />
 				<StatusChip on={!!profile.status?.has_account} label="Account" />
@@ -45,14 +45,14 @@ export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
 			{/* Identity card */}
 			<Card title="Identity">
 				{maskedIdentifier && (
-					<Row icon={<ShieldCheck size={14} />} label="Identifier" value={maskedIdentifier} />
+					<Row icon={<ShieldCheck size={13} />} label="Identifier" value={maskedIdentifier} />
 				)}
-				{profile.email && <Row icon={<Mail size={14} />} label="Email" value={profile.email} />}
+				{profile.email && <Row icon={<Mail size={13} />} label="Email" value={profile.email} />}
 				{(profile.phones ?? []).map((p) => (
-					<Row key={p} icon={<Phone size={14} />} label="Phone" value={p} />
+					<Row key={p} icon={<Phone size={13} />} label="Phone" value={p} />
 				))}
 				{(profile.addresses ?? []).map((a) => (
-					<Row key={a} icon={<MapPin size={14} />} label="Address" value={a} />
+					<Row key={a} icon={<MapPin size={13} />} label="Address" value={a} />
 				))}
 				{!maskedIdentifier &&
 					!profile.email &&
@@ -65,11 +65,11 @@ export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
 				{(profile.mentioned_in ?? []).length === 0 ? (
 					<Empty>No documents yet.</Empty>
 				) : (
-					<ul className="space-y-1.5">
+					<ul className="space-y-1">
 						{profile.mentioned_in.map((m) => (
-							<li key={m.doc_id} className="flex items-center gap-2 text-sm text-slate-700">
-								<FileText size={14} className="shrink-0 text-slate-400" />
-								<span className="truncate">{m.label || "Document"}</span>
+							<li key={m.doc_id} className="flex items-center gap-1.5 text-xs text-slate-700">
+								<FileText size={13} className="shrink-0 text-slate-400" />
+								<span className="truncate min-w-0">{m.label || "Document"}</span>
 								{m.role && (
 									<span className="ml-auto shrink-0 text-[10px] bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5">
 										{roleLabel(m.role)}
@@ -96,7 +96,7 @@ export function PartyProfilePanel({ profile }: { profile: PartyProfile }) {
 function StatusChip({ on, label }: { on: boolean; label: string }) {
 	return (
 		<span
-			className={`inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1 border ${
+			className={`inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 border ${
 				on
 					? "bg-green-50 border-green-200 text-green-700"
 					: "bg-slate-50 border-slate-200 text-slate-400"
@@ -109,9 +109,11 @@ function StatusChip({ on, label }: { on: boolean; label: string }) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
 	return (
-		<section className="rounded-xl border border-slate-200 bg-white p-4">
-			<h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">{title}</h3>
-			<div className="space-y-1.5">{children}</div>
+		<section className="rounded-lg border border-slate-200 bg-white p-2.5">
+			<h3 className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+				{title}
+			</h3>
+			<div className="space-y-1">{children}</div>
 		</section>
 	);
 }
@@ -126,10 +128,10 @@ function Row({
 	value: string;
 }) {
 	return (
-		<div className="flex items-start gap-2 text-sm">
+		<div className="flex items-start gap-1.5 text-xs">
 			{icon && <span className="mt-0.5 shrink-0 text-slate-400">{icon}</span>}
-			<span className="shrink-0 text-slate-400 w-24">{label}</span>
-			<span className="text-slate-800 break-words min-w-0">{value}</span>
+			<span className="shrink-0 text-slate-400 w-14">{label}</span>
+			<span className="text-slate-800 break-words min-w-0 flex-1">{value}</span>
 		</div>
 	);
 }

@@ -5,9 +5,11 @@ import {
 	usePortalOverview,
 	usePortalCandidates,
 	useDeleteParty,
+	usePartyProfile,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
 import { PartyDetail } from "./PartyDetail.js";
+import { PartyProfilePanel } from "./PartyProfilePanel.js";
 import { AddPartyPanel } from "./AddPartyPanel.js";
 
 export interface PartyHubProps {
@@ -82,7 +84,7 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					{filtered.length === 0 ? (
 						<p className="p-4 text-sm text-slate-400">No matching people.</p>
 					) : (
-						filtered.map((p) => <PartyRow key={p.party_id} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id) setSelectedId(null); } }); }} />)
+						filtered.map((p) => <PartyRow key={p.party_id} caseId={caseId} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id) setSelectedId(null); } }); }} />)
 					)}
 				</div>
 
@@ -135,29 +137,46 @@ function filterParties(parties: PartyView[], search: string, filter: Filter): Pa
 	});
 }
 
-function PartyRow({ party, active, onClick, onDelete }: { party: PartyView; active: boolean; onClick: () => void; onDelete: () => void }) {
+function PartyRow({ caseId, party, active, onClick, onDelete }: { caseId: string; party: PartyView; active: boolean; onClick: () => void; onDelete: () => void }) {
 	const open = party.thread.some((m) => m.kind === "request" && m.status === "open");
+	// The selected row expands its profile inline beneath itself; the others stay
+	// collapsed. The profile only fetches for the active id (others pass null).
+	const profile = usePartyProfile(caseId, active ? party.party_id : null);
 	return (
-		<div
-			onClick={onClick}
-			className={`group relative w-full cursor-pointer px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
-		>
-			<div className="flex items-center justify-between gap-2">
-				<span className="text-sm font-medium text-slate-800 truncate">{party.display_name || roleLabel(party.role)}</span>
-				<div className="flex items-center gap-2 shrink-0">
-					<button
-						type="button"
-						onClick={(e) => { e.stopPropagation(); onDelete(); }}
-						title="Remove from portal"
-						aria-label="Remove from portal"
-						className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 transition"
-					>
-						<Trash2 size={14} />
-					</button>
-					<span className={`h-2 w-2 rounded-full ${party.verified ? "bg-green-500" : open ? "bg-amber-400" : "bg-slate-300"}`} />
+		<div className={active ? "bg-indigo-50" : ""}>
+			<div
+				onClick={onClick}
+				className={`group relative w-full cursor-pointer px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
+			>
+				<div className="flex items-center justify-between gap-2">
+					<span className="text-sm font-medium text-slate-800 truncate">{party.display_name || roleLabel(party.role)}</span>
+					<div className="flex items-center gap-2 shrink-0">
+						<button
+							type="button"
+							onClick={(e) => { e.stopPropagation(); onDelete(); }}
+							title="Remove from portal"
+							aria-label="Remove from portal"
+							className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 transition"
+						>
+							<Trash2 size={14} />
+						</button>
+						<span className={`h-2 w-2 rounded-full ${party.verified ? "bg-green-500" : open ? "bg-amber-400" : "bg-slate-300"}`} />
+					</div>
 				</div>
+				<span className="text-xs text-slate-500">{roleLabel(party.role)}</span>
 			</div>
-			<span className="text-xs text-slate-500">{roleLabel(party.role)}</span>
+			{/* Inline-expanded profile for the selected party only. */}
+			{active && (
+				<div className="border-t border-indigo-100 px-3 pb-3 pt-1">
+					{profile.isLoading ? (
+						<p className="py-2 text-xs text-slate-400">Loading profile…</p>
+					) : profile.data ? (
+						<PartyProfilePanel profile={profile.data} />
+					) : (
+						<p className="py-2 text-xs text-slate-400">Couldn’t load this party’s profile.</p>
+					)}
+				</div>
+			)}
 		</div>
 	);
 }

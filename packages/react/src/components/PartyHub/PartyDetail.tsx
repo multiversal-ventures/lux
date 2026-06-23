@@ -24,7 +24,6 @@ import {
 	useDraftRequest,
 	useEditMessage,
 	useMarkThreadRead,
-	usePartyProfile,
 	usePortalRealtime,
 	useRegenerateSuggestions,
 	useReissueLink,
@@ -35,7 +34,6 @@ import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
 import { DateSeparator } from "../DateSeparator.js";
 import { WebcamCaptureModal } from "../WebcamCaptureModal.js";
-import { PartyProfilePanel } from "./PartyProfilePanel.js";
 
 type ThreadItem = PartyView["thread"][number];
 
@@ -62,10 +60,6 @@ export function PartyDetail({
 	loading?: boolean;
 }) {
 	const [msg, setMsg] = useState("");
-	// Chat (default) | Profile — the center pane toggles between the message
-	// thread and the "what we know about this party" profile panel.
-	const [tab, setTab] = useState<"chat" | "profile">("chat");
-	const profile = usePartyProfile(caseId, tab === "profile" ? party.party_id : null);
 	const [copied, setCopied] = useState(false);
 	const [webcamOpen, setWebcamOpen] = useState(false);
 	const setAvatar = useSetOfficerAvatar();
@@ -149,7 +143,6 @@ export function PartyDetail({
 		setSelected(new Set());
 		setCustom([]);
 		setRegenerated(false);
-		setTab("chat");
 	}, [party.party_id]);
 
 	function selectedItems(): PortalRequestItem[] {
@@ -290,24 +283,6 @@ export function PartyDetail({
 						</div>
 					)}
 				</div>
-				{/* Chat | Profile segmented control — toggles the center pane. */}
-				<div className="shrink-0 inline-flex rounded-full bg-slate-100 p-0.5 text-xs">
-					{(["chat", "profile"] as const).map((t) => (
-						<button
-							key={t}
-							type="button"
-							onClick={() => setTab(t)}
-							aria-pressed={tab === t}
-							className={`rounded-full px-3 py-1 font-medium capitalize transition ${
-								tab === t
-									? "bg-white text-slate-900 shadow-sm"
-									: "text-slate-500 hover:text-slate-700"
-							}`}
-						>
-							{t}
-						</button>
-					))}
-				</div>
 				{party.access_code && (
 					<button
 						type="button"
@@ -370,21 +345,8 @@ export function PartyDetail({
 				</button>
 			</header>
 
-			{tab === "profile" ? (
-				profile.isLoading ? (
-					<div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-400 bg-slate-50">
-						<Loader2 size={22} className="animate-spin" />
-						<p className="text-sm">Loading profile…</p>
-					</div>
-				) : profile.data ? (
-					<PartyProfilePanel profile={profile.data} />
-				) : (
-					<div className="flex-1 flex items-center justify-center text-sm text-slate-400 bg-slate-50">
-						Couldn’t load this party’s profile.
-					</div>
-				)
-			) : (
-				<>
+			{/* Conversation — the main area (always; the profile now lives in the sidebar) */}
+			<>
 					{/* Conversation — the main area */}
 					<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-slate-50">
 						{loading && party.thread.length === 0 ? (
@@ -613,8 +575,7 @@ export function PartyDetail({
 							)}
 						</div>
 					</div>
-				</>
-			)}
+			</>
 
 			{/* Webcam capture for the loan-officer avatar. Opened by clicking the
 			    operator's own "You" avatar on a bubble; saving sets it firm-wide and

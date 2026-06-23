@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
 import { roleLabel } from "../../labels.js";
 import {
 	usePortalOverview,
 	usePortalCandidates,
+	useDeleteParty,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
 import { PartyDetail } from "./PartyDetail.js";
@@ -24,6 +25,7 @@ type Filter = "all" | "open" | "verified" | "no_account";
 export function PartyHub({ caseId, className }: PartyHubProps) {
 	const overview = usePortalOverview(caseId);
 	const candidates = usePortalCandidates(caseId);
+	const del = useDeleteParty(caseId);
 
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
@@ -80,7 +82,7 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					{filtered.length === 0 ? (
 						<p className="p-4 text-sm text-slate-400">No matching people.</p>
 					) : (
-						filtered.map((p) => <PartyRow key={p.party_id} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} />)
+						filtered.map((p) => <PartyRow key={p.party_id} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id) setSelectedId(null); } }); }} />)
 					)}
 				</div>
 
@@ -130,19 +132,29 @@ function filterParties(parties: PartyView[], search: string, filter: Filter): Pa
 	});
 }
 
-function PartyRow({ party, active, onClick }: { party: PartyView; active: boolean; onClick: () => void }) {
+function PartyRow({ party, active, onClick, onDelete }: { party: PartyView; active: boolean; onClick: () => void; onDelete: () => void }) {
 	const open = party.thread.some((m) => m.kind === "request" && m.status === "open");
 	return (
-		<button
-			type="button"
+		<div
 			onClick={onClick}
-			className={`w-full text-left px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
+			className={`group relative w-full cursor-pointer px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
 		>
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between gap-2">
 				<span className="text-sm font-medium text-slate-800 truncate">{party.display_name || roleLabel(party.role)}</span>
-				<span className={`h-2 w-2 rounded-full shrink-0 ${party.verified ? "bg-green-500" : open ? "bg-amber-400" : "bg-slate-300"}`} />
+				<div className="flex items-center gap-2 shrink-0">
+					<button
+						type="button"
+						onClick={(e) => { e.stopPropagation(); onDelete(); }}
+						title="Remove from portal"
+						aria-label="Remove from portal"
+						className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 transition"
+					>
+						<Trash2 size={14} />
+					</button>
+					<span className={`h-2 w-2 rounded-full ${party.verified ? "bg-green-500" : open ? "bg-amber-400" : "bg-slate-300"}`} />
+				</div>
 			</div>
 			<span className="text-xs text-slate-500">{roleLabel(party.role)}</span>
-		</button>
+		</div>
 	);
 }

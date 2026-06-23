@@ -1,6 +1,13 @@
 import { useCallback, useRef, useState } from "react";
-import Webcam from "react-webcam";
+import * as ReactWebcam from "react-webcam";
 import { Camera, RotateCcw, Trash2, X } from "lucide-react";
+
+// react-webcam ships CommonJS (module.exports = Webcam). Under lux's prebuilt ESM
+// + a vite consumer, the named-`default` import resolves to undefined ("does not
+// provide an export named 'default'"). Resolve the default explicitly so it works
+// regardless of how the consumer's bundler does CJS interop.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Webcam: any = (ReactWebcam as any).default ?? ReactWebcam;
 
 /** Output edge length of the saved avatar (square). Small enough to ship inline
  * as a data URL on every session/overview payload without bloating responses. */
@@ -25,7 +32,7 @@ export interface WebcamCaptureModalProps {
  * flips to an inline message instead of a blank/broken preview.
  */
 export function WebcamCaptureModal({ open, currentPhoto, onSave, onClose }: WebcamCaptureModalProps) {
-	const webcamRef = useRef<Webcam>(null);
+	const webcamRef = useRef<{ getScreenshot: () => string | null }>(null);
 	const [captured, setCaptured] = useState<string | null>(null);
 	const [denied, setDenied] = useState(false);
 

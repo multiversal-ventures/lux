@@ -7,6 +7,12 @@ export interface UsePortalSessionReturn {
 	loading: boolean;
 	error: PortalClientError | null;
 	submitIntent: (intents: Intent[]) => Promise<void>;
+	/** Upload documents to the case, then refresh the session. Returns success. */
+	uploadDocuments: (files: File[]) => Promise<boolean>;
+	/** True while the loan officer is typing (live). */
+	operatorTyping: boolean;
+	/** Signal that the borrower is typing (best-effort, debounce at call site). */
+	sendTyping: () => void;
 }
 
 /**
@@ -19,8 +25,45 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 	const [session, setSession] = useState<PortalSession | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<PortalClientError | null>(null);
+	const [operatorTyping, setOperatorTyping] = useState(false);
 
 	const client = useMemo(() => createPortalClient(), []);
+
+	// Silent refresh — updates the session without the loading flicker (used by
+	// the real-time stream so new messages just appear).
+	const refreshSession = useCallback(
+		async (t: string) => {
+			const result = await client.fetchSession(t);
+			if (!result.error) setSession(result.session);
+		},
+		[client],
+	);
+
+	// Real-time: refetch the (privacy-gated) session on any portal ping; show a
+	// typing indicator when the officer types. Pings carry no content.
+	useEffect(() => {
+		if (!token) return;
+		let typingTimer: ReturnType<typeof setTimeout> | undefined;
+		const unsub = client.streamPortalEvents(token, (ping) => {
+			if (ping.type === "portal.typing") {
+				if (ping.actor === "operator") {
+					setOperatorTyping(true);
+					if (typingTimer) clearTimeout(typingTimer);
+					typingTimer = setTimeout(() => setOperatorTyping(false), 3000);
+				}
+			} else {
+				void refreshSession(token);
+			}
+		});
+		return () => {
+			unsub();
+			if (typingTimer) clearTimeout(typingTimer);
+		};
+	}, [token, client, refreshSession]);
+
+	const sendTyping = useCallback(() => {
+		if (token) void client.sendTyping(token);
+	}, [client, token]);
 
 	const loadSession = useCallback(
 		async (t: string) => {
@@ -63,5 +106,24 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 		[client, session, token],
 	);
 
-	return { session, loading, error, submitIntent };
+	const uploadDocuments = useCallback(
+		async (files: File[]) => {
+			if (!session || !token) {
+				setError({ code: "not_ready", message: "Session not ready" });
+				return false;
+			}
+			setError(null);
+			const result = await client.uploadDocuments(session.case_id, token, files);
+			if (result.error) {
+				setError(result.error);
+				return false;
+			}
+			// Refresh so the checklist reflects the new documents.
+			await loadSession(token);
+			return true;
+		},
+		[client, session, token, loadSession],
+	);
+
+	return { session, loading, error, submitIntent, uploadDocuments, operatorTyping, sendTyping };
 }

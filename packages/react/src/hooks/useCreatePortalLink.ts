@@ -1,7 +1,26 @@
-import { useMutation, type UseMutationResult } from "@tanstack/react-query";
+import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
 import { getDefaultClient, type components } from "@multiversal-ventures/lux-core";
 
 export type PortalLink = components["schemas"]["PortalLinkResponse"];
+export type PortalLinkRequest = components["schemas"]["PortalLinkRequest"];
+export type PortalRequestItem = components["schemas"]["PortalRequestItem"];
+export type PortalLinkStatus = components["schemas"]["PortalLinkStatusResponse"];
+
+/**
+ * Operator-facing status of a case's borrower portal link
+ * (none / waiting / submitted) for rendering the Portal Link button. Polls so
+ * the button flips to "submitted" when the borrower finishes.
+ */
+export function usePortalLinkStatus(
+	caseId: string | null,
+): UseQueryResult<PortalLinkStatus, Error> {
+	return useQuery<PortalLinkStatus, Error>({
+		queryKey: ["portal-link-status", caseId],
+		enabled: !!caseId,
+		refetchInterval: 30_000,
+		queryFn: async () => getDefaultClient().getPortalLinkStatus(caseId as string),
+	});
+}
 
 /**
  * Mutation that issues a one-time, expiring borrower portal token for a case
@@ -15,12 +34,35 @@ export type PortalLink = components["schemas"]["PortalLinkResponse"];
  */
 export function useCreatePortalLink(
 	caseId: string | null,
-): UseMutationResult<PortalLink, Error, void> {
-	return useMutation<PortalLink, Error, void>({
-		mutationFn: async () => {
+): UseMutationResult<PortalLink, Error, PortalLinkRequest | void> {
+	return useMutation<PortalLink, Error, PortalLinkRequest | void>({
+		mutationFn: async (body) => {
 			if (!caseId) throw new Error("caseId required");
-			return await getDefaultClient().createPortalLink(caseId);
+			return await getDefaultClient().createPortalLink(caseId, body || undefined);
 		},
+	});
+}
+
+/**
+ * Suggested follow-up / document items for the portal request modal, derived
+ * from the case's findings. Disabled when ``caseId`` is null (e.g. the caller
+ * supplies its own items).
+ *
+ * When ``partyId`` is given the suggestions are party-aware — shaped by that
+ * party's role (Primary vs Co-borrower) and the documents they appear on, so
+ * two parties on the same case get different pills. ``partyId`` is part of the
+ * query key, so switching parties refetches rather than serving stale pills.
+ * Omit it for the case-scoped (back-compat) view.
+ */
+export function usePortalSuggestions(
+	caseId: string | null,
+	partyId?: string | null,
+): UseQueryResult<PortalRequestItem[], Error> {
+	return useQuery<PortalRequestItem[], Error>({
+		queryKey: ["portal-suggestions", caseId, partyId],
+		enabled: !!caseId,
+		queryFn: async () =>
+			getDefaultClient().getPortalSuggestions(caseId as string, partyId ?? undefined),
 	});
 }
 

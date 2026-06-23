@@ -293,13 +293,222 @@ export class VeritasClient {
 		return this.requestJson(`/api/cases`, { method: "POST", body: JSON.stringify(payload) });
 	}
 
-	/** Issue a one-time, 48h borrower portal token for a case (operator-only).
+	/** Issue a one-time, 48h borrower portal token for a case (operator-only),
+	 * with an optional document/follow-up request the borrower portal renders.
 	 * Returns the token + expiry; the caller builds the shareable URL. */
-	async createPortalLink(caseId: string): Promise<components["schemas"]["PortalLinkResponse"]> {
+	async createPortalLink(
+		caseId: string,
+		body?: components["schemas"]["PortalLinkRequest"],
+	): Promise<components["schemas"]["PortalLinkResponse"]> {
 		return this.requestJson<components["schemas"]["PortalLinkResponse"]>(
-			`/api/cases/${caseId}/portal-link`,
+			`/api/cases/${caseId}/portal`,
+			{ method: "POST", body: body ? JSON.stringify(body) : undefined },
+		);
+	}
+
+	/** Operator status of the case's borrower portal link (none/waiting/submitted),
+	 * for rendering the Portal Link button state. */
+	async getPortalLinkStatus(caseId: string): Promise<components["schemas"]["PortalLinkStatusResponse"]> {
+		return this.requestJson<components["schemas"]["PortalLinkStatusResponse"]>(
+			`/api/cases/${caseId}/portal/status`,
+		);
+	}
+
+	/** Suggested follow-up / document items for the portal request modal
+	 * (derived from the case's findings; operator picks which to request).
+	 *
+	 * When ``partyId`` is given the suggestions are party-aware — shaped by that
+	 * party's role (Primary vs Co-borrower) and the documents they appear on, so
+	 * two parties on the same case get different asks. Omit it for the
+	 * case-scoped (back-compat) view. */
+	async getPortalSuggestions(
+		caseId: string,
+		partyId?: string,
+	): Promise<components["schemas"]["PortalRequestItem"][]> {
+		const qs = partyId ? `?party_id=${encodeURIComponent(partyId)}` : '';
+		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
+			`/api/cases/${caseId}/portal/suggestions${qs}`,
+		);
+	}
+
+	/** On-demand fresh suggestions that honor the operator's typed note and skip
+	 * already-shown titles ('generate more'). Never reads/writes the prepared cache. */
+	async regeneratePortalSuggestions(
+		caseId: string,
+		body: components["schemas"]["RegenerateSuggestionsBody"],
+	): Promise<components["schemas"]["PortalRequestItem"][]> {
+		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
+			`/api/cases/${caseId}/portal/suggestions/regenerate`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	// -- Party Hub (operator) --------------------------------------------------
+
+	/** Operator typing signal — broadcast to the borrower's portal stream. */
+	async sendOperatorTyping(caseId: string): Promise<void> {
+		try {
+			await this.requestJson<unknown>(`/api/cases/${caseId}/portal/typing`, { method: "POST" });
+		} catch {
+			/* typing is best-effort */
+		}
+	}
+
+	/** Cases the signed-in borrower (magic-link account) can access, each with a
+	 * fresh portal token. Authed by the borrower's Firebase JWT. */
+	async getMyCases(): Promise<components["schemas"]["MyCaseLink"][]> {
+		return this.requestJson<components["schemas"]["MyCaseLink"][]>(`/api/portal/my-cases`);
+	}
+
+	/** Full operator overview of a case's portal: parties, threads, verification,
+	 * shared uploaded documents. Drives the Party Hub page. */
+	async getPortalOverview(caseId: string): Promise<components["schemas"]["PortalOverview"]> {
+		return this.requestJson<components["schemas"]["PortalOverview"]>(`/api/cases/${caseId}/portal`);
+	}
+
+	/** Resolved case identities not yet engaged as a portal party ("add party"). */
+	async getPortalCandidates(caseId: string): Promise<components["schemas"]["PartyCandidate"][]> {
+		return this.requestJson<components["schemas"]["PartyCandidate"][]>(
+			`/api/cases/${caseId}/portal/candidates`,
+		);
+	}
+
+	/** Append a request to a party's thread (reuses the party's persistent link). */
+	async sendPortalRequest(
+		caseId: string,
+		body: components["schemas"]["SendRequestBody"],
+	): Promise<components["schemas"]["SendRequestResponse"]> {
+		return this.requestJson<components["schemas"]["SendRequestResponse"]>(
+			`/api/cases/${caseId}/portal/requests`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** AI-draft borrower-friendly request text (draft only — operator edits + sends). */
+	async draftPortalRequest(
+		caseId: string,
+		body: components["schemas"]["DraftRequestBody"],
+	): Promise<components["schemas"]["DraftResponse"]> {
+		return this.requestJson<components["schemas"]["DraftResponse"]>(
+			`/api/cases/${caseId}/portal/requests/draft`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** Create a portal party (individual or entity) for a case. */
+	async addParty(
+		caseId: string,
+		body: components["schemas"]["AddPartyBody"],
+	): Promise<components["schemas"]["PartyCreatedResponse"]> {
+		return this.requestJson<components["schemas"]["PartyCreatedResponse"]>(
+			`/api/cases/${caseId}/portal/parties`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** Set a party's role on a case document (spec-style entity↔document relation). */
+	async attachPartyDocument(
+		caseId: string,
+		partyId: string,
+		body: components["schemas"]["AttachDocBody"],
+	): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/documents`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	/** Remove a party (and its thread) from a case's portal. */
+	async deleteParty(caseId: string, partyId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}`,
+			{ method: "DELETE" },
+		);
+	}
+
+	/** Clear a party's conversation thread (keeps the party + link) so the
+	 * operator can start over / resend; also resets the captured email. */
+	async clearPartyThread(caseId: string, partyId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages`,
+			{ method: "DELETE" },
+		);
+	}
+
+	/** Soft-delete a single message from a party's thread (operator side). Own-only:
+	 * the operator may delete only operator-authored messages (the server 403s on a
+	 * borrower message); upload bubbles are not deletable (the server 404s). The row
+	 * is kept so the thread renders a deleted tombstone. */
+	async deletePartyMessage(caseId: string, partyId: string, messageId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages/${encodeURIComponent(messageId)}`,
+			{ method: "DELETE" },
+		);
+	}
+
+	/** Edit the body of one of the operator's OWN messages on a party's thread.
+	 * Own-only: the server 403s on a borrower message, 404s a deleted one, and 422s
+	 * an empty body. The bubble gets an "· edited" indicator. */
+	async editPartyMessage(
+		caseId: string,
+		partyId: string,
+		messageId: string,
+		body: string,
+	): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages/${encodeURIComponent(messageId)}`,
+			{ method: "PATCH", body: JSON.stringify({ body }) },
+		);
+	}
+
+	/** Reissue a party's portal link — resets the access code and attempt counter. */
+	async reissueLink(caseId: string, partyId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/reissue`,
 			{ method: "POST" },
 		);
+	}
+
+	/** Operator marks a party's borrower messages as read → flips the borrower's
+	 * receipt from ✓ (sent) to ✓✓ (read). Best-effort: a read receipt failing
+	 * must never break the operator view. */
+	async markThreadRead(caseId: string, partyId: string): Promise<void> {
+		try {
+			await this.requestJson<unknown>(
+				`/api/cases/${caseId}/portal/parties/${partyId}/read`,
+				{ method: "POST" },
+			);
+		} catch {
+			/* read receipt is best-effort */
+		}
+	}
+
+	/** Link a party to a resolved case identity. */
+	async linkParty(
+		caseId: string,
+		partyId: string,
+		body: components["schemas"]["LinkPartyBody"],
+	): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/link`,
+			{ method: "POST", body: JSON.stringify(body) },
+		);
+	}
+
+	// -- Officer settings (chat avatar) ----------------------------------------
+
+	/** The firm's loan-officer profile (name + avatar data URL) shown on the
+	 * operator's own chat bubbles and on every borrower's portal. */
+	async getOfficerSettings(): Promise<components["schemas"]["OfficerProfile"]> {
+		return this.requestJson<components["schemas"]["OfficerProfile"]>(`/api/settings/officer`);
+	}
+
+	/** Set the loan-officer avatar (data URL), or clear it with `null`. */
+	async setOfficerAvatar(avatar: string | null): Promise<components["schemas"]["OfficerProfile"]> {
+		return this.requestJson<components["schemas"]["OfficerProfile"]>(`/api/settings/officer`, {
+			method: "PUT",
+			body: JSON.stringify({ avatar }),
+		});
 	}
 
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {
@@ -969,5 +1178,111 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		}
 	}
 
-	return { fetchSession, submitIntents };
+	/** Upload documents to the borrower's own case using portal-token auth.
+	 * The files endpoint accepts X-Portal-Token for the token's authorized case. */
+	async function uploadDocuments(
+		caseId: string,
+		token: string,
+		files: File[],
+	): Promise<{ ok: boolean; error: PortalClientError | null }> {
+		try {
+			const form = new FormData();
+			for (const f of files) form.append("files", f);
+			// The files endpoint authenticates via resolve_caller, whose portal
+			// path is the 32-char-hex Bearer token (entity caller, single-case
+			// scope, no tenant context). The X-Portal-Token header path needs a
+			// tenant credential first, so it 401s for the public borrower.
+			const res = await fetch(`${base}/api/cases/${caseId}/files`, {
+				method: "POST",
+				headers: { Authorization: `Bearer ${token}` },
+				body: form,
+			});
+			if (!res.ok) {
+				return { ok: false, error: { code: "server", message: `Upload failed (${res.status})`, status: res.status } };
+			}
+			return { ok: true, error: null };
+		} catch {
+			return { ok: false, error: { code: "network", message: "Upload failed" } };
+		}
+	}
+
+	/** Attach a Firebase account to this borrower's portal (token-gated). The
+	 * Firebase id token (from a magic-link sign-in) is verified server-side only
+	 * to capture a trusted uid; auth is the portal token. */
+	async function claimAccount(
+		token: string,
+		firebaseIdToken: string,
+	): Promise<{ ok: boolean; accountUserId?: string; error: PortalClientError | null }> {
+		try {
+			const res = await fetch(`${base}/api/portal/claim-account`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", [PORTAL_AUTH_HEADER]: token },
+				body: JSON.stringify({ firebase_id_token: firebaseIdToken }),
+			});
+			if (!res.ok) {
+				return { ok: false, error: { code: "server", message: `Couldn't create account (${res.status})`, status: res.status } };
+			}
+			const data = (await res.json()) as { account_user_id?: string };
+			return { ok: true, accountUserId: data.account_user_id, error: null };
+		} catch {
+			return { ok: false, error: { code: "network", message: "Couldn't create account" } };
+		}
+	}
+
+	/** Borrower typing signal — broadcast to the operator. Best-effort. */
+	async function sendTyping(token: string): Promise<void> {
+		try {
+			await fetch(`${base}/api/portal/typing`, { method: "POST", headers: { [PORTAL_AUTH_HEADER]: token } });
+		} catch {
+			/* best-effort */
+		}
+	}
+
+	/** Subscribe to the borrower's real-time portal stream. Emits MINIMAL pings
+	 * ({type, actor?}) — no content — so the caller refetches the gated session.
+	 * Returns an unsubscribe function. */
+	function streamPortalEvents(
+		token: string,
+		onPing: (ping: { type: string; actor?: string }) => void,
+	): () => void {
+		const controller = new AbortController();
+		(async () => {
+			let res: Response;
+			try {
+				res = await fetch(`${base}/api/portal/stream`, {
+					headers: { [PORTAL_AUTH_HEADER]: token },
+					signal: controller.signal,
+				});
+			} catch {
+				return;
+			}
+			if (!res.ok || !res.body) return;
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const chunks = buffer.split("\n\n");
+					buffer = chunks.pop() ?? "";
+					for (const chunk of chunks) {
+						const line = chunk.split("\n").find((l) => l.startsWith("data:"));
+						if (!line) continue;
+						try {
+							onPing(JSON.parse(line.slice(5).trim()));
+						} catch {
+							/* ignore malformed */
+						}
+					}
+				}
+			} catch {
+				/* aborted or network drop */
+			}
+		})();
+		return () => controller.abort();
+	}
+
+	return { fetchSession, submitIntents, uploadDocuments, claimAccount, sendTyping, streamPortalEvents };
 }

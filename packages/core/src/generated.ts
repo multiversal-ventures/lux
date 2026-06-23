@@ -710,7 +710,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal-link": {
+    "/api/cases/{case_id}/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Overview
+         * @description Full operator Party Hub view: parties, threads, verification, docs.
+         */
+        get: operations["portal_overview_api_cases__case_id__portal_get"];
+        put?: never;
+        /**
+         * Create Portal Link
+         * @description Issue a single-use, 48h borrower portal token for a case, with an
+         *     optional document/follow-up request the borrower portal renders.
+         *
+         *     Tenant/operator only — portal callers cannot mint links. Ties the token to
+         *     the case's primary borrower entity so the borrower opens a no-login portal
+         *     scoped to their own case. The operator's selected follow-up/completeness
+         *     items + custom items + message are persisted as a ``portal_request`` and
+         *     shown on the borrower portal, attributed to the requesting tenant. Returns
+         *     the token + expiry; the client builds the shareable URL.
+         */
+        post: operations["create_portal_link_api_cases__case_id__portal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Candidates
+         * @description Case borrowers not yet engaged as portal parties (add-party picker).
+         */
+        get: operations["portal_candidates_api_cases__case_id__portal_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties": {
         parameters: {
             query?: never;
             header?: never;
@@ -720,15 +772,335 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create Portal Link
-         * @description Issue a single-use, 48h borrower portal token for a case.
-         *
-         *     Tenant/operator only — portal callers cannot mint links. Ties the token to
-         *     the case's primary borrower entity so the borrower opens a no-login portal
-         *     scoped to their own case. Returns the token + expiry; the client builds the
-         *     shareable URL (veritas stays URL-agnostic).
+         * Add Party
+         * @description Create a portal party on the case (optionally pre-linked to an identity).
          */
-        post: operations["create_portal_link_api_cases__case_id__portal_link_post"];
+        post: operations["add_party_api_cases__case_id__portal_parties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Party
+         * @description Remove a party (and its thread) from a case's portal.
+         */
+        delete: operations["delete_party_api_cases__case_id__portal_parties__party_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach Document
+         * @description Set a party's role on a case document (e.g. 'borrower on bank_statement').
+         */
+        post: operations["attach_document_api_cases__case_id__portal_parties__party_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Party
+         * @description Link a party to a resolved case identity (the confidence link).
+         */
+        post: operations["link_party_api_cases__case_id__portal_parties__party_id__link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Clear Party Thread
+         * @description Clear a party's conversation thread (operator 'delete chat to resend').
+         *
+         *     Keeps the party + their portal link/code; only wipes the messages and resets
+         *     the captured email so the borrower can re-do the account/email step. Lets the
+         *     operator start the conversation over without removing the person.
+         */
+        delete: operations["clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Party Message
+         * @description Operator soft-deletes one of their OWN messages from a party's thread.
+         *
+         *     Own-only: the operator may delete ONLY operator-authored messages — never a
+         *     borrower's message. Guarded against IDOR: case access is verified, the
+         *     message must exist, belong to the URL party, and that party must belong to
+         *     the URL case. Upload bubbles are synthesized from events (non-row ids), so
+         *     ``get_message`` returns None for them — they 404 here and stay undeletable.
+         *     The delete is SOFT (``deleted_at`` set, row kept) so the thread shows a
+         *     tombstone. After delete, publishes ``portal.thread_changed`` so both sides
+         *     refetch.
+         */
+        delete: operations["delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Edit Party Message
+         * @description Operator edits the body of one of their OWN messages on a party's thread.
+         *
+         *     Own-only: only operator-authored messages may be edited — never a borrower's.
+         *     Guarded against IDOR: case access is verified, the message must exist, belong
+         *     to the URL party, and that party must belong to the URL case. A deleted
+         *     message can't be edited (404 — its content is gone). An empty/whitespace body
+         *     is rejected (422). After the edit, publishes ``portal.thread_changed`` so
+         *     both sides refetch.
+         */
+        patch: operations["edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch"];
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Thread Read
+         * @description Operator marks a party's borrower messages as read → ✓✓ on the borrower side.
+         *
+         *     Stamps ``read_at`` on this party's unread borrower-authored messages. When
+         *     anything actually flipped, publishes a transient ``portal.read`` signal to
+         *     the borrower's stream so their receipts update live (same mechanism as the
+         *     typing indicator). Idempotent — re-reading an already-read thread is a no-op.
+         */
+        post: operations["mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue Link
+         * @description Reset a locked-out party's access-code attempt counter.
+         *
+         *     A borrower who fumbled the access code 5 times is locked out; the operator
+         *     reissues so they can try again. Resets the active token's attempt counter to
+         *     0 (the link/code itself is unchanged).
+         */
+        post: operations["reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Portal Request
+         * @description Append a request to a party's portal thread, reusing its active token.
+         *
+         *     The token is keyed by ``party_id``, so even an unmapped party (no linked
+         *     identity) can be messaged immediately — it always has a portal token. The
+         *     linked identity, when present, is carried into the token as metadata.
+         */
+        post: operations["send_portal_request_api_cases__case_id__portal_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/requests/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Portal Request
+         * @description AI-draft a borrower-friendly request message. Creates no message/event.
+         *
+         *     Durable when Temporal is up: starts ``PreparePartyAIMessageWorkflow`` (which
+         *     retries the AI step and caches the draft on the party's prepared row),
+         *     resolved to the case's latest prepared party. Falls back to calling
+         *     ``draft_request_text`` directly when Temporal is down or no prepared party
+         *     exists. Response shape (``{text}``) is unchanged either way.
+         */
+        post: operations["draft_portal_request_api_cases__case_id__portal_requests_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Link Status
+         * @description Operator view of the borrower portal link: none / waiting / submitted.
+         *
+         *     Drives the operator's Portal Link button state. ``submitted`` once the
+         *     borrower finalized (portal.borrower.submitted event); ``waiting`` while a
+         *     request is outstanding; ``none`` if no link was ever issued.
+         */
+        get: operations["portal_link_status_api_cases__case_id__portal_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Suggestions
+         * @description Suggested document/follow-up items for the borrower portal request modal.
+         *
+         *     Per-party when ``party_id`` is given: the suggestions are shaped by THAT
+         *     party's role (Primary vs Co-borrower) and the documents they appear on, so
+         *     two parties on the same case get different asks. The prepared cache is
+         *     per-party (``prepare_party_link`` curates with the party), so we serve that
+         *     party's row; on a miss we curate fresh WITH the party.
+         *
+         *     Without ``party_id`` the endpoint stays case-scoped (back-compat): serve the
+         *     latest prepared row for any party, else curate case-only.
+         *
+         *     Derived from the case's spec findings + qualification report — the things
+         *     qualification flagged as needing follow-up or a missing document. The
+         *     operator checks off which to request. Deduped by normalized title and capped
+         *     (see ``curate_suggestions``).
+         */
+        get: operations["portal_suggestions_api_cases__case_id__portal_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/suggestions/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate Suggestions
+         * @description On-demand fresh suggestions that honor the operator's typed note.
+         *
+         *     Unlike GET /portal/suggestions, this never reads or writes the prepared
+         *     cache — it always regenerates. ``note`` is included as a required item;
+         *     ``exclude`` titles are not repeated (drives the 'generate more' control).
+         */
+        post: operations["regenerate_suggestions_api_cases__case_id__portal_suggestions_regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/typing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Operator Typing
+         * @description Operator typing signal — transient, broadcast to the borrower stream.
+         */
+        post: operations["operator_typing_api_cases__case_id__portal_typing_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1263,6 +1635,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/claim-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Account
+         * @description Attach a Firebase account to the borrower's portal — token-gated.
+         *
+         *     Auth is the borrower's CURRENT portal token (proves they're the borrower for
+         *     this party); the Firebase id token is verified only to capture a trusted uid.
+         *     Upserts a ``users`` row with role=borrower and links the party's
+         *     account_user_id, so future magic-link logins resolve to this account. NOT a
+         *     JWT-authed endpoint, so it never hits the operator auto-provision path.
+         */
+        post: operations["claim_account_api_portal_claim_account_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/my-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Cases
+         * @description Cases the signed-in borrower (magic-link account) can access, each with a
+         *     fresh/reused portal token so the existing token-based portal still drives it.
+         */
+        get: operations["my_cases_api_portal_my_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/portal/session": {
         parameters: {
             query?: never;
@@ -1278,9 +1697,10 @@ export interface paths {
          *     returns everything the portal needs: entity info, checklist,
          *     consent state, verification level, and upload config.
          *
-         *     Token is passed as a query parameter (not Authorization header)
-         *     because browser-native SSE connections and simple GET-based portal
-         *     iframes cannot set custom headers.
+         *     The token is read from the ``X-Portal-Token`` header (preferred — keeps it
+         *     out of access logs and browser history). The ``?token=`` query param is
+         *     accepted as a legacy fallback for SSE / iframe surfaces that can't set
+         *     headers.
          */
         get: operations["get_session_api_portal_session_get"];
         put?: never;
@@ -1305,9 +1725,54 @@ export interface paths {
          * @description Execute a batch of typed intents and return the refreshed session.
          *
          *     Intents execute in array order. If one fails, remaining intents
-         *     are skipped and partial results are returned with the error.
+         *     are skipped and partial results are returned with the error. Auth is the
+         *     portal token (X-Portal-Token header preferred) — the same direct-validation
+         *     path as GET /session, so the public no-login portal works without tenant
+         *     context (resolve_caller's within-tenant path 401s for borrower callers).
          */
         post: operations["submit_intents_api_portal_session__session_id__intents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Stream
+         * @description Real-time portal stream for the borrower (token-authed). Emits MINIMAL
+         *     pings only (event type + typing actor) — never event_data — so nothing
+         *     internal/PII leaks; the client refetches the gated session for content.
+         */
+        get: operations["portal_stream_api_portal_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/typing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Portal Typing
+         * @description Borrower typing signal — transient, broadcast to the operator stream.
+         */
+        post: operations["portal_typing_api_portal_typing_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1458,6 +1923,34 @@ export interface paths {
          *     file upload.
          */
         post: operations["create_sample_case_api_samples_create_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/officer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Officer
+         * @description The firm's loan-officer profile (name + photo) for the chat avatar.
+         */
+        get: operations["get_officer_api_settings_officer_get"];
+        /**
+         * Set Officer
+         * @description Set (or clear, with null) the firm's loan-officer profile photo.
+         *
+         *     A non-null avatar must be an inline image data URL (``data:image/``) within
+         *     the size cap; anything else is rejected (422). Null clears the photo, after
+         *     which borrowers see initials.
+         */
+        put: operations["set_officer_api_settings_officer_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1742,6 +2235,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddPartyBody */
+        AddPartyBody: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /** Party Type */
+            party_type: string;
+            /** Role */
+            role?: string | null;
+            /** Signer Party Id */
+            signer_party_id?: string | null;
+        };
         /**
          * AgentEventMeta
          * @description `_agent` meta stamped on every correction-agent event.
@@ -1774,6 +2282,19 @@ export interface components {
         ApproveRequest: {
             /** Approved By */
             approved_by: string;
+        };
+        /**
+         * AttachDocBody
+         * @description Set a party's role on a case document (spec-style entity↔document relation).
+         */
+        AttachDocBody: {
+            /**
+             * Doc Id
+             * Format: uuid
+             */
+            doc_id: string;
+            /** Role */
+            role: string;
         };
         /**
          * AttestationArtifactResponse
@@ -2117,6 +2638,19 @@ export interface components {
             step_number: number;
         };
         /**
+         * CaseDocument
+         * @description A case document available to relate a party to.
+         */
+        CaseDocument: {
+            /** Doc Id */
+            doc_id: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /**
          * CaseEventData
          * @description Loose, open shape of a case event's ``event_data`` JSONB.
          *
@@ -2265,6 +2799,19 @@ export interface components {
             status: string;
             /** Title */
             title: string;
+        };
+        /**
+         * ClaimAccountRequest
+         * @description Borrower attaches a Firebase account to their portal (token-gated).
+         */
+        ClaimAccountRequest: {
+            /** Firebase Id Token */
+            firebase_id_token: string;
+        };
+        /** ClaimAccountResponse */
+        ClaimAccountResponse: {
+            /** Account User Id */
+            account_user_id: string;
         };
         /**
          * ClassifiedTransaction
@@ -2653,6 +3200,35 @@ export interface components {
             /** Tax Year */
             tax_year?: number | null;
         };
+        /**
+         * DraftRequestBody
+         * @description Draft-only — turns selected items into borrower-friendly text.
+         */
+        DraftRequestBody: {
+            /**
+             * Context
+             * @default
+             */
+            context: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["PortalRequestItem"][];
+        };
+        /** DraftResponse */
+        DraftResponse: {
+            /** Text */
+            text: string;
+        };
+        /**
+         * EditMessageBody
+         * @description Operator edits the body of one of their OWN thread messages.
+         */
+        EditMessageBody: {
+            /** Body */
+            body: string;
+        };
         /** EntityGroupResponse */
         EntityGroupResponse: {
             /**
@@ -2687,11 +3263,8 @@ export interface components {
         };
         /** EntityInfo */
         EntityInfo: {
-            /**
-             * Identity Id
-             * Format: uuid
-             */
-            identity_id: string;
+            /** Identity Id */
+            identity_id?: string | null;
             /**
              * Name
              * @default
@@ -3131,12 +3704,22 @@ export interface components {
             claims?: {
                 [key: string]: string;
             } | null;
+            /** Code */
+            code?: string | null;
             /** Consent Type */
             consent_type?: string | null;
+            /** Email */
+            email?: string | null;
             /** Granted */
             granted?: boolean | null;
             /** Level */
             level?: number | null;
+            /** Message Id */
+            message_id?: string | null;
+            /** Signature */
+            signature?: string | null;
+            /** Text */
+            text?: string | null;
         };
         /** IntentResult */
         IntentResult: {
@@ -3192,6 +3775,37 @@ export interface components {
             /** User Id */
             user_id: string;
         };
+        /**
+         * KbaQuestion
+         * @description A knowledge-based-auth question derived from the case's identity facts.
+         *
+         *     Only the prompt is sent — never the expected answer. The borrower's answer
+         *     is checked server-side (see veritas.domains.identity.kba).
+         */
+        KbaQuestion: {
+            /**
+             * Choices
+             * @default []
+             */
+            choices: string[];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default text
+             */
+            kind: string;
+            /** Prompt */
+            prompt: string;
+        };
+        /** LinkPartyBody */
+        LinkPartyBody: {
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+        };
         /** MergeRequest */
         MergeRequest: {
             /** Reason */
@@ -3206,6 +3820,45 @@ export interface components {
              * Format: uuid
              */
             target_id: string;
+        };
+        /**
+         * MyCaseLink
+         * @description A case the signed-in borrower can access, plus a fresh portal token.
+         */
+        MyCaseLink: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /** Token */
+            token: string;
+        };
+        /**
+         * OfficerAvatarUpdate
+         * @description Set (or clear, with null) the firm's loan-officer profile photo.
+         */
+        OfficerAvatarUpdate: {
+            /** Avatar */
+            avatar?: string | null;
+        };
+        /**
+         * OfficerProfile
+         * @description The firm's loan-officer profile, as shown in the chat avatar.
+         */
+        OfficerProfile: {
+            /** Officer Avatar */
+            officer_avatar?: string | null;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
         };
         /** OperatorResponse */
         OperatorResponse: {
@@ -3225,6 +3878,140 @@ export interface components {
              * Format: uuid
              */
             tenant_id: string;
+        };
+        /** PartyCandidate */
+        PartyCandidate: {
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /**
+             * Identity Id
+             * Format: uuid
+             */
+            identity_id: string;
+            /**
+             * Party Type
+             * @default individual
+             */
+            party_type: string;
+            /**
+             * Role
+             * @default borrower
+             */
+            role: string;
+        };
+        /** PartyCreatedResponse */
+        PartyCreatedResponse: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /** Party Type */
+            party_type: string;
+            /** Role */
+            role?: string | null;
+            /** Signer Party Id */
+            signer_party_id?: string | null;
+        };
+        /**
+         * PartyDocument
+         * @description A document this party is related to, and their role on it.
+         */
+        PartyDocument: {
+            /** Doc Id */
+            doc_id: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+        };
+        /** PartyView */
+        PartyView: {
+            /** Access Code */
+            access_code?: string | null;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["PartyDocument"][];
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Has Account
+             * @default false
+             */
+            has_account: boolean;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /** Party Type */
+            party_type: string;
+            /** Portal Token */
+            portal_token?: string | null;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /** Signer Party Id */
+            signer_party_id?: string | null;
+            /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
+        };
+        /**
+         * PortalLinkRequest
+         * @description Operator's request payload when generating a borrower portal link.
+         */
+        PortalLinkRequest: {
+            /** Items */
+            items?: components["schemas"]["PortalRequestItem"][];
+            /** Message */
+            message?: string | null;
         };
         /**
          * PortalLinkResponse
@@ -3257,8 +4044,112 @@ export interface components {
             /** Ttl Hours */
             ttl_hours: number;
         };
+        /**
+         * PortalLinkStatusResponse
+         * @description Operator-facing status of a case's borrower portal link.
+         *
+         *     ``status``: ``none`` (never issued), ``waiting`` (issued, borrower hasn't
+         *     submitted), ``submitted`` (borrower finished — link consumed).
+         */
+        PortalLinkStatusResponse: {
+            /**
+             * Item Count
+             * @default 0
+             */
+            item_count: number;
+            /** Requested At */
+            requested_at?: string | null;
+            /** Requested By */
+            requested_by?: string | null;
+            /**
+             * Status
+             * @default none
+             */
+            status: string;
+            /** Submitted At */
+            submitted_at?: string | null;
+            /**
+             * Uploaded Count
+             * @default 0
+             */
+            uploaded_count: number;
+        };
+        /** PortalOverview */
+        PortalOverview: {
+            /**
+             * Case Documents
+             * @default []
+             */
+            case_documents: components["schemas"]["CaseDocument"][];
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /**
+             * Officer Avatar
+             * @default
+             */
+            officer_avatar: string;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
+            /**
+             * Parties
+             * @default []
+             */
+            parties: components["schemas"]["PartyView"][];
+            /**
+             * Uploaded Files
+             * @default []
+             */
+            uploaded_files: string[];
+        };
+        /**
+         * PortalRequestItem
+         * @description One requested document/follow-up item the borrower will see.
+         *
+         *     ``source`` records where it came from: ``follow_up`` / ``completeness`` (a
+         *     veritas-suggested item the operator checked off) or ``custom`` (free-typed).
+         */
+        PortalRequestItem: {
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Priority
+             * @default medium
+             */
+            priority: string;
+            /**
+             * Source
+             * @default custom
+             */
+            source: string;
+            /** Title */
+            title: string;
+        };
         /** PortalSessionResponse */
         PortalSessionResponse: {
+            /**
+             * Account Email
+             * @default
+             */
+            account_email: string;
             /**
              * Case Id
              * Format: uuid
@@ -3282,8 +4173,58 @@ export interface components {
              */
             consent: components["schemas"]["ConsentState"];
             entity: components["schemas"]["EntityInfo"];
+            /**
+             * Has Account
+             * @default false
+             */
+            has_account: boolean;
+            /**
+             * Kba Questions
+             * @default []
+             */
+            kba_questions: components["schemas"]["KbaQuestion"][];
+            /**
+             * Officer Avatar
+             * @default
+             */
+            officer_avatar: string;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
+            /**
+             * Request Message
+             * @default
+             */
+            request_message: string;
+            /**
+             * Requested By
+             * @default
+             */
+            requested_by: string;
+            /**
+             * Requires Code
+             * @default false
+             */
+            requires_code: boolean;
             /** Session Id */
             session_id: string;
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /**
+             * Submitted
+             * @default false
+             */
+            submitted: boolean;
+            /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
             /**
              * @default {
              *       "accepted_types": [
@@ -3294,6 +4235,11 @@ export interface components {
              *     }
              */
             upload_config: components["schemas"]["UploadConfig"];
+            /**
+             * Uploaded Files
+             * @default []
+             */
+            uploaded_files: string[];
             /**
              * @default {
              *       "level": 0,
@@ -3502,6 +4448,24 @@ export interface components {
             /** Total Monthly Income */
             total_monthly_income?: number | null;
             user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
+        };
+        /**
+         * RegenerateSuggestionsBody
+         * @description On-demand fresh suggestion generation for the composer.
+         *
+         *     ``note`` is the operator's free-text ask (MUST appear as an item); ``exclude``
+         *     is the already-shown titles to avoid repeating ('generate more').
+         */
+        RegenerateSuggestionsBody: {
+            /**
+             * Exclude
+             * @default []
+             */
+            exclude: string[];
+            /** Note */
+            note?: string | null;
+            /** Party Id */
+            party_id?: string | null;
         };
         /** RegisterTenantRequest */
         RegisterTenantRequest: {
@@ -3833,6 +4797,34 @@ export interface components {
             summary: string;
             /** Total Monthly Debt */
             total_monthly_debt?: number | null;
+        };
+        /**
+         * SendRequestBody
+         * @description Append a request to a party's portal thread.
+         */
+        SendRequestBody: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["PortalRequestItem"][];
+            /** Message */
+            message?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+        };
+        /** SendRequestResponse */
+        SendRequestResponse: {
+            /**
+             * Message Id
+             * Format: uuid
+             */
+            message_id: string;
+            /** Token */
+            token: string;
         };
         /**
          * SignedTreeHeadPredicate
@@ -4266,6 +5258,49 @@ export interface components {
             severity: string;
             /** Title */
             title: string;
+        };
+        /** ThreadMessage */
+        ThreadMessage: {
+            /** Author Kind */
+            author_kind: string;
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deleted
+             * @default false
+             */
+            deleted: boolean;
+            /**
+             * Edited
+             * @default false
+             */
+            edited: boolean;
+            /**
+             * Items
+             * @default []
+             */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /** Kind */
+            kind: string;
+            /** Message Id */
+            message_id: string;
+            /**
+             * Read
+             * @default false
+             */
+            read: boolean;
+            /** Status */
+            status?: string | null;
         };
         /**
          * TransactionRegion
@@ -5637,7 +6672,7 @@ export interface operations {
             };
         };
     };
-    create_portal_link_api_cases__case_id__portal_link_post: {
+    portal_overview_api_cases__case_id__portal_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5649,12 +6684,597 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_portal_link_api_cases__case_id__portal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PortalLinkRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["PortalLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_candidates_api_cases__case_id__portal_candidates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_party_api_cases__case_id__portal_parties_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPartyBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyCreatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_party_api_cases__case_id__portal_parties__party_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_document_api_cases__case_id__portal_parties__party_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachDocBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_party_api_cases__case_id__portal_parties__party_id__link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkPartyBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_portal_request_api_cases__case_id__portal_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    draft_portal_request_api_cases__case_id__portal_requests_draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_link_status_api_cases__case_id__portal_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalLinkStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_suggestions_api_cases__case_id__portal_suggestions_get: {
+        parameters: {
+            query?: {
+                party_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalRequestItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_suggestions_api_cases__case_id__portal_suggestions_regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegenerateSuggestionsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalRequestItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    operator_typing_api_cases__case_id__portal_typing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -6507,13 +8127,72 @@ export interface operations {
             };
         };
     };
+    claim_account_api_portal_claim_account_post: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimAccountResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_cases_api_portal_my_cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCaseLink"][];
+                };
+            };
+        };
+    };
     get_session_api_portal_session_get: {
         parameters: {
-            query: {
-                /** @description Portal token UUID */
-                token: string;
+            query?: {
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
             };
-            header?: never;
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6541,8 +8220,13 @@ export interface operations {
     };
     submit_intents_api_portal_session__session_id__intents_post: {
         parameters: {
-            query?: never;
-            header?: never;
+            query?: {
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
             path: {
                 session_id: string;
             };
@@ -6561,6 +8245,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_stream_api_portal_stream_get: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_typing_api_portal_typing_post: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -6754,6 +8506,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateSampleCaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_officer_api_settings_officer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficerProfile"];
+                };
+            };
+        };
+    };
+    set_officer_api_settings_officer_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfficerAvatarUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficerProfile"];
                 };
             };
             /** @description Validation Error */

@@ -10,6 +10,13 @@ export type {
 } from "./store/index.js";
 
 
+// Humanized relative timestamps for chat bubbles ("just now", "5m ago", …),
+// plus WhatsApp-style clock time / day-separator helpers.
+export { timeAgo, clockTime, dayLabel, isSameDay } from "./timeAgo.js";
+
+// WhatsApp-style centered date-separator pill for chat threads.
+export { DateSeparator } from "./components/DateSeparator.js";
+
 // SDK session primitives (from refactor/lux-as-sdk architecture)
 export { SessionProvider } from "./SessionProvider.js";
 export { useSession } from "./useSession.js";
@@ -78,11 +85,19 @@ export {
 	derivePipelinePhase,
 	PIPELINE_PHASE_PRIORITY,
 	useCreatePortalLink,
+	usePortalSuggestions,
+	usePortalLinkStatus,
 	buildPortalUrl,
+	useOfficerSettings,
+	useSetOfficerAvatar,
 } from "./hooks/index.js";
-export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink } from "./hooks/index.js";
+export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus, OfficerProfile } from "./hooks/index.js";
 
 // UI components
+export { Avatar } from "./components/Avatar.js";
+export type { AvatarProps } from "./components/Avatar.js";
+export { WebcamCaptureModal } from "./components/WebcamCaptureModal.js";
+export type { WebcamCaptureModalProps } from "./components/WebcamCaptureModal.js";
 export { AuthedImage } from "./components/AuthedImage/index.js";
 export type { AuthedImageProps } from "./components/AuthedImage/index.js";
 export { BoundingBoxOverlay } from "./components/BoundingBoxOverlay/index.js";
@@ -111,6 +126,8 @@ export { ConsentBanner } from "./components/ConsentBanner/index.js";
 export type { ConsentBannerProps } from "./components/ConsentBanner/index.js";
 export { BorrowerPortalLink } from "./components/PortalLink/index.js";
 export type { BorrowerPortalLinkProps } from "./components/PortalLink/index.js";
+export { BorrowerPortal } from "./components/PortalLink/index.js";
+export type { BorrowerPortalProps } from "./components/PortalLink/index.js";
 
 // Scenario compound component system
 export {
@@ -412,3 +429,36 @@ export type {
   FormatScenarioSummaryOptions,
   HasSummaryResult,
 } from "./components/Scenario/index.js";
+
+// Party Hub (operator) + friendly labels
+export {
+  PartyHub,
+  PartyCard,
+  PortalThread,
+  VerificationSummary,
+  UploadedDocuments,
+  RequestComposer,
+} from "./components/PartyHub/index.js";
+export type { PartyHubProps } from "./components/PartyHub/index.js";
+export {
+  usePortalOverview,
+  usePortalCandidates,
+  useDraftRequest,
+  useSendRequest,
+  useAddParty,
+  useLinkParty,
+  useDeleteParty,
+  useAttachDocument,
+  useMyCases,
+} from "./hooks/usePartyHub.js";
+export type {
+  PortalOverview,
+  PartyView,
+  ThreadMessage,
+  PartyCandidate,
+  SendRequestBody,
+  DraftRequestBody,
+  AddPartyBody,
+  MyCaseLink,
+} from "./hooks/usePartyHub.js";
+export { roleLabel, partyTypeLabel, statusLabel, eventLabel } from "./labels.js";

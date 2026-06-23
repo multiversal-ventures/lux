@@ -5452,6 +5452,8 @@ export interface components {
              * @default false
              */
             edited: boolean;
+            /** File Id */
+            file_id?: string | null;
             /**
              * Items
              * @default []
@@ -5463,6 +5465,11 @@ export interface components {
             kind: string;
             /** Message Id */
             message_id: string;
+            /**
+             * Processing
+             * @default false
+             */
+            processing: boolean;
             /**
              * Read
              * @default false

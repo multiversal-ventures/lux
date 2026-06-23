@@ -8,7 +8,6 @@ import {
 	Loader2,
 	Pencil,
 	RefreshCw,
-	RotateCcw,
 	Sparkles,
 	Trash2,
 	X,
@@ -26,7 +25,6 @@ import {
 	useMarkThreadRead,
 	usePortalRealtime,
 	useRegenerateSuggestions,
-	useReissueLink,
 	useSendRequest,
 } from "../../hooks/usePartyHub.js";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
@@ -34,6 +32,7 @@ import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
 import { DateSeparator } from "../DateSeparator.js";
 import { WebcamCaptureModal } from "../WebcamCaptureModal.js";
+import type { PartyMentionRef } from "./PartyHub.js";
 
 type ThreadItem = PartyView["thread"][number];
 
@@ -46,6 +45,7 @@ export function PartyDetail({
 	officerName,
 	officerAvatar,
 	onRemoved,
+	onOpenDocument,
 	loading = false,
 }: {
 	caseId: string;
@@ -55,6 +55,9 @@ export function PartyDetail({
 	/** Firm's loan-officer avatar data URL ("" = initials). Clickable to set via webcam. */
 	officerAvatar?: string;
 	onRemoved?: () => void;
+	/** Host callback to open a document the operator clicked — reused for upload
+	 * bubbles (a processed upload becomes a clickable doc-viewer link). */
+	onOpenDocument?: (mention: PartyMentionRef) => void;
 	/** Overview is still loading and no party is hydrated yet — show a spinner in
 	 * the thread area instead of an empty void. */
 	loading?: boolean;
@@ -73,7 +76,6 @@ export function PartyDetail({
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const didInitialScroll = useRef(false);
 	const del = useDeleteParty(caseId);
-	const reissue = useReissueLink(caseId);
 	const clearThread = useClearThread(caseId);
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
@@ -284,18 +286,6 @@ export function PartyDetail({
 					)}
 				</div>
 				{party.access_code && (
-					<button
-						type="button"
-						onClick={() => reissue.mutate(party.party_id)}
-						disabled={reissue.isPending}
-						title="Reset access code"
-						aria-label="Reset access code"
-						className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-50 flex items-center justify-center"
-					>
-						<RotateCcw size={16} />
-					</button>
-				)}
-				{party.access_code && (
 					<div className="shrink-0 text-right">
 						<p className="text-[10px] uppercase tracking-wide text-slate-400">Access code</p>
 						<p className="font-mono font-semibold text-slate-800 tracking-widest">
@@ -414,6 +404,7 @@ export function PartyDetail({
 											officerAvatar={officerAvatar ?? ""}
 											borrowerName={party.display_name || roleLabel(party.role)}
 											onAvatarClick={() => setWebcamOpen(true)}
+											onOpenDocument={onOpenDocument}
 											onDelete={() =>
 												deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
 											}
@@ -603,6 +594,7 @@ function OpBubble({
 	officerAvatar,
 	borrowerName,
 	onAvatarClick,
+	onOpenDocument,
 	onDelete,
 	onEdit,
 }: {
@@ -612,6 +604,7 @@ function OpBubble({
 	officerAvatar: string;
 	borrowerName: string;
 	onAvatarClick: () => void;
+	onOpenDocument?: (mention: PartyMentionRef) => void;
 	onDelete: () => void;
 	onEdit: (body: string) => void;
 }) {
@@ -688,12 +681,41 @@ function OpBubble({
 			</div>
 		</div>
 	) : m.kind === "upload" ? (
-		<div
-			className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}
-		>
-			<FileText size={14} />
-			{m.body}
-		</div>
+		m.processing ? (
+			// Still extracting — a muted, non-clickable "Processing…" placeholder.
+			<div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400">
+				<Loader2 size={14} className="shrink-0 animate-spin" />
+				<span className="truncate min-w-0">{m.body}</span>
+				<span className="shrink-0 italic">· Processing…</span>
+			</div>
+		) : m.file_id && onOpenDocument ? (
+			// Processed — clickable bubble that opens the doc viewer (same path as
+			// the "Mentioned in" document links).
+			<button
+				type="button"
+				onClick={() =>
+					onOpenDocument({
+						file_id: m.file_id,
+						doc_id: "",
+						label: m.body,
+						page: null,
+						bbox: null,
+					})
+				}
+				title="Open this document"
+				className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm text-left transition ${mine ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700"}`}
+			>
+				<FileText size={14} className="shrink-0" />
+				<span className="truncate min-w-0 underline-offset-2 hover:underline">{m.body}</span>
+			</button>
+		) : (
+			<div
+				className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}
+			>
+				<FileText size={14} />
+				{m.body}
+			</div>
+		)
 	) : (
 		<div
 			className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}

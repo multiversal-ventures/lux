@@ -176,7 +176,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 				</p>
 			</header>
 
-			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-1 bg-slate-50">
+			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 bg-slate-50">
 				{loading && session.thread.length === 0 ? (
 					<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
 						<Loader2 size={22} className="animate-spin" />
@@ -203,13 +203,17 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 							// WhatsApp-style date pill before the first message and at
 							// each calendar-day boundary.
 							const showDay = i === 0 || !isSameDay(prev.created_at, m.created_at);
+							// Tight grouping: same-author runs hug (mt-0.5); a new speaker
+							// or a day boundary gets clear separation (mt-3). First row flush.
+							const rowGap = i === 0 ? "" : startsRun || showDay ? "mt-3" : "mt-0.5";
 							return (
-								<div key={m.message_id}>
+								<div key={m.message_id} className={rowGap}>
 									{showDay && <DateSeparator iso={m.created_at} />}
 									<Bubble
 										m={m}
 										showOfficerHeader={isOfficer && startsRun}
 										showAvatar={endsRun}
+										endsRun={endsRun}
 										officerName={session.officer_name}
 										officerAvatar={session.officer_avatar}
 										borrowerName={session.entity?.name || "You"}
@@ -314,6 +318,7 @@ function Bubble({
 	m,
 	showOfficerHeader,
 	showAvatar,
+	endsRun,
 	isEditing,
 	officerName,
 	officerAvatar,
@@ -324,6 +329,9 @@ function Bubble({
 	m: ThreadMessage;
 	showOfficerHeader: boolean;
 	showAvatar: boolean;
+	/** Last bubble of a consecutive same-author run — gets the WhatsApp tail
+	 * corner (`rounded-br-md`/`rounded-bl-md`). Mid-run bubbles stay fully round. */
+	endsRun: boolean;
 	/** This bubble's message is loaded in the reply composer for editing —
 	 * highlight it so the borrower sees what they're editing. */
 	isEditing: boolean;
@@ -342,6 +350,24 @@ function Bubble({
 	// (uploads are case events with no row; deleted messages are tombstones).
 	const canModify = mine && m.kind !== "upload" && !deleted;
 
+	// WhatsApp bubble shape: fully rounded mid-run; the last bubble of a run gets
+	// a small tail corner on the speaker's inner-bottom edge (own → bottom-right,
+	// incoming → bottom-left).
+	const tail = endsRun ? (mine ? "rounded-br-md" : "rounded-bl-md") : "";
+	const bubbleShape = `rounded-2xl ${tail} shadow-sm`;
+
+	// In-bubble meta row (WhatsApp): time + "· edited" + ✓/✓✓ receipt, tucked
+	// bottom-right INSIDE the bubble. Muted against the bubble background.
+	const meta = !deleted && (
+		<span
+			className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] leading-none ${mine ? "text-indigo-200" : "text-slate-400"}`}
+		>
+			{clockTime(m.created_at)}
+			{m.edited && <span>· edited</span>}
+			{mine && (m.read ? <CheckCheck size={12} /> : <Check size={12} />)}
+		</span>
+	);
+
 	// Avatar column (40px, matching the operator side): the face on the last
 	// bubble of a run, a spacer otherwise so consecutive bubbles in the run stay
 	// aligned.
@@ -357,33 +383,34 @@ function Bubble({
 	);
 
 	const inner = deleted ? (
-		<div className={`inline-flex items-center gap-1.5 max-w-[80%] rounded-2xl px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
+		<div className={`inline-flex items-center gap-1.5 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm italic text-slate-400 ${mine ? "bg-slate-100" : "bg-white border border-slate-200"}`}>
 			<Ban size={13} className="shrink-0" /> This message was deleted
 		</div>
 	) : m.kind === "upload" ? (
 		m.processing ? (
 			// Still being extracted — muted "Processing…" placeholder (the borrower
 			// has no doc viewer, so uploads are never clickable here).
-			<div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400">
+			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm bg-slate-100 text-slate-400`}>
 				<Loader2 size={14} className="shrink-0 animate-spin" />
 				<span className="truncate min-w-0">{m.body}</span>
 				<span className="shrink-0 italic">· Processing…</span>
 			</div>
 		) : (
-			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
 				<FileText size={14} />
 				<span className="truncate min-w-0">{m.body}</span>
 				<Check size={13} className={`shrink-0 ${mine ? "text-indigo-200" : "text-green-500"}`} />
 			</div>
 		)
 	) : (
-		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+		<div className={`max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
 			{items.length > 0 && (
 				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
 					{items.map((it, i) => <li key={i}>{it.title}</li>)}
 				</ul>
 			)}
+			{meta}
 		</div>
 	);
 
@@ -420,15 +447,6 @@ function Bubble({
 					{inner}
 				</div>
 			</div>
-			{showAvatar && (
-				<span className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}>
-					{clockTime(m.created_at)}
-					{m.edited && !deleted && <span>· edited</span>}
-					{/* On the borrower's OWN bubbles, the ✓/✓✓ receipt reflects whether
-					    the loan officer has read it (✓✓ = read). Not shown on tombstones. */}
-					{mine && !deleted && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
-				</span>
-			)}
 		</div>
 	);
 }

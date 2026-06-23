@@ -1,7 +1,6 @@
 import { ChevronRight, FileText, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import type { PartyProfile } from "../../hooks/usePartyHub.js";
-import { identifierTypeLabel, partyTypeLabel, roleLabel } from "../../labels.js";
-import { Avatar } from "../Avatar.js";
+import { identifierTypeLabel, roleLabel } from "../../labels.js";
 import type { PartyMentionRef } from "./PartyHub.js";
 
 /** "What we know about this party" — the operator profile panel.
@@ -20,30 +19,16 @@ export function PartyProfilePanel({
 	 * call this with the mention so the host can open the document viewer. */
 	onOpenDocument?: (mention: PartyMentionRef) => void;
 }) {
-	const shortId = profile.party_id.slice(0, 8);
 	const maskedIdentifier =
 		profile.identifier?.last4 && profile.identifier?.type
 			? `${identifierTypeLabel(profile.identifier.type)} ••• ${profile.identifier.last4}`
 			: null;
 
+	// No header here — the party-list row above this panel already shows the
+	// avatar + name + role + id, so repeating it would duplicate. This panel
+	// starts at the status chips.
 	return (
 		<div className="space-y-2.5">
-			{/* Header: small avatar + name + role + short party id */}
-			<div className="flex items-center gap-2.5">
-				<Avatar size={40} name={profile.display_name || roleLabel(profile.role)} />
-				<div className="min-w-0">
-					<h2 className="text-sm font-semibold text-slate-900 truncate">
-						{profile.display_name || roleLabel(profile.role)}
-					</h2>
-					<p className="text-xs text-slate-500 truncate">
-						{[roleLabel(profile.role), partyTypeLabel(profile.party_type)]
-							.filter(Boolean)
-							.join(" · ")}
-					</p>
-					<p className="text-[10px] font-mono text-slate-400">{shortId}</p>
-				</div>
-			</div>
-
 			{/* Status chips — wrap when narrow */}
 			<div className="flex flex-wrap gap-1.5">
 				<StatusChip on={!!profile.status?.verified} label="Verified" />

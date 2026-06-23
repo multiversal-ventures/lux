@@ -1,13 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import * as ReactWebcam from "react-webcam";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, RotateCcw, Trash2, X } from "lucide-react";
-
-// react-webcam ships CommonJS (module.exports = Webcam). Under lux's prebuilt ESM
-// + a vite consumer, the named-`default` import resolves to undefined ("does not
-// provide an export named 'default'"). Resolve the default explicitly so it works
-// regardless of how the consumer's bundler does CJS interop.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Webcam: any = (ReactWebcam as any).default ?? ReactWebcam;
 
 /** Output edge length of the saved avatar (square). Small enough to ship inline
  * as a data URL on every session/overview payload without bloating responses. */
@@ -23,50 +15,73 @@ export interface WebcamCaptureModalProps {
 }
 
 /**
- * Webcam capture modal for the loan-officer avatar. Shows a live preview, takes
- * a still on "Take photo", center-crops it to a {@link OUTPUT_SIZE}px square
- * JPEG, then lets the operator Retake or save with "Use photo". When a photo is
- * already in use, a "Remove photo" action clears it (saves `null`).
+ * Webcam capture modal for the loan-officer avatar. Live preview via the native
+ * MediaDevices API (no third-party webcam dependency — react-webcam ships a UMD
+ * bundle that breaks under a vite/ESM consumer). "Take photo" grabs the current
+ * video frame, center-crops it to a {@link OUTPUT_SIZE}px square JPEG, then lets
+ * the operator Retake or save with "Use photo". When a photo is already in use, a
+ * "Remove photo" action clears it (saves `null`).
  *
- * Camera-permission denial is handled gracefully: react-webcam's `onUserMediaError`
- * flips to an inline message instead of a blank/broken preview.
+ * The camera stream is started while the dialog shows a live preview and torn
+ * down on capture, close, or unmount (tracks stopped — the camera light goes off).
+ * Permission denial flips to an inline message instead of a blank preview.
  */
 export function WebcamCaptureModal({ open, currentPhoto, onSave, onClose }: WebcamCaptureModalProps) {
-	const webcamRef = useRef<{ getScreenshot: () => string | null }>(null);
+	const videoRef = useRef<HTMLVideoElement>(null);
+	const streamRef = useRef<MediaStream | null>(null);
 	const [captured, setCaptured] = useState<string | null>(null);
 	const [denied, setDenied] = useState(false);
 
-	// Center-crop the raw screenshot (whatever the camera's aspect ratio is) to a
-	// square and downscale to OUTPUT_SIZE — "cover" semantics so the face fills
-	// the circle without distortion.
-	const cropToSquare = useCallback((src: string): Promise<string> => {
-		return new Promise((resolve) => {
-			const img = new Image();
-			img.onload = () => {
-				const side = Math.min(img.width, img.height);
-				const sx = (img.width - side) / 2;
-				const sy = (img.height - side) / 2;
-				const canvas = document.createElement("canvas");
-				canvas.width = OUTPUT_SIZE;
-				canvas.height = OUTPUT_SIZE;
-				const ctx = canvas.getContext("2d");
-				if (!ctx) {
-					resolve(src);
-					return;
-				}
-				ctx.drawImage(img, sx, sy, side, side, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-				resolve(canvas.toDataURL("image/jpeg", 0.8));
-			};
-			img.onerror = () => resolve(src);
-			img.src = src;
-		});
+	const stopStream = useCallback(() => {
+		streamRef.current?.getTracks().forEach((t) => t.stop());
+		streamRef.current = null;
 	}, []);
 
-	const takePhoto = useCallback(async () => {
-		const shot = webcamRef.current?.getScreenshot();
-		if (!shot) return;
-		setCaptured(await cropToSquare(shot));
-	}, [cropToSquare]);
+	// Run the camera only while the live preview is showing (open, not captured,
+	// not denied). Re-runs on Retake (captured → null) to restart the stream.
+	useEffect(() => {
+		if (!open || captured || denied) return;
+		let cancelled = false;
+		navigator.mediaDevices
+			?.getUserMedia({ video: { facingMode: "user" }, audio: false })
+			.then((stream) => {
+				if (cancelled) {
+					stream.getTracks().forEach((t) => t.stop());
+					return;
+				}
+				streamRef.current = stream;
+				if (videoRef.current) {
+					videoRef.current.srcObject = stream;
+					void videoRef.current.play().catch(() => {});
+				}
+			})
+			.catch(() => {
+				if (!cancelled) setDenied(true);
+			});
+		return () => {
+			cancelled = true;
+			stopStream();
+		};
+	}, [open, captured, denied, stopStream]);
+
+	const takePhoto = useCallback(() => {
+		const video = videoRef.current;
+		const vw = video?.videoWidth ?? 0;
+		const vh = video?.videoHeight ?? 0;
+		if (!video || !vw || !vh) return;
+		// Center-crop the (arbitrary aspect) frame to a square, downscale to
+		// OUTPUT_SIZE ("cover" — face fills the circle without distortion).
+		const side = Math.min(vw, vh);
+		const sx = (vw - side) / 2;
+		const sy = (vh - side) / 2;
+		const canvas = document.createElement("canvas");
+		canvas.width = OUTPUT_SIZE;
+		canvas.height = OUTPUT_SIZE;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+		ctx.drawImage(video, sx, sy, side, side, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+		setCaptured(canvas.toDataURL("image/jpeg", 0.8));
+	}, []);
 
 	function reset() {
 		setCaptured(null);
@@ -74,6 +89,7 @@ export function WebcamCaptureModal({ open, currentPhoto, onSave, onClose }: Webc
 	}
 
 	function close() {
+		stopStream();
 		reset();
 		onClose();
 	}
@@ -116,14 +132,13 @@ export function WebcamCaptureModal({ open, currentPhoto, onSave, onClose }: Webc
 					) : captured ? (
 						<img src={captured} alt="Captured preview" className="h-full w-full object-cover" />
 					) : (
-						<Webcam
-							ref={webcamRef}
-							audio={false}
-							screenshotFormat="image/jpeg"
-							mirrored
-							videoConstraints={{ facingMode: "user" }}
-							onUserMediaError={() => setDenied(true)}
-							className="h-full w-full object-cover"
+						// Mirror the live preview (natural selfie); the saved frame is un-mirrored.
+						<video
+							ref={videoRef}
+							autoPlay
+							playsInline
+							muted
+							className="h-full w-full object-cover -scale-x-100"
 						/>
 					)}
 				</div>

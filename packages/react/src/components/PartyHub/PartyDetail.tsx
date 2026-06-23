@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, FileText, Link2, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
+import { Check, Eraser, FileText, Link2, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import {
 	useDeleteParty,
+	useClearThread,
 	useDraftRequest,
 	usePortalRealtime,
 	useRegenerateSuggestions,
@@ -32,6 +33,7 @@ export function PartyDetail({
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const del = useDeleteParty(caseId);
 	const reissue = useReissueLink(caseId);
+	const clearThread = useClearThread(caseId);
 	const send = useSendRequest(caseId);
 	const draft = useDraftRequest(caseId);
 	// Party-aware: suggestions are shaped by THIS party's role + the documents
@@ -194,6 +196,9 @@ export function PartyDetail({
 					>
 						{copied ? <Check size={16} /> : <Link2 size={16} />}
 					</button>
+				)}
+				{party.thread.length > 0 && (
+					<button type="button" onClick={() => { if (window.confirm("Clear this conversation? The link and access code stay; you can resend.")) clearThread.mutate(party.party_id); }} disabled={clearThread.isPending} title="Clear conversation (resend)" aria-label="Clear conversation" className="shrink-0 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-50 flex items-center justify-center"><Eraser size={16} /></button>
 				)}
 				<button type="button" onClick={remove} disabled={del.isPending} title="Remove" aria-label="Remove" className="shrink-0 h-9 w-9 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-600 disabled:opacity-50"><X size={16} /></button>
 			</header>

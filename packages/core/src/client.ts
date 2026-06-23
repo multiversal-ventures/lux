@@ -426,6 +426,15 @@ export class VeritasClient {
 		);
 	}
 
+	/** Clear a party's conversation thread (keeps the party + link) so the
+	 * operator can start over / resend; also resets the captured email. */
+	async clearPartyThread(caseId: string, partyId: string): Promise<void> {
+		await this.requestJson<unknown>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages`,
+			{ method: "DELETE" },
+		);
+	}
+
 	/** Reissue a party's portal link — resets the access code and attempt counter. */
 	async reissueLink(caseId: string, partyId: string): Promise<void> {
 		await this.requestJson<unknown>(

@@ -9427,6 +9427,67 @@
         ]
       }
     },
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages": {
+      "delete": {
+        "description": "Clear a party's conversation thread (operator 'delete chat to resend').\n\nKeeps the party + their portal link/code; only wipes the messages and resets\nthe captured email so the borrower can re-do the account/email step. Lets the\noperator start the conversation over without removing the person.",
+        "operationId": "clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Clear Party Thread Api Cases  Case Id  Portal Parties  Party Id  Messages Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Clear Party Thread",
+        "tags": [
+          "party"
+        ]
+      }
+    },
     "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
       "post": {
         "description": "Reset a locked-out party's access-code attempt counter.\n\nA borrower who fumbled the access code 5 times is locked out; the operator\nreissues so they can try again. Resets the active token's attempt counter to\n0 (the link/code itself is unchanged).",

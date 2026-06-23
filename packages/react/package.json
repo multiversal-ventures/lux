@@ -1,6 +1,6 @@
 {
   "name": "@multiversal-ventures/lux-react",
-  "version": "0.2.49",
+  "version": "0.2.50",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"

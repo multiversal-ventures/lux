@@ -842,6 +842,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Clear Party Thread
+         * @description Clear a party's conversation thread (operator 'delete chat to resend').
+         *
+         *     Keeps the party + their portal link/code; only wipes the messages and resets
+         *     the captured email so the borrower can re-do the account/email step. Lets the
+         *     operator start the conversation over without removing the person.
+         */
+        delete: operations["clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
         parameters: {
             query?: never;
@@ -6704,6 +6728,40 @@ export interface operations {
                 "application/json": components["schemas"]["LinkPartyBody"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

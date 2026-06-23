@@ -169,6 +169,15 @@ export function useDeleteParty(caseId: string): UseMutationResult<unknown, Error
 	});
 }
 
+/** Clear a party's conversation thread (keeps the party + link); refreshes overview. */
+export function useClearThread(caseId: string): UseMutationResult<unknown, Error, string> {
+	const qc = useQueryClient();
+	return useMutation<unknown, Error, string>({
+		mutationFn: async (partyId) => getDefaultClient().clearPartyThread(caseId, partyId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: overviewKey(caseId) }),
+	});
+}
+
 /** Reissue a party's portal link (reset access code); refreshes overview. */
 export function useReissueLink(caseId: string): UseMutationResult<unknown, Error, string> {
 	const qc = useQueryClient();

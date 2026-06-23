@@ -410,6 +410,13 @@ function AccountStep({
 					</button>
 					<button
 						type="button"
+						onClick={() => { setSent(false); setError(null); }}
+						className="block w-full text-center text-xs text-slate-500 hover:text-slate-700"
+					>
+						Use a different email
+					</button>
+					<button
+						type="button"
 						onClick={onSkip}
 						className="block w-full text-center text-xs text-slate-400 hover:text-slate-600"
 					>

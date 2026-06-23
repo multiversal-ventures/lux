@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
-import { Check, CheckCheck, FileText, Lock, Mail, Paperclip, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, CheckCheck, FileText, Loader2, Lock, Mail, Paperclip, Trash2 } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
-import { timeAgo } from "../../timeAgo.js";
+import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
+import { DateSeparator } from "../DateSeparator.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
@@ -27,6 +28,27 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const { session, loading, error, submitIntent, uploadDocuments, operatorTyping, sendTyping } = usePortalSession(token);
 	const fileRef = useRef<HTMLInputElement>(null);
 	const lastTyped = useRef(0);
+	// WhatsApp-style auto-scroll: scroll container + bottom sentinel. Stick to the
+	// bottom only when the borrower is already near it, so new officer messages
+	// don't yank them up while they read history. First paint jumps instantly.
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const bottomRef = useRef<HTMLDivElement>(null);
+	const didInitialScroll = useRef(false);
+	const threadLen = session?.thread.length ?? 0;
+	useEffect(() => {
+		const el = scrollRef.current;
+		const bottom = bottomRef.current;
+		if (!el || !bottom) return;
+		const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+		const nearBottom = distanceFromBottom < 120;
+		if (!didInitialScroll.current) {
+			didInitialScroll.current = true;
+			bottom.scrollIntoView({ behavior: "auto", block: "end" });
+		} else if (nearBottom) {
+			bottom.scrollIntoView({ behavior: "smooth", block: "end" });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [threadLen]);
 
 	function onTyping() {
 		const now = Date.now();
@@ -136,48 +158,63 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 				</p>
 			</header>
 
-			<div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 bg-slate-50">
-				{session.request_message && (
-					<div className="mx-auto max-w-[90%] text-center text-xs text-slate-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
-						{session.request_message}
+			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-1 bg-slate-50">
+				{loading && session.thread.length === 0 ? (
+					<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
+						<Loader2 size={22} className="animate-spin" />
+						<p className="text-sm">Loading conversation…</p>
 					</div>
+				) : (
+					<>
+						{session.request_message && (
+							<div className="mx-auto max-w-[90%] text-center text-xs text-slate-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+								{session.request_message}
+							</div>
+						)}
+						{session.thread.map((m, i) => {
+							// Run grouping: a "run" is consecutive messages from the same
+							// author. The "Your loan officer" label shows on the FIRST officer
+							// bubble of a run; the avatar shows on the LAST bubble of a run
+							// (a spacer keeps alignment on the others) — so a back-to-back
+							// reply reads as one person speaking, not a wall of avatars.
+							const prev = session.thread[i - 1];
+							const next = session.thread[i + 1];
+							const startsRun = !prev || prev.author_kind !== m.author_kind;
+							const endsRun = !next || next.author_kind !== m.author_kind;
+							const isOfficer = m.author_kind !== "borrower";
+							// WhatsApp-style date pill before the first message and at
+							// each calendar-day boundary.
+							const showDay = i === 0 || !isSameDay(prev.created_at, m.created_at);
+							return (
+								<div key={m.message_id}>
+									{showDay && <DateSeparator iso={m.created_at} />}
+									<Bubble
+										m={m}
+										showOfficerHeader={isOfficer && startsRun}
+										showAvatar={endsRun}
+										officerName={session.officer_name}
+										officerAvatar={session.officer_avatar}
+										borrowerName={session.entity?.name || "You"}
+										onDelete={() =>
+											submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
+										}
+									/>
+								</div>
+							);
+						})}
+						{session.thread.length === 0 && !operatorTyping && (
+							<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
+						)}
+						{operatorTyping && <TypingBubble />}
+						{waitingForReply && (
+							<p className="text-center text-xs text-slate-400 mt-3">
+								Your loan officer will reply here — we'll let you know.
+							</p>
+						)}
+						{uploading && <div className="flex justify-end"><span className="text-xs text-slate-400">Uploading…</span></div>}
+					</>
 				)}
-				{session.thread.map((m, i) => {
-					// Run grouping: a "run" is consecutive messages from the same
-					// author. The "Your loan officer" label shows on the FIRST officer
-					// bubble of a run; the avatar shows on the LAST bubble of a run
-					// (a spacer keeps alignment on the others) — so a back-to-back
-					// reply reads as one person speaking, not a wall of avatars.
-					const prev = session.thread[i - 1];
-					const next = session.thread[i + 1];
-					const startsRun = !prev || prev.author_kind !== m.author_kind;
-					const endsRun = !next || next.author_kind !== m.author_kind;
-					const isOfficer = m.author_kind !== "borrower";
-					return (
-						<Bubble
-							key={m.message_id}
-							m={m}
-							showOfficerHeader={isOfficer && startsRun}
-							showAvatar={endsRun}
-							officerName={session.officer_name}
-							officerAvatar={session.officer_avatar}
-							borrowerName={session.entity?.name || "You"}
-							onDelete={() =>
-								submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
-							}
-						/>
-					);
-				})}
-				{session.thread.length === 0 && !operatorTyping && (
-					<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
-				)}
-				{operatorTyping && <TypingBubble />}
-				{waitingForReply && (
-					<p className="text-center text-xs text-slate-400 mt-3">
-						Your loan officer will reply here — we'll let you know.
-					</p>
-				)}
-				{uploading && <div className="flex justify-end"><span className="text-xs text-slate-400">Uploading…</span></div>}
+				<div ref={bottomRef} />
 			</div>
 
 			<div className="border-t border-slate-200 bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -235,26 +272,6 @@ function OfficerHeader() {
 	);
 }
 
-/** Read receipt under a borrower's own bubble: ✓ Sent → ✓✓ Read once the loan
- * officer has read it. Borrower-authored messages only. */
-function ReadReceipt({ read }: { read: boolean }) {
-	return (
-		<div className="flex items-center justify-end gap-1 mt-0.5 pr-1">
-			{read ? (
-				<>
-					<CheckCheck size={12} className="text-indigo-400" />
-					<span className="text-[10px] text-indigo-400">Read</span>
-				</>
-			) : (
-				<>
-					<Check size={12} className="text-slate-400" />
-					<span className="text-[10px] text-slate-400">Sent</span>
-				</>
-			)}
-		</div>
-	);
-}
-
 /** A single staggered chat row — avatar + bubble. The sender sits on their own
  * side (borrower right, officer left); the avatar is adjacent to the bubble on
  * the outer edge, shown only on the LAST bubble of a consecutive run (a spacer
@@ -286,17 +303,18 @@ function Bubble({
 	// case events with no deletable row).
 	const canDelete = mine && m.kind !== "upload";
 
-	// Avatar column (28px): the face on the last bubble of a run, a spacer
-	// otherwise so consecutive bubbles in the run stay aligned.
+	// Avatar column (40px, matching the operator side): the face on the last
+	// bubble of a run, a spacer otherwise so consecutive bubbles in the run stay
+	// aligned.
 	const avatar = showAvatar ? (
 		<Avatar
-			size={28}
+			size={40}
 			name={mine ? borrowerName : officerName || "Loan officer"}
 			photoUrl={mine ? null : officerAvatar}
 			title={mine ? borrowerName : officerName || "Your loan officer"}
 		/>
 	) : (
-		<span className="shrink-0" style={{ width: 28 }} />
+		<span className="shrink-0" style={{ width: 40 }} />
 	);
 
 	const inner =
@@ -316,7 +334,7 @@ function Bubble({
 		);
 
 	return (
-		<div className={`group flex flex-col ${align}`}>
+		<div className={`group flex flex-col w-full ${align}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
 			{/* Row reads inward from the speaker's side: [avatar][delete][bubble]
 			    for the officer (left), mirrored for the borrower (right). */}
@@ -336,10 +354,12 @@ function Bubble({
 					{inner}
 				</div>
 			</div>
-			{mine && <ReadReceipt read={!!m.read} />}
 			{showAvatar && (
-				<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10" : "pl-10"}`}>
-					{timeAgo(m.created_at)}
+				<span className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}>
+					{clockTime(m.created_at)}
+					{/* On the borrower's OWN bubbles, the ✓/✓✓ receipt reflects whether
+					    the loan officer has read it (✓✓ = read). */}
+					{mine && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
 				</span>
 			)}
 		</div>

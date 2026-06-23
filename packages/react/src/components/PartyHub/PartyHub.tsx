@@ -98,16 +98,17 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 
 			{/* Center */}
 			<main className="flex-1 min-w-0">
-				{overview.isLoading ? (
-					<div className="p-6 text-slate-500">Loading…</div>
-				) : selected ? (
+				{selected ? (
 					<PartyDetail
 						caseId={caseId}
 						party={selected}
 						officerName={overview.data?.officer_name ?? ""}
 						officerAvatar={overview.data?.officer_avatar ?? ""}
 						onRemoved={() => setSelectedId(null)}
+						loading={overview.isLoading}
 					/>
+				) : overview.isLoading ? (
+					<div className="p-6 text-slate-500">Loading…</div>
 				) : (
 					<div className="h-full flex items-center justify-center text-slate-400 text-sm">Select a person, or add one from the sidebar.</div>
 				)}

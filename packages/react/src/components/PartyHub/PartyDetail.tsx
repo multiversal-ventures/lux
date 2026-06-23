@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Eraser, FileText, Link2, RefreshCw, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
+import { Check, CheckCheck, Eraser, FileText, Link2, Loader2, RefreshCw, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
-import { timeAgo } from "../../timeAgo.js";
+import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
+import { DateSeparator } from "../DateSeparator.js";
 import { WebcamCaptureModal } from "../WebcamCaptureModal.js";
 import {
 	useDeleteMessage,
@@ -30,6 +31,7 @@ export function PartyDetail({
 	officerName,
 	officerAvatar,
 	onRemoved,
+	loading = false,
 }: {
 	caseId: string;
 	party: PartyView;
@@ -38,6 +40,9 @@ export function PartyDetail({
 	/** Firm's loan-officer avatar data URL ("" = initials). Clickable to set via webcam. */
 	officerAvatar?: string;
 	onRemoved?: () => void;
+	/** Overview is still loading and no party is hydrated yet — show a spinner in
+	 * the thread area instead of an empty void. */
+	loading?: boolean;
 }) {
 	const [msg, setMsg] = useState("");
 	const [copied, setCopied] = useState(false);
@@ -45,6 +50,13 @@ export function PartyDetail({
 	const setAvatar = useSetOfficerAvatar();
 	const [selected, setSelected] = useState<Set<number>>(new Set());
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	// WhatsApp-style auto-scroll: the scroll container + a bottom sentinel. We
+	// only stick to the bottom when the operator is already near it, so new
+	// messages don't yank them up while they read history. `didInitialScroll`
+	// makes the very first paint jump instantly; later scrolls are smooth.
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const bottomRef = useRef<HTMLDivElement>(null);
+	const didInitialScroll = useRef(false);
 	const del = useDeleteParty(caseId);
 	const reissue = useReissueLink(caseId);
 	const clearThread = useClearThread(caseId);
@@ -87,6 +99,25 @@ export function PartyDetail({
 		el.style.height = "auto";
 		el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
 	}, [msg]);
+
+	// Auto-scroll to the newest message on first load and whenever the thread
+	// grows — but only if the operator is already near the bottom (within 120px),
+	// so we never yank them away from older history they're reading.
+	const threadLen = party.thread.length;
+	useEffect(() => {
+		const el = scrollRef.current;
+		const bottom = bottomRef.current;
+		if (!el || !bottom) return;
+		const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+		const nearBottom = distanceFromBottom < 120;
+		if (!didInitialScroll.current) {
+			didInitialScroll.current = true;
+			bottom.scrollIntoView({ behavior: "auto", block: "end" });
+		} else if (nearBottom) {
+			bottom.scrollIntoView({ behavior: "smooth", block: "end" });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [threadLen]);
 
 	// Switching parties must not carry over the previous party's pills/selection:
 	// the suggestions are per-person (role + their documents). Reset the local
@@ -230,8 +261,13 @@ export function PartyDetail({
 			</header>
 
 			{/* Conversation — the main area */}
-			<div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-slate-50">
-				{party.thread.length === 0 && !borrowerTyping ? (
+			<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-slate-50">
+				{loading && party.thread.length === 0 ? (
+					<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
+						<Loader2 size={22} className="animate-spin" />
+						<p className="text-sm">Loading conversation…</p>
+					</div>
+				) : party.thread.length === 0 && !borrowerTyping ? (
 					<div className="max-w-md mx-auto mt-6 bg-white border border-slate-200 rounded-xl p-5 text-center space-y-3">
 						<p className="text-sm font-medium text-slate-800">Start the conversation</p>
 						<p className="text-xs text-slate-500">
@@ -255,21 +291,27 @@ export function PartyDetail({
 						// author. The avatar shows only on the LAST bubble of a run
 						// (a spacer holds the column otherwise) so back-to-back
 						// messages read as one speaker, alternating sides.
+						const prev = party.thread[i - 1];
 						const next = party.thread[i + 1];
 						const endsRun = !next || next.author_kind !== m.author_kind;
+						// WhatsApp-style date pill before the first message and at
+						// each calendar-day boundary.
+						const showDay = i === 0 || !isSameDay(prev.created_at, m.created_at);
 						return (
-							<OpBubble
-								key={m.message_id}
-								m={m}
-								showAvatar={endsRun}
-								officerName={officerName ?? ""}
-								officerAvatar={officerAvatar ?? ""}
-								borrowerName={party.display_name || roleLabel(party.role)}
-								onAvatarClick={() => setWebcamOpen(true)}
-								onDelete={() =>
-									deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
-								}
-							/>
+							<div key={m.message_id}>
+								{showDay && <DateSeparator iso={m.created_at} />}
+								<OpBubble
+									m={m}
+									showAvatar={endsRun}
+									officerName={officerName ?? ""}
+									officerAvatar={officerAvatar ?? ""}
+									borrowerName={party.display_name || roleLabel(party.role)}
+									onAvatarClick={() => setWebcamOpen(true)}
+									onDelete={() =>
+										deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
+									}
+								/>
+							</div>
 						);
 					})
 				)}
@@ -282,6 +324,7 @@ export function PartyDetail({
 						</div>
 					</div>
 				)}
+				<div ref={bottomRef} />
 			</div>
 
 			{/* Composer — suggestion pills sit directly above the message input */}
@@ -420,17 +463,17 @@ function OpBubble({
 	const avatar = showAvatar ? (
 		mine ? (
 			<Avatar
-				size={28}
+				size={40}
 				name={officerName || "You"}
 				photoUrl={officerAvatar || null}
 				onClick={onAvatarClick}
 				title="Set your photo"
 			/>
 		) : (
-			<Avatar size={28} name={borrowerName} title={borrowerName} />
+			<Avatar size={40} name={borrowerName} title={borrowerName} />
 		)
 	) : (
-		<span className="shrink-0" style={{ width: 28 }} />
+		<span className="shrink-0" style={{ width: 40 }} />
 	);
 
 	const inner =
@@ -451,7 +494,7 @@ function OpBubble({
 		);
 
 	return (
-		<div className={`group flex flex-col ${align}`}>
+		<div className={`group flex flex-col w-full ${align}`}>
 			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
 				{avatar}
 				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
@@ -469,8 +512,11 @@ function OpBubble({
 				</div>
 			</div>
 			{showAvatar && (
-				<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10" : "pl-10"}`}>
-					{timeAgo(m.created_at)}
+				<span className={`flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10 flex-row-reverse" : "pl-10"}`}>
+					{clockTime(m.created_at)}
+					{/* On the operator's OWN bubbles, the ✓/✓✓ receipt reflects whether
+					    the borrower has read it (✓✓ = read). */}
+					{mine && (m.read ? <CheckCheck size={12} className="text-indigo-400" /> : <Check size={12} className="text-slate-400" />)}
 				</span>
 			)}
 		</div>

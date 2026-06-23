@@ -10,8 +10,12 @@ export type {
 } from "./store/index.js";
 
 
-// Humanized relative timestamps for chat bubbles ("just now", "5m ago", …).
-export { timeAgo } from "./timeAgo.js";
+// Humanized relative timestamps for chat bubbles ("just now", "5m ago", …),
+// plus WhatsApp-style clock time / day-separator helpers.
+export { timeAgo, clockTime, dayLabel, isSameDay } from "./timeAgo.js";
+
+// WhatsApp-style centered date-separator pill for chat threads.
+export { DateSeparator } from "./components/DateSeparator.js";
 
 // SDK session primitives (from refactor/lux-as-sdk architecture)
 export { SessionProvider } from "./SessionProvider.js";

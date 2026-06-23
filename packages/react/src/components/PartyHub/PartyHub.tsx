@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import { Avatar } from "../Avatar.js";
@@ -38,8 +38,10 @@ export interface PartyHubProps {
 	 * uncontrolled (internal) selection.
 	 */
 	selectedPartyId?: string | null;
-	/** Called with the party id when the operator selects a row (controlled mode). */
-	onSelectParty?: (partyId: string) => void;
+	/** Called with the party id when the operator selects a row (controlled mode).
+	 * `opts.replace` is set when syncing the URL to the default/auto selection (so
+	 * it doesn't add a junk history entry); a real click pushes (replace=false). */
+	onSelectParty?: (partyId: string, opts?: { replace?: boolean }) => void;
 }
 
 type Filter = "all" | "open" | "verified" | "no_account";
@@ -78,6 +80,17 @@ export function PartyHub({ caseId, className, onOpenDocument, selectedPartyId, o
 	const parties = overview.data?.parties ?? [];
 	const filtered = useMemo(() => filterParties(parties, search, filter), [parties, search, filter]);
 	const selected = parties.find((p) => p.party_id === selectedId) ?? filtered[0] ?? null;
+
+	// Controlled mode: keep the URL in sync with the selected party. On first load
+	// (or a stale/missing partyId) a default party is selected but the URL has no
+	// id — reflect it (replace, so back/forward + refresh land on the right
+	// person). A click already pushed the URL, so this is a no-op then.
+	useEffect(() => {
+		if (controlled && selected && selectedPartyId !== selected.party_id) {
+			onSelectParty?.(selected.party_id, { replace: true });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [controlled, selected?.party_id, selectedPartyId]);
 
 	if (overview.error) {
 		return <div className={`p-6 ${className ?? ""}`}><p className="text-sm text-red-600">Couldn't load this case's parties.</p></div>;

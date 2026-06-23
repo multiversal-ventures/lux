@@ -1,7 +1,11 @@
 import type { AuthProvider } from "./auth.js";
-import type { components } from "./generated.js";
-import { normalizeVeritasStatus, normalizeRefinement, type NormalizedRefinement } from "./normalize.js";
 import type { StructuredExtractionsResponse } from "./extractions.js";
+import type { components } from "./generated.js";
+import {
+	type NormalizedRefinement,
+	normalizeRefinement,
+	normalizeVeritasStatus,
+} from "./normalize.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VeritasClient — typed HTTP client for Veritas / dashboard-style apps
@@ -308,7 +312,9 @@ export class VeritasClient {
 
 	/** Operator status of the case's borrower portal link (none/waiting/submitted),
 	 * for rendering the Portal Link button state. */
-	async getPortalLinkStatus(caseId: string): Promise<components["schemas"]["PortalLinkStatusResponse"]> {
+	async getPortalLinkStatus(
+		caseId: string,
+	): Promise<components["schemas"]["PortalLinkStatusResponse"]> {
 		return this.requestJson<components["schemas"]["PortalLinkStatusResponse"]>(
 			`/api/cases/${caseId}/portal/status`,
 		);
@@ -325,7 +331,7 @@ export class VeritasClient {
 		caseId: string,
 		partyId?: string,
 	): Promise<components["schemas"]["PortalRequestItem"][]> {
-		const qs = partyId ? `?party_id=${encodeURIComponent(partyId)}` : '';
+		const qs = partyId ? `?party_id=${encodeURIComponent(partyId)}` : "";
 		return this.requestJson<components["schemas"]["PortalRequestItem"][]>(
 			`/api/cases/${caseId}/portal/suggestions${qs}`,
 		);
@@ -364,6 +370,18 @@ export class VeritasClient {
 	 * shared uploaded documents. Drives the Party Hub page. */
 	async getPortalOverview(caseId: string): Promise<components["schemas"]["PortalOverview"]> {
 		return this.requestJson<components["schemas"]["PortalOverview"]>(`/api/cases/${caseId}/portal`);
+	}
+
+	/** Operator "what we know about this party" profile: identity, masked
+	 * identifiers (tail only — never the full SSN/EIN), contact/address facts,
+	 * where the party is mentioned, and lifecycle status. */
+	async getPartyProfile(
+		caseId: string,
+		partyId: string,
+	): Promise<components["schemas"]["PartyProfile"]> {
+		return this.requestJson<components["schemas"]["PartyProfile"]>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/profile`,
+		);
 	}
 
 	/** Resolved case identities not yet engaged as a portal party ("add party"). */
@@ -412,27 +430,25 @@ export class VeritasClient {
 		partyId: string,
 		body: components["schemas"]["AttachDocBody"],
 	): Promise<void> {
-		await this.requestJson<unknown>(
-			`/api/cases/${caseId}/portal/parties/${partyId}/documents`,
-			{ method: "POST", body: JSON.stringify(body) },
-		);
+		await this.requestJson<unknown>(`/api/cases/${caseId}/portal/parties/${partyId}/documents`, {
+			method: "POST",
+			body: JSON.stringify(body),
+		});
 	}
 
 	/** Remove a party (and its thread) from a case's portal. */
 	async deleteParty(caseId: string, partyId: string): Promise<void> {
-		await this.requestJson<unknown>(
-			`/api/cases/${caseId}/portal/parties/${partyId}`,
-			{ method: "DELETE" },
-		);
+		await this.requestJson<unknown>(`/api/cases/${caseId}/portal/parties/${partyId}`, {
+			method: "DELETE",
+		});
 	}
 
 	/** Clear a party's conversation thread (keeps the party + link) so the
 	 * operator can start over / resend; also resets the captured email. */
 	async clearPartyThread(caseId: string, partyId: string): Promise<void> {
-		await this.requestJson<unknown>(
-			`/api/cases/${caseId}/portal/parties/${partyId}/messages`,
-			{ method: "DELETE" },
-		);
+		await this.requestJson<unknown>(`/api/cases/${caseId}/portal/parties/${partyId}/messages`, {
+			method: "DELETE",
+		});
 	}
 
 	/** Soft-delete a single message from a party's thread (operator side). Own-only:
@@ -463,10 +479,9 @@ export class VeritasClient {
 
 	/** Reissue a party's portal link — resets the access code and attempt counter. */
 	async reissueLink(caseId: string, partyId: string): Promise<void> {
-		await this.requestJson<unknown>(
-			`/api/cases/${caseId}/portal/parties/${partyId}/reissue`,
-			{ method: "POST" },
-		);
+		await this.requestJson<unknown>(`/api/cases/${caseId}/portal/parties/${partyId}/reissue`, {
+			method: "POST",
+		});
 	}
 
 	/** Operator marks a party's borrower messages as read → flips the borrower's
@@ -474,10 +489,9 @@ export class VeritasClient {
 	 * must never break the operator view. */
 	async markThreadRead(caseId: string, partyId: string): Promise<void> {
 		try {
-			await this.requestJson<unknown>(
-				`/api/cases/${caseId}/portal/parties/${partyId}/read`,
-				{ method: "POST" },
-			);
+			await this.requestJson<unknown>(`/api/cases/${caseId}/portal/parties/${partyId}/read`, {
+				method: "POST",
+			});
 		} catch {
 			/* read receipt is best-effort */
 		}
@@ -489,10 +503,10 @@ export class VeritasClient {
 		partyId: string,
 		body: components["schemas"]["LinkPartyBody"],
 	): Promise<void> {
-		await this.requestJson<unknown>(
-			`/api/cases/${caseId}/portal/parties/${partyId}/link`,
-			{ method: "POST", body: JSON.stringify(body) },
-		);
+		await this.requestJson<unknown>(`/api/cases/${caseId}/portal/parties/${partyId}/link`, {
+			method: "POST",
+			body: JSON.stringify(body),
+		});
 	}
 
 	// -- Officer settings (chat avatar) ----------------------------------------
@@ -516,21 +530,23 @@ export class VeritasClient {
 	}
 
 	async listTenantCases(limit = 20): Promise<components["schemas"]["CaseResponse"][]> {
-		return this.requestJson<components["schemas"]["CaseResponse"][]>(
-			`/api/cases?limit=${limit}`,
-		);
+		return this.requestJson<components["schemas"]["CaseResponse"][]>(`/api/cases?limit=${limit}`);
 	}
 
 	async deleteCase(caseId: string): Promise<void> {
 		await this.requestJson<unknown>(`/api/cases/${caseId}`, { method: "DELETE" });
 	}
 
-	async listTenantProducts(options?: { includeDisabled?: boolean }): Promise<components["schemas"]["ProductResponse"][]> {
+	async listTenantProducts(options?: { includeDisabled?: boolean }): Promise<
+		components["schemas"]["ProductResponse"][]
+	> {
 		const qs = options?.includeDisabled ? "?include_disabled=true" : "";
 		return this.requestJson<components["schemas"]["ProductResponse"][]>(`/api/products${qs}`);
 	}
 
-	async getSuggestedProducts(caseId: string): Promise<components["schemas"]["SuggestedProductsResponse"]> {
+	async getSuggestedProducts(
+		caseId: string,
+	): Promise<components["schemas"]["SuggestedProductsResponse"]> {
 		return this.requestJson<components["schemas"]["SuggestedProductsResponse"]>(
 			`/api/cases/${caseId}/suggested_products`,
 		);
@@ -557,17 +573,13 @@ export class VeritasClient {
 		caseId: string,
 		opts?: { scenarioId?: string | null },
 	): Promise<components["schemas"]["IdentityInfo"][]> {
-		const qs = opts?.scenarioId
-			? `?scenario_id=${encodeURIComponent(opts.scenarioId)}`
-			: "";
+		const qs = opts?.scenarioId ? `?scenario_id=${encodeURIComponent(opts.scenarioId)}` : "";
 		return this.requestJson<components["schemas"]["IdentityInfo"][]>(
 			`/api/cases/${encodeURIComponent(caseId)}/identities${qs}`,
 		);
 	}
 
-	async getCaseRelationships(
-		caseId: string,
-	): Promise<RelationshipInfo[]> {
+	async getCaseRelationships(caseId: string): Promise<RelationshipInfo[]> {
 		return this.requestJson<RelationshipInfo[]>(
 			`/api/cases/${encodeURIComponent(caseId)}/relationships`,
 		);
@@ -593,9 +605,14 @@ export class VeritasClient {
 			}));
 	}
 
-	async getCaseExtractions(caseId: string, docId?: string): Promise<components["schemas"]["ExtractionResponse"][]> {
-		const qs = docId ? `?doc_id=${encodeURIComponent(docId)}` : '';
-		return this.requestJson<components["schemas"]["ExtractionResponse"][]>(`/api/cases/${caseId}/extractions${qs}`);
+	async getCaseExtractions(
+		caseId: string,
+		docId?: string,
+	): Promise<components["schemas"]["ExtractionResponse"][]> {
+		const qs = docId ? `?doc_id=${encodeURIComponent(docId)}` : "";
+		return this.requestJson<components["schemas"]["ExtractionResponse"][]>(
+			`/api/cases/${caseId}/extractions${qs}`,
+		);
 	}
 
 	async getCaseExtractionsByDocType(
@@ -633,19 +650,26 @@ export class VeritasClient {
 		return this.uploadMultipart(`/api/cases/${caseId}/files`, form);
 	}
 
-	async reprocessCase(caseId: string): Promise<{ case_id: string; workflow_id: string; page_count: number; status: string }> {
+	async reprocessCase(
+		caseId: string,
+	): Promise<{ case_id: string; workflow_id: string; page_count: number; status: string }> {
 		return this.requestJson(`/api/cases/${caseId}/reprocess`, { method: "POST" });
 	}
 
-	async getCaseBanking(caseId: string): Promise<import('./operator-types.js').BankingResponse> {
+	async getCaseBanking(caseId: string): Promise<import("./operator-types.js").BankingResponse> {
 		return this.requestJson(`/api/cases/${caseId}/banking`);
 	}
 
-	async getCaseBankingTransactions(caseId: string): Promise<import('./operator-types.js').ClassifiedTransactionsResponse> {
+	async getCaseBankingTransactions(
+		caseId: string,
+	): Promise<import("./operator-types.js").ClassifiedTransactionsResponse> {
 		return this.requestJson(`/api/cases/${caseId}/banking/transactions`);
 	}
 
-	async getDocumentRegions(caseId: string, docId: string): Promise<import('./operator-types.js').TransactionsResponse> {
+	async getDocumentRegions(
+		caseId: string,
+		docId: string,
+	): Promise<import("./operator-types.js").TransactionsResponse> {
 		return this.requestJson(`/api/cases/${caseId}/documents/${docId}/transactions`);
 	}
 
@@ -759,9 +783,10 @@ export class VeritasClient {
 			// This prevents historical case.system.completed from immediately
 			// closing the stream on reconnect after a case has completed extraction.
 			const cursor = options?.cursor;
-			const streamUrl = cursor != null && cursor > 0
-				? this.resolvePath(`/api/cases/${caseId}/events/stream?cursor=${cursor}`)
-				: this.resolvePath(`/api/cases/${caseId}/events/stream`);
+			const streamUrl =
+				cursor != null && cursor > 0
+					? this.resolvePath(`/api/cases/${caseId}/events/stream?cursor=${cursor}`)
+					: this.resolvePath(`/api/cases/${caseId}/events/stream`);
 
 			let res: Response;
 			try {
@@ -850,7 +875,9 @@ export class VeritasClient {
 
 	// ─── Scenarios ─────────────────────────────────────────────────────────────
 
-	async getCaseScenarios(caseId: string): Promise<components["schemas"]["ScenarioComparisonResponse"][]> {
+	async getCaseScenarios(
+		caseId: string,
+	): Promise<components["schemas"]["ScenarioComparisonResponse"][]> {
 		const rows = await this.requestJson<components["schemas"]["ScenarioComparisonResponse"][]>(
 			`/api/cases/${encodeURIComponent(caseId)}/scenarios`,
 		);
@@ -988,7 +1015,10 @@ export class VeritasClient {
 
 	// ─── Refinements ────────────────────────────────────────────────────────────
 
-	async getCaseScenarioRefinements(caseId: string, scenarioId: string): Promise<NormalizedRefinement[]> {
+	async getCaseScenarioRefinements(
+		caseId: string,
+		scenarioId: string,
+	): Promise<NormalizedRefinement[]> {
 		const rows = await this.requestJson<components["schemas"]["RefinementResponse"][]>(
 			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/refinements`,
 		);
@@ -1036,13 +1066,19 @@ export class VeritasClient {
 		);
 	}
 
-	async getSpecAudit(caseId: string, specName: string): Promise<components["schemas"]["SpecAuditResponse"]> {
+	async getSpecAudit(
+		caseId: string,
+		specName: string,
+	): Promise<components["schemas"]["SpecAuditResponse"]> {
 		return this.requestJson<components["schemas"]["SpecAuditResponse"]>(
 			`/api/cases/${encodeURIComponent(caseId)}/audit/specs/${encodeURIComponent(specName)}`,
 		);
 	}
 
-	async getCaseScenarioAdvice(caseId: string, scenarioId: string): Promise<components["schemas"]["ScenarioAdviceResponse"]> {
+	async getCaseScenarioAdvice(
+		caseId: string,
+		scenarioId: string,
+	): Promise<components["schemas"]["ScenarioAdviceResponse"]> {
 		return this.requestJson<components["schemas"]["ScenarioAdviceResponse"]>(
 			`/api/cases/${encodeURIComponent(caseId)}/scenarios/${encodeURIComponent(scenarioId)}/advice`,
 		);
@@ -1111,12 +1147,12 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 
 	async function fetchSession(token: string): Promise<FetchSessionResult> {
 		try {
-		// Token in X-Portal-Token header only — never in URL query param.
-		// URL query params appear in server access logs and browser history;
-		// the header path keeps the token out of both.
-		const res = await fetch(`${base}/api/portal/session`, {
-			headers: { [PORTAL_AUTH_HEADER]: token },
-		});
+			// Token in X-Portal-Token header only — never in URL query param.
+			// URL query params appear in server access logs and browser history;
+			// the header path keeps the token out of both.
+			const res = await fetch(`${base}/api/portal/session`, {
+				headers: { [PORTAL_AUTH_HEADER]: token },
+			});
 			if (!res.ok) {
 				if (res.status === 401) {
 					return {
@@ -1198,7 +1234,10 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 				body: form,
 			});
 			if (!res.ok) {
-				return { ok: false, error: { code: "server", message: `Upload failed (${res.status})`, status: res.status } };
+				return {
+					ok: false,
+					error: { code: "server", message: `Upload failed (${res.status})`, status: res.status },
+				};
 			}
 			return { ok: true, error: null };
 		} catch {
@@ -1220,7 +1259,14 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 				body: JSON.stringify({ firebase_id_token: firebaseIdToken }),
 			});
 			if (!res.ok) {
-				return { ok: false, error: { code: "server", message: `Couldn't create account (${res.status})`, status: res.status } };
+				return {
+					ok: false,
+					error: {
+						code: "server",
+						message: `Couldn't create account (${res.status})`,
+						status: res.status,
+					},
+				};
 			}
 			const data = (await res.json()) as { account_user_id?: string };
 			return { ok: true, accountUserId: data.account_user_id, error: null };
@@ -1232,7 +1278,10 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 	/** Borrower typing signal — broadcast to the operator. Best-effort. */
 	async function sendTyping(token: string): Promise<void> {
 		try {
-			await fetch(`${base}/api/portal/typing`, { method: "POST", headers: { [PORTAL_AUTH_HEADER]: token } });
+			await fetch(`${base}/api/portal/typing`, {
+				method: "POST",
+				headers: { [PORTAL_AUTH_HEADER]: token },
+			});
 		} catch {
 			/* best-effort */
 		}
@@ -1284,5 +1333,12 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		return () => controller.abort();
 	}
 
-	return { fetchSession, submitIntents, uploadDocuments, claimAccount, sendTyping, streamPortalEvents };
+	return {
+		fetchSession,
+		submitIntents,
+		uploadDocuments,
+		claimAccount,
+		sendTyping,
+		streamPortalEvents,
+	};
 }

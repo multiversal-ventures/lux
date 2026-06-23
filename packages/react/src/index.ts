@@ -439,7 +439,7 @@ export {
   UploadedDocuments,
   RequestComposer,
 } from "./components/PartyHub/index.js";
-export type { PartyHubProps } from "./components/PartyHub/index.js";
+export type { PartyHubProps, PartyMentionRef } from "./components/PartyHub/index.js";
 export {
   usePortalOverview,
   usePortalCandidates,

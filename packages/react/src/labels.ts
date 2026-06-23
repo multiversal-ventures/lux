@@ -35,6 +35,20 @@ export function partyTypeLabel(type?: string | null): string {
 	return PARTY_TYPE[type] ?? titleCase(type);
 }
 
+const IDENTIFIER_TYPE: Record<string, string> = {
+	ssn: "SSN",
+	itin: "ITIN",
+	ein: "EIN",
+	passport: "Passport",
+	eid: "EID",
+};
+
+/** Display label for a masked government identifier type (SSN/EIN/...). */
+export function identifierTypeLabel(type?: string | null): string {
+	if (!type) return "";
+	return IDENTIFIER_TYPE[type] ?? type.toUpperCase();
+}
+
 const STATUS: Record<string, string> = {
 	open: "Awaiting reply",
 	fulfilled: "Received",

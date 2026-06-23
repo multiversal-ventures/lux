@@ -359,9 +359,21 @@ function Bubble({
 			</div>
 		</div>
 	) : m.kind === "upload" ? (
-		<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-			<FileText size={14} />{m.body}
-		</div>
+		m.processing ? (
+			// Still being extracted — muted "Processing…" placeholder (the borrower
+			// has no doc viewer, so uploads are never clickable here).
+			<div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400">
+				<Loader2 size={14} className="shrink-0 animate-spin" />
+				<span className="truncate min-w-0">{m.body}</span>
+				<span className="shrink-0 italic">· Processing…</span>
+			</div>
+		) : (
+			<div className={`flex items-center gap-2 max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+				<FileText size={14} />
+				<span className="truncate min-w-0">{m.body}</span>
+				<Check size={13} className={`shrink-0 ${mine ? "text-indigo-200" : "text-green-500"}`} />
+			</div>
+		)
 	) : (
 		<div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}

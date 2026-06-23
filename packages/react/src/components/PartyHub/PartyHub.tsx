@@ -1,18 +1,47 @@
-import { useMemo, useState } from "react";
-import { PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
-import { roleLabel } from "../../labels.js";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
+import { partyTypeLabel, roleLabel } from "../../labels.js";
+import { Avatar } from "../Avatar.js";
 import {
 	usePortalOverview,
 	usePortalCandidates,
 	useDeleteParty,
+	usePartyProfile,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
 import { PartyDetail } from "./PartyDetail.js";
+import { PartyProfilePanel } from "./PartyProfilePanel.js";
 import { AddPartyPanel } from "./AddPartyPanel.js";
+
+/** A clickable "Mentioned in" document, as handed to the host. */
+export interface PartyMentionRef {
+	doc_id: string;
+	label: string;
+	file_id?: string | null;
+	page?: number | null;
+	bbox?: number[] | null;
+}
 
 export interface PartyHubProps {
 	caseId: string;
 	className?: string;
+	/**
+	 * Optional host callback to open a document the party is mentioned in. When
+	 * provided, "Mentioned in" rows that carry a `file_id` become clickable; the
+	 * host typically navigates to its document viewer (`?file=&page=&bbox=`).
+	 */
+	onOpenDocument?: (mention: PartyMentionRef) => void;
+	/**
+	 * Controlled selection — the party id to show selected. When provided, the
+	 * host owns selection (e.g. driven by a URL param) so browser back/forward
+	 * works; pair with `onSelectParty` to update the URL on a row click. Omit for
+	 * uncontrolled (internal) selection.
+	 */
+	selectedPartyId?: string | null;
+	/** Called with the party id when the operator selects a row (controlled mode).
+	 * `opts.replace` is set when syncing the URL to the default/auto selection (so
+	 * it doesn't add a junk history entry); a real click pushes (replace=false). */
+	onSelectParty?: (partyId: string, opts?: { replace?: boolean }) => void;
 }
 
 type Filter = "all" | "open" | "verified" | "no_account";
@@ -22,19 +51,46 @@ type Filter = "all" | "open" | "verified" | "no_account";
  * the people & entities on a case, and a central view of the selected party's
  * conversation, portal link, status, and shared documents. Composed from lux.
  */
-export function PartyHub({ caseId, className }: PartyHubProps) {
+export function PartyHub({ caseId, className, onOpenDocument, selectedPartyId, onSelectParty }: PartyHubProps) {
 	const overview = usePortalOverview(caseId);
 	const candidates = usePortalCandidates(caseId);
 	const del = useDeleteParty(caseId);
 
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [internalId, setInternalId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<Filter>("all");
 	const [collapsed, setCollapsed] = useState(false);
+	// Whether the selected party's inline profile is expanded. Collapsing it lets
+	// the operator scroll the people list and see multiple people at once.
+	const [profileOpen, setProfileOpen] = useState(true);
+
+	// Controlled (host owns selection via `selectedPartyId`, e.g. a URL param) vs
+	// uncontrolled (internal). Selecting a row updates internal state for instant
+	// feedback AND notifies the host so it can push the URL.
+	const controlled = selectedPartyId !== undefined;
+	const selectedId = controlled ? (selectedPartyId ?? null) : internalId;
+	const selectParty = (id: string | null) => {
+		if (!controlled) setInternalId(id);
+		if (id) {
+			setProfileOpen(true); // expand the profile when switching people
+			onSelectParty?.(id);
+		}
+	};
 
 	const parties = overview.data?.parties ?? [];
 	const filtered = useMemo(() => filterParties(parties, search, filter), [parties, search, filter]);
 	const selected = parties.find((p) => p.party_id === selectedId) ?? filtered[0] ?? null;
+
+	// Controlled mode: keep the URL in sync with the selected party. On first load
+	// (or a stale/missing partyId) a default party is selected but the URL has no
+	// id — reflect it (replace, so back/forward + refresh land on the right
+	// person). A click already pushed the URL, so this is a no-op then.
+	useEffect(() => {
+		if (controlled && selected && selectedPartyId !== selected.party_id) {
+			onSelectParty?.(selected.party_id, { replace: true });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [controlled, selected?.party_id, selectedPartyId]);
 
 	if (overview.error) {
 		return <div className={`p-6 ${className ?? ""}`}><p className="text-sm text-red-600">Couldn't load this case's parties.</p></div>;
@@ -82,7 +138,7 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					{filtered.length === 0 ? (
 						<p className="p-4 text-sm text-slate-400">No matching people.</p>
 					) : (
-						filtered.map((p) => <PartyRow key={p.party_id} party={p} active={p.party_id === selected?.party_id} onClick={() => setSelectedId(p.party_id)} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id) setSelectedId(null); } }); }} />)
+						filtered.map((p) => <PartyRow key={p.party_id} caseId={caseId} party={p} active={p.party_id === selected?.party_id} profileOpen={profileOpen} onToggleProfile={() => setProfileOpen((o) => !o)} onClick={() => selectParty(p.party_id)} onOpenDocument={onOpenDocument} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id && !controlled) setInternalId(null); } }); }} />)
 					)}
 				</div>
 
@@ -104,7 +160,8 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 						party={selected}
 						officerName={overview.data?.officer_name ?? ""}
 						officerAvatar={overview.data?.officer_avatar ?? ""}
-						onRemoved={() => setSelectedId(null)}
+						onRemoved={() => { if (!controlled) setInternalId(null); }}
+						onOpenDocument={onOpenDocument}
 						loading={overview.isLoading}
 					/>
 				) : overview.isLoading ? (
@@ -135,29 +192,64 @@ function filterParties(parties: PartyView[], search: string, filter: Filter): Pa
 	});
 }
 
-function PartyRow({ party, active, onClick, onDelete }: { party: PartyView; active: boolean; onClick: () => void; onDelete: () => void }) {
+function PartyRow({ caseId, party, active, profileOpen, onToggleProfile, onClick, onDelete, onOpenDocument }: { caseId: string; party: PartyView; active: boolean; profileOpen: boolean; onToggleProfile: () => void; onClick: () => void; onDelete: () => void; onOpenDocument?: (mention: PartyMentionRef) => void }) {
 	const open = party.thread.some((m) => m.kind === "request" && m.status === "open");
+	// The selected row expands its profile inline beneath itself; the others stay
+	// collapsed. The profile only fetches for the active id (others pass null).
+	const showProfile = active && profileOpen;
+	const profile = usePartyProfile(caseId, showProfile ? party.party_id : null);
 	return (
-		<div
-			onClick={onClick}
-			className={`group relative w-full cursor-pointer px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
-		>
-			<div className="flex items-center justify-between gap-2">
-				<span className="text-sm font-medium text-slate-800 truncate">{party.display_name || roleLabel(party.role)}</span>
-				<div className="flex items-center gap-2 shrink-0">
-					<button
-						type="button"
-						onClick={(e) => { e.stopPropagation(); onDelete(); }}
-						title="Remove from portal"
-						aria-label="Remove from portal"
-						className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 transition"
-					>
-						<Trash2 size={14} />
-					</button>
-					<span className={`h-2 w-2 rounded-full ${party.verified ? "bg-green-500" : open ? "bg-amber-400" : "bg-slate-300"}`} />
+		<div className={active ? "bg-indigo-50" : ""}>
+			<div
+				onClick={onClick}
+				className={`group relative w-full cursor-pointer px-4 py-3 ${active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
+			>
+				<div className="flex items-center gap-2.5">
+					<Avatar size={36} name={party.display_name || roleLabel(party.role)} />
+					<div className="min-w-0 flex-1">
+						<span className="block text-sm font-medium text-slate-800 truncate">{party.display_name || roleLabel(party.role)}</span>
+						<span className="block text-xs text-slate-500 truncate">
+							{active ? [roleLabel(party.role), partyTypeLabel(party.party_type)].filter(Boolean).join(" · ") : roleLabel(party.role)}
+						</span>
+						{active && <span className="block text-[10px] font-mono text-slate-400">{party.party_id.slice(0, 8)}</span>}
+					</div>
+					<div className="flex items-center gap-2 shrink-0 self-start mt-0.5">
+						<button
+							type="button"
+							onClick={(e) => { e.stopPropagation(); onDelete(); }}
+							title="Remove from portal"
+							aria-label="Remove from portal"
+							className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 transition"
+						>
+							<Trash2 size={14} />
+						</button>
+						{active && (
+							<button
+								type="button"
+								onClick={(e) => { e.stopPropagation(); onToggleProfile(); }}
+								title={profileOpen ? "Collapse profile" : "Expand profile"}
+								aria-label={profileOpen ? "Collapse profile" : "Expand profile"}
+								className="text-slate-400 hover:text-slate-700 transition"
+							>
+								{profileOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+							</button>
+						)}
+						<span className={`h-2 w-2 rounded-full ${party.verified ? "bg-green-500" : open ? "bg-amber-400" : "bg-slate-300"}`} />
+					</div>
 				</div>
 			</div>
-			<span className="text-xs text-slate-500">{roleLabel(party.role)}</span>
+			{/* Inline-expanded profile for the selected party only, when not collapsed. */}
+			{showProfile && (
+				<div className="border-t border-indigo-100 px-3 pb-3 pt-1">
+					{profile.isLoading ? (
+						<p className="py-2 text-xs text-slate-400">Loading profile…</p>
+					) : profile.data ? (
+						<PartyProfilePanel profile={profile.data} onOpenDocument={onOpenDocument} />
+					) : (
+						<p className="py-2 text-xs text-slate-400">Couldn’t load this party’s profile.</p>
+					)}
+				</div>
+			)}
 		</div>
 	);
 }

@@ -906,6 +906,34 @@ export interface paths {
         patch: operations["edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch"];
         trace?: never;
     };
+    "/api/cases/{case_id}/portal/parties/{party_id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Party Profile
+         * @description Operator "what we know about this party" profile panel.
+         *
+         *     Identity, masked identifiers (tail only — never the full SSN/EIN), contact/
+         *     address facts pulled from the documents the party appears on, where they're
+         *     mentioned, and lifecycle status. Every enrichment is best-effort: a party
+         *     with no linked identity still returns name/role/status/documents.
+         *
+         *     IDOR-guarded: the URL party must belong to the URL case (tenant proved
+         *     transitively by ``verify_case_access``).
+         */
+        get: operations["party_profile_api_cases__case_id__portal_parties__party_id__profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/portal/parties/{party_id}/read": {
         parameters: {
             query?: never;
@@ -3944,6 +3972,137 @@ export interface components {
              * @default
              */
             role: string;
+        };
+        /**
+         * PartyFact
+         * @description A small grounded label/value pair (employer, DOB, ...).
+         */
+        PartyFact: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /**
+         * PartyIdentifier
+         * @description A masked government identifier — tail only, never the full value.
+         *
+         *     ``type`` is the kind of identifier the linked person/entity carries
+         *     (``ssn`` | ``itin`` | ``ein`` | ...); ``last4`` is the only recoverable
+         *     portion. Both are ``None`` when the party has no linked identity or the
+         *     identifier was never captured.
+         */
+        PartyIdentifier: {
+            /** Last4 */
+            last4?: string | null;
+            /** Type */
+            type?: string | null;
+        };
+        /**
+         * PartyMention
+         * @description A document this party appears on, and their role on it.
+         */
+        PartyMention: {
+            /** Doc Id */
+            doc_id: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /** Page */
+            page?: number | null;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+        };
+        /**
+         * PartyProfile
+         * @description Operator profile for a single party.
+         *
+         *     Every enrichment beyond the basics (name/role/status/documents) is
+         *     best-effort: a party with no linked identity, or whose documents carry no
+         *     facts, still returns a valid profile with empty contact/identifier fields.
+         */
+        PartyProfile: {
+            /**
+             * Addresses
+             * @default []
+             */
+            addresses: string[];
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Extra
+             * @default []
+             */
+            extra: components["schemas"]["PartyFact"][];
+            /** @default {} */
+            identifier: components["schemas"]["PartyIdentifier"];
+            /**
+             * Mentioned In
+             * @default []
+             */
+            mentioned_in: components["schemas"]["PartyMention"][];
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /**
+             * Party Type
+             * @default individual
+             */
+            party_type: string;
+            /**
+             * Phones
+             * @default []
+             */
+            phones: string[];
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+            /**
+             * @default {
+             *       "has_account": false,
+             *       "signed": false,
+             *       "verified": false
+             *     }
+             */
+            status: components["schemas"]["PartyStatus"];
+        };
+        /**
+         * PartyStatus
+         * @description The party-scoped lifecycle flags already computed for the overview.
+         */
+        PartyStatus: {
+            /**
+             * Has Account
+             * @default false
+             */
+            has_account: boolean;
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** PartyView */
         PartyView: {
@@ -7005,6 +7164,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    party_profile_api_cases__case_id__portal_parties__party_id__profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyProfile"];
                 };
             };
             /** @description Validation Error */

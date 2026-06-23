@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type components, getDefaultClient } from "@multiversal-ventures/lux-core";
 import {
+	type UseMutationResult,
+	type UseQueryResult,
 	useMutation,
 	useQuery,
 	useQueryClient,
-	type UseMutationResult,
-	type UseQueryResult,
 } from "@tanstack/react-query";
-import { getDefaultClient, type components } from "@multiversal-ventures/lux-core";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type PortalOverview = components["schemas"]["PortalOverview"];
 export type PartyView = components["schemas"]["PartyView"];
@@ -21,6 +21,7 @@ export type PortalRequestItem = components["schemas"]["PortalRequestItem"];
 export type RegenerateSuggestionsBody = components["schemas"]["RegenerateSuggestionsBody"];
 export type CaseDocument = components["schemas"]["CaseDocument"];
 export type PartyDocument = components["schemas"]["PartyDocument"];
+export type PartyProfile = components["schemas"]["PartyProfile"];
 
 /** Cases the signed-in borrower (magic-link account) can access, with tokens. */
 export function useMyCases(enabled = true): UseQueryResult<MyCaseLink[], Error> {
@@ -43,8 +44,24 @@ export function usePortalOverview(caseId: string | null): UseQueryResult<PortalO
 	});
 }
 
+/** Operator "what we know about this party" profile — identity, masked
+ * identifiers, contact facts, mentions, status. Enabled only while a party is
+ * being viewed (caseId + partyId both set). */
+export function usePartyProfile(
+	caseId: string | null,
+	partyId: string | null,
+): UseQueryResult<PartyProfile, Error> {
+	return useQuery<PartyProfile, Error>({
+		queryKey: ["party-profile", caseId, partyId],
+		enabled: !!caseId && !!partyId,
+		queryFn: async () => getDefaultClient().getPartyProfile(caseId as string, partyId as string),
+	});
+}
+
 /** Resolved case identities not yet engaged as a party ("add party"). */
-export function usePortalCandidates(caseId: string | null): UseQueryResult<PartyCandidate[], Error> {
+export function usePortalCandidates(
+	caseId: string | null,
+): UseQueryResult<PartyCandidate[], Error> {
 	return useQuery<PartyCandidate[], Error>({
 		queryKey: ["portal-candidates", caseId],
 		enabled: !!caseId,
@@ -57,7 +74,8 @@ export function useDraftRequest(
 	caseId: string,
 ): UseMutationResult<string, Error, DraftRequestBody> {
 	return useMutation<string, Error, DraftRequestBody>({
-		mutationFn: async (body) => (await getDefaultClient().draftPortalRequest(caseId, body)).text ?? "",
+		mutationFn: async (body) =>
+			(await getDefaultClient().draftPortalRequest(caseId, body)).text ?? "",
 	});
 }
 
@@ -72,9 +90,7 @@ export function useRegenerateSuggestions(
 }
 
 /** Append a request to a party's thread; refreshes the overview. */
-export function useSendRequest(
-	caseId: string,
-): UseMutationResult<unknown, Error, SendRequestBody> {
+export function useSendRequest(caseId: string): UseMutationResult<unknown, Error, SendRequestBody> {
 	const qc = useQueryClient();
 	return useMutation<unknown, Error, SendRequestBody>({
 		mutationFn: async (body) => getDefaultClient().sendPortalRequest(caseId, body),
@@ -108,7 +124,10 @@ export function useAttachDocument(
 
 /** Real-time for the operator: refetch the overview when portal/document events
  * arrive on the case stream, and surface a borrower-typing indicator. */
-export function usePortalRealtime(caseId: string): { borrowerTyping: boolean; sendTyping: () => void } {
+export function usePortalRealtime(caseId: string): {
+	borrowerTyping: boolean;
+	sendTyping: () => void;
+} {
 	const qc = useQueryClient();
 	const [borrowerTyping, setBorrowerTyping] = useState(false);
 
@@ -161,7 +180,9 @@ export function usePortalRealtime(caseId: string): { borrowerTyping: boolean; se
 }
 
 /** Delete a party; optimistically drops it from the list, then refetches. */
-export function useDeleteParty(caseId: string): UseMutationResult<unknown, Error, string, { prev?: PortalOverview }> {
+export function useDeleteParty(
+	caseId: string,
+): UseMutationResult<unknown, Error, string, { prev?: PortalOverview }> {
 	const qc = useQueryClient();
 	return useMutation<unknown, Error, string, { prev?: PortalOverview }>({
 		mutationFn: async (partyId) => getDefaultClient().deleteParty(caseId, partyId),

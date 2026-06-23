@@ -3745,6 +3745,190 @@
         "title": "PartyDocument",
         "type": "object"
       },
+      "PartyFact": {
+        "description": "A small grounded label/value pair (employer, DOB, ...).",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "PartyFact",
+        "type": "object"
+      },
+      "PartyIdentifier": {
+        "description": "A masked government identifier \u2014 tail only, never the full value.\n\n``type`` is the kind of identifier the linked person/entity carries\n(``ssn`` | ``itin`` | ``ein`` | ...); ``last4`` is the only recoverable\nportion. Both are ``None`` when the party has no linked identity or the\nidentifier was never captured.",
+        "properties": {
+          "last4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last4"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          }
+        },
+        "title": "PartyIdentifier",
+        "type": "object"
+      },
+      "PartyMention": {
+        "description": "A document this party appears on, and their role on it.",
+        "properties": {
+          "doc_id": {
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "title": "PartyMention",
+        "type": "object"
+      },
+      "PartyProfile": {
+        "description": "Operator profile for a single party.\n\nEvery enrichment beyond the basics (name/role/status/documents) is\nbest-effort: a party with no linked identity, or whose documents carry no\nfacts, still returns a valid profile with empty contact/identifier fields.",
+        "properties": {
+          "addresses": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          },
+          "extra": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PartyFact"
+            },
+            "title": "Extra",
+            "type": "array"
+          },
+          "identifier": {
+            "$ref": "#/components/schemas/PartyIdentifier",
+            "default": {}
+          },
+          "mentioned_in": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PartyMention"
+            },
+            "title": "Mentioned In",
+            "type": "array"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_type": {
+            "default": "individual",
+            "title": "Party Type",
+            "type": "string"
+          },
+          "phones": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Phones",
+            "type": "array"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PartyStatus",
+            "default": {
+              "has_account": false,
+              "signed": false,
+              "verified": false
+            }
+          }
+        },
+        "required": [
+          "party_id"
+        ],
+        "title": "PartyProfile",
+        "type": "object"
+      },
+      "PartyStatus": {
+        "description": "The party-scoped lifecycle flags already computed for the overview.",
+        "properties": {
+          "has_account": {
+            "default": false,
+            "title": "Has Account",
+            "type": "boolean"
+          },
+          "signed": {
+            "default": false,
+            "title": "Signed",
+            "type": "boolean"
+          },
+          "verified": {
+            "default": false,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "title": "PartyStatus",
+        "type": "object"
+      },
       "PartyView": {
         "properties": {
           "access_code": {
@@ -9732,6 +9916,65 @@
           }
         ],
         "summary": "Edit Party Message",
+        "tags": [
+          "party"
+        ]
+      }
+    },
+    "/api/cases/{case_id}/portal/parties/{party_id}/profile": {
+      "get": {
+        "description": "Operator \"what we know about this party\" profile panel.\n\nIdentity, masked identifiers (tail only \u2014 never the full SSN/EIN), contact/\naddress facts pulled from the documents the party appears on, where they're\nmentioned, and lifecycle status. Every enrichment is best-effort: a party\nwith no linked identity still returns name/role/status/documents.\n\nIDOR-guarded: the URL party must belong to the URL case (tenant proved\ntransitively by ``verify_case_access``).",
+        "operationId": "party_profile_api_cases__case_id__portal_parties__party_id__profile_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Party Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Party Profile",
         "tags": [
           "party"
         ]

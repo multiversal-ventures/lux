@@ -1916,6 +1916,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/officer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Officer
+         * @description The firm's loan-officer profile (name + photo) for the chat avatar.
+         */
+        get: operations["get_officer_api_settings_officer_get"];
+        /**
+         * Set Officer
+         * @description Set (or clear, with null) the firm's loan-officer profile photo.
+         *
+         *     A non-null avatar must be an inline image data URL (``data:image/``) within
+         *     the size cap; anything else is rejected (422). Null clears the photo, after
+         *     which borrowers see initials.
+         */
+        put: operations["set_officer_api_settings_officer_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/specs": {
         parameters: {
             query?: never;
@@ -3790,6 +3818,27 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * OfficerAvatarUpdate
+         * @description Set (or clear, with null) the firm's loan-officer profile photo.
+         */
+        OfficerAvatarUpdate: {
+            /** Avatar */
+            avatar?: string | null;
+        };
+        /**
+         * OfficerProfile
+         * @description The firm's loan-officer profile, as shown in the chat avatar.
+         */
+        OfficerProfile: {
+            /** Officer Avatar */
+            officer_avatar?: string | null;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
+        };
         /** OperatorResponse */
         OperatorResponse: {
             /** Operator Email */
@@ -4017,6 +4066,16 @@ export interface components {
              */
             case_id: string;
             /**
+             * Officer Avatar
+             * @default
+             */
+            officer_avatar: string;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
+            /**
              * Parties
              * @default []
              */
@@ -4103,6 +4162,16 @@ export interface components {
              * @default []
              */
             kba_questions: components["schemas"]["KbaQuestion"][];
+            /**
+             * Officer Avatar
+             * @default
+             */
+            officer_avatar: string;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
             /**
              * Request Message
              * @default
@@ -8367,6 +8436,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateSampleCaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_officer_api_settings_officer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficerProfile"];
+                };
+            };
+        };
+    };
+    set_officer_api_settings_officer_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfficerAvatarUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficerProfile"];
                 };
             };
             /** @description Validation Error */

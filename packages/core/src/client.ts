@@ -479,6 +479,22 @@ export class VeritasClient {
 		);
 	}
 
+	// -- Officer settings (chat avatar) ----------------------------------------
+
+	/** The firm's loan-officer profile (name + avatar data URL) shown on the
+	 * operator's own chat bubbles and on every borrower's portal. */
+	async getOfficerSettings(): Promise<components["schemas"]["OfficerProfile"]> {
+		return this.requestJson<components["schemas"]["OfficerProfile"]>(`/api/settings/officer`);
+	}
+
+	/** Set the loan-officer avatar (data URL), or clear it with `null`. */
+	async setOfficerAvatar(avatar: string | null): Promise<components["schemas"]["OfficerProfile"]> {
+		return this.requestJson<components["schemas"]["OfficerProfile"]>(`/api/settings/officer`, {
+			method: "PUT",
+			body: JSON.stringify({ avatar }),
+		});
+	}
+
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {
 		return this.requestJson<VeritasCaseDetail>(`/api/cases/${caseId}`);
 	}

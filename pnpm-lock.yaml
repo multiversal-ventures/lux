@@ -169,6 +169,9 @@ importers:
       '@multiversal-ventures/xlsx':
         specifier: github:multiversal-ventures/xlsx#v0.20.3-mv.2
         version: https://codeload.github.com/multiversal-ventures/xlsx/tar.gz/6c8f79a18377344b27df8e1417f80c8c4c3d03c5
+      react-webcam:
+        specifier: ^7.2.0
+        version: 7.2.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
     devDependencies:
       '@multiversal-ventures/lux-core':
         specifier: workspace:*
@@ -2131,6 +2134,12 @@ packages:
     peerDependenciesMeta:
       react-dom:
         optional: true
+
+  react-webcam@7.2.0:
+    resolution: {integrity: sha512-xkrzYPqa1ag2DP+2Q/kLKBmCIfEx49bVdgCCCcZf88oF+0NPEbkwYk3/s/C7Zy0mhM8k+hpdNkBLzxg8H0aWcg==}
+    peerDependencies:
+      react: '>=16.2.0'
+      react-dom: '>=16.2.0'
 
   react@19.2.5:
     resolution: {integrity: sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA==}
@@ -4290,6 +4299,11 @@ snapshots:
       react: 19.2.5
       set-cookie-parser: 2.7.2
     optionalDependencies:
+      react-dom: 19.2.5(react@19.2.5)
+
+  react-webcam@7.2.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
+    dependencies:
+      react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
 
   react@19.2.5: {}

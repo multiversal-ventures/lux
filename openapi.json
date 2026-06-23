@@ -3520,6 +3520,47 @@
         "title": "MyCaseLink",
         "type": "object"
       },
+      "OfficerAvatarUpdate": {
+        "description": "Set (or clear, with null) the firm's loan-officer profile photo.",
+        "properties": {
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          }
+        },
+        "title": "OfficerAvatarUpdate",
+        "type": "object"
+      },
+      "OfficerProfile": {
+        "description": "The firm's loan-officer profile, as shown in the chat avatar.",
+        "properties": {
+          "officer_avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Officer Avatar"
+          },
+          "officer_name": {
+            "default": "",
+            "title": "Officer Name",
+            "type": "string"
+          }
+        },
+        "title": "OfficerProfile",
+        "type": "object"
+      },
       "OperatorResponse": {
         "properties": {
           "operator_email": {
@@ -3940,6 +3981,16 @@
             "title": "Case Id",
             "type": "string"
           },
+          "officer_avatar": {
+            "default": "",
+            "title": "Officer Avatar",
+            "type": "string"
+          },
+          "officer_name": {
+            "default": "",
+            "title": "Officer Name",
+            "type": "string"
+          },
           "parties": {
             "default": [],
             "items": {
@@ -4051,6 +4102,16 @@
             },
             "title": "Kba Questions",
             "type": "array"
+          },
+          "officer_avatar": {
+            "default": "",
+            "title": "Officer Avatar",
+            "type": "string"
+          },
+          "officer_name": {
+            "default": "",
+            "title": "Officer Name",
+            "type": "string"
           },
           "request_message": {
             "default": "",
@@ -12325,6 +12386,78 @@
         "summary": "Create Sample Case",
         "tags": [
           "samples"
+        ]
+      }
+    },
+    "/api/settings/officer": {
+      "get": {
+        "description": "The firm's loan-officer profile (name + photo) for the chat avatar.",
+        "operationId": "get_officer_api_settings_officer_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficerProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Officer",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "description": "Set (or clear, with null) the firm's loan-officer profile photo.\n\nA non-null avatar must be an inline image data URL (``data:image/``) within\nthe size cap; anything else is rejected (422). Null clears the photo, after\nwhich borrowers see initials.",
+        "operationId": "set_officer_api_settings_officer_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficerAvatarUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficerProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Officer",
+        "tags": [
+          "settings"
         ]
       }
     },

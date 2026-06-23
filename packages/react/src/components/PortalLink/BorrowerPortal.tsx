@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Check, CheckCheck, FileText, Headset, Lock, Mail, Paperclip, Trash2 } from "lucide-react";
+import { Check, CheckCheck, FileText, Lock, Mail, Paperclip, Trash2 } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { timeAgo } from "../../timeAgo.js";
+import { Avatar } from "../Avatar.js";
 import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
@@ -135,24 +136,32 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 				</p>
 			</header>
 
-			<div className="flex-1 overflow-y-auto px-3 py-4 space-y-2 bg-slate-50">
+			<div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 bg-slate-50">
 				{session.request_message && (
 					<div className="mx-auto max-w-[90%] text-center text-xs text-slate-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
 						{session.request_message}
 					</div>
 				)}
 				{session.thread.map((m, i) => {
-					// "Your loan officer" label + avatar show on the FIRST officer
-					// bubble of each run (the previous message wasn't from the officer),
-					// so a back-to-back officer reply reads as one person speaking.
+					// Run grouping: a "run" is consecutive messages from the same
+					// author. The "Your loan officer" label shows on the FIRST officer
+					// bubble of a run; the avatar shows on the LAST bubble of a run
+					// (a spacer keeps alignment on the others) — so a back-to-back
+					// reply reads as one person speaking, not a wall of avatars.
 					const prev = session.thread[i - 1];
+					const next = session.thread[i + 1];
+					const startsRun = !prev || prev.author_kind !== m.author_kind;
+					const endsRun = !next || next.author_kind !== m.author_kind;
 					const isOfficer = m.author_kind !== "borrower";
-					const startsOfficerRun = isOfficer && (!prev || prev.author_kind === "borrower");
 					return (
 						<Bubble
 							key={m.message_id}
 							m={m}
-							showOfficerHeader={startsOfficerRun}
+							showOfficerHeader={isOfficer && startsRun}
+							showAvatar={endsRun}
+							officerName={session.officer_name}
+							officerAvatar={session.officer_avatar}
+							borrowerName={session.entity?.name || "You"}
 							onDelete={() =>
 								submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
 							}
@@ -215,15 +224,12 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	);
 }
 
-/** The loan officer's identity over a run of their bubbles — a small indigo
- * avatar + "Your loan officer" label, so the conversation reads like a person,
- * not an LLM. Rendered once at the start of each officer run. */
+/** The "Your loan officer" label shown once at the start of each officer run —
+ * indented to sit above the bubble (which is left-aligned, avatar on the left).
+ * The face itself is the {@link Avatar} on the last bubble of the run. */
 function OfficerHeader() {
 	return (
-		<div className="flex items-center gap-2 mb-1 pl-1">
-			<span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-				<Headset size={13} />
-			</span>
+		<div className="flex items-center gap-2 mb-0.5 pl-9">
 			<span className="text-xs font-medium text-slate-500">Your loan officer</span>
 		</div>
 	);
@@ -249,17 +255,28 @@ function ReadReceipt({ read }: { read: boolean }) {
 	);
 }
 
-/** A single chat bubble — officer left, borrower right; uploads as file chips.
- * Officer bubbles starting a run get the "Your loan officer" header; the
- * borrower's own bubbles get a ✓/✓✓ read receipt, a relative timestamp, and a
- * hover delete (their own request/reply messages only — never uploads). */
+/** A single staggered chat row — avatar + bubble. The sender sits on their own
+ * side (borrower right, officer left); the avatar is adjacent to the bubble on
+ * the outer edge, shown only on the LAST bubble of a consecutive run (a spacer
+ * holds the column otherwise so bubbles stay aligned). Officer runs get the
+ * "Your loan officer" header on their first bubble; the borrower's own bubbles
+ * get a ✓/✓✓ read receipt and a hover delete (their request/reply messages
+ * only — never uploads). */
 function Bubble({
 	m,
 	showOfficerHeader,
+	showAvatar,
+	officerName,
+	officerAvatar,
+	borrowerName,
 	onDelete,
 }: {
 	m: ThreadMessage;
 	showOfficerHeader: boolean;
+	showAvatar: boolean;
+	officerName: string;
+	officerAvatar: string;
+	borrowerName: string;
 	onDelete: () => void;
 }) {
 	const mine = m.author_kind === "borrower";
@@ -268,6 +285,19 @@ function Bubble({
 	// The borrower can delete only their OWN non-upload messages (uploads are
 	// case events with no deletable row).
 	const canDelete = mine && m.kind !== "upload";
+
+	// Avatar column (28px): the face on the last bubble of a run, a spacer
+	// otherwise so consecutive bubbles in the run stay aligned.
+	const avatar = showAvatar ? (
+		<Avatar
+			size={28}
+			name={mine ? borrowerName : officerName || "Loan officer"}
+			photoUrl={mine ? null : officerAvatar}
+			title={mine ? borrowerName : officerName || "Your loan officer"}
+		/>
+	) : (
+		<span className="shrink-0" style={{ width: 28 }} />
+	);
 
 	const inner =
 		m.kind === "upload" ? (
@@ -288,23 +318,30 @@ function Bubble({
 	return (
 		<div className={`group flex flex-col ${align}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
-			<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
-				{canDelete && (
-					<button
-						type="button"
-						onClick={onDelete}
-						aria-label="Delete message"
-						className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
-					>
-						<Trash2 size={13} />
-					</button>
-				)}
-				{inner}
+			{/* Row reads inward from the speaker's side: [avatar][delete][bubble]
+			    for the officer (left), mirrored for the borrower (right). */}
+			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
+				{avatar}
+				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
+					{canDelete && (
+						<button
+							type="button"
+							onClick={onDelete}
+							aria-label="Delete message"
+							className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
+						>
+							<Trash2 size={13} />
+						</button>
+					)}
+					{inner}
+				</div>
 			</div>
 			{mine && <ReadReceipt read={!!m.read} />}
-			<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-1" : "pl-1"}`}>
-				{timeAgo(m.created_at)}
-			</span>
+			{showAvatar && (
+				<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10" : "pl-10"}`}>
+					{timeAgo(m.created_at)}
+				</span>
+			)}
 		</div>
 	);
 }

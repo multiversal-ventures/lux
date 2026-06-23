@@ -104,6 +104,8 @@ export function PartyHub({ caseId, className }: PartyHubProps) {
 					<PartyDetail
 						caseId={caseId}
 						party={selected}
+						officerName={overview.data?.officer_name ?? ""}
+						officerAvatar={overview.data?.officer_avatar ?? ""}
 						onRemoved={() => setSelectedId(null)}
 					/>
 				) : (

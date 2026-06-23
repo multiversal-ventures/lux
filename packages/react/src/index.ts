@@ -84,10 +84,16 @@ export {
 	usePortalSuggestions,
 	usePortalLinkStatus,
 	buildPortalUrl,
+	useOfficerSettings,
+	useSetOfficerAvatar,
 } from "./hooks/index.js";
-export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus } from "./hooks/index.js";
+export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus, OfficerProfile } from "./hooks/index.js";
 
 // UI components
+export { Avatar } from "./components/Avatar.js";
+export type { AvatarProps } from "./components/Avatar.js";
+export { WebcamCaptureModal } from "./components/WebcamCaptureModal.js";
+export type { WebcamCaptureModalProps } from "./components/WebcamCaptureModal.js";
 export { AuthedImage } from "./components/AuthedImage/index.js";
 export type { AuthedImageProps } from "./components/AuthedImage/index.js";
 export { BoundingBoxOverlay } from "./components/BoundingBoxOverlay/index.js";

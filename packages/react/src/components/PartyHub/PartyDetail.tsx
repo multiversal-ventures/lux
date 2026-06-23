@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eraser, FileText, Link2, RefreshCw, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import { timeAgo } from "../../timeAgo.js";
+import { Avatar } from "../Avatar.js";
+import { WebcamCaptureModal } from "../WebcamCaptureModal.js";
 import {
 	useDeleteMessage,
 	useDeleteParty,
@@ -14,6 +16,7 @@ import {
 	useSendRequest,
 	type PartyView,
 } from "../../hooks/usePartyHub.js";
+import { useSetOfficerAvatar } from "../../hooks/useOfficerSettings.js";
 import { usePortalSuggestions, type PortalRequestItem } from "../../hooks/useCreatePortalLink.js";
 
 type ThreadItem = PartyView["thread"][number];
@@ -24,14 +27,22 @@ type ThreadItem = PartyView["thread"][number];
 export function PartyDetail({
 	caseId,
 	party,
+	officerName,
+	officerAvatar,
 	onRemoved,
 }: {
 	caseId: string;
 	party: PartyView;
+	/** Firm's loan-officer name (from the case overview) — the operator's "You" avatar. */
+	officerName?: string;
+	/** Firm's loan-officer avatar data URL ("" = initials). Clickable to set via webcam. */
+	officerAvatar?: string;
 	onRemoved?: () => void;
 }) {
 	const [msg, setMsg] = useState("");
 	const [copied, setCopied] = useState(false);
+	const [webcamOpen, setWebcamOpen] = useState(false);
+	const setAvatar = useSetOfficerAvatar();
 	const [selected, setSelected] = useState<Set<number>>(new Set());
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const del = useDeleteParty(caseId);
@@ -219,7 +230,7 @@ export function PartyDetail({
 			</header>
 
 			{/* Conversation — the main area */}
-			<div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50">
+			<div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-slate-50">
 				{party.thread.length === 0 && !borrowerTyping ? (
 					<div className="max-w-md mx-auto mt-6 bg-white border border-slate-200 rounded-xl p-5 text-center space-y-3">
 						<p className="text-sm font-medium text-slate-800">Start the conversation</p>
@@ -239,15 +250,28 @@ export function PartyDetail({
 						{!portalUrl && <p className="text-xs text-amber-600">Link not ready — link this party to a case identity first.</p>}
 					</div>
 				) : (
-					party.thread.map((m) => (
-						<OpBubble
-							key={m.message_id}
-							m={m}
-							onDelete={() =>
-								deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
-							}
-						/>
-					))
+					party.thread.map((m, i) => {
+						// Run grouping: a run is consecutive messages from the same
+						// author. The avatar shows only on the LAST bubble of a run
+						// (a spacer holds the column otherwise) so back-to-back
+						// messages read as one speaker, alternating sides.
+						const next = party.thread[i + 1];
+						const endsRun = !next || next.author_kind !== m.author_kind;
+						return (
+							<OpBubble
+								key={m.message_id}
+								m={m}
+								showAvatar={endsRun}
+								officerName={officerName ?? ""}
+								officerAvatar={officerAvatar ?? ""}
+								borrowerName={party.display_name || roleLabel(party.role)}
+								onAvatarClick={() => setWebcamOpen(true)}
+								onDelete={() =>
+									deleteMessage.mutate({ partyId: party.party_id, messageId: m.message_id })
+								}
+							/>
+						);
+					})
 				)}
 				{borrowerTyping && (
 					<div className="flex justify-start">
@@ -348,20 +372,66 @@ export function PartyDetail({
 					)}
 				</div>
 			</div>
+
+			{/* Webcam capture for the loan-officer avatar. Opened by clicking the
+			    operator's own "You" avatar on a bubble; saving sets it firm-wide and
+			    the overview refetch repaints the avatar live. */}
+			<WebcamCaptureModal
+				open={webcamOpen}
+				currentPhoto={officerAvatar || null}
+				onSave={(dataUrl) => setAvatar.mutate(dataUrl)}
+				onClose={() => setWebcamOpen(false)}
+			/>
 		</div>
 	);
 }
 
-/** Operator-perspective chat bubble — "You" (operator) right, borrower left.
- * Every bubble shows a relative timestamp; non-upload bubbles get a hover delete
- * (the operator may remove any request/reply/operator message in the thread).
- * Upload bubbles are case events with no deletable row, so they get no delete. */
-function OpBubble({ m, onDelete }: { m: ThreadItem; onDelete: () => void }) {
+/** Operator-perspective staggered chat row — avatar + bubble, "You" (operator)
+ * right, borrower left. The avatar sits on the speaker's outer edge and is shown
+ * only on the LAST bubble of a consecutive run (a spacer holds the column
+ * otherwise). The operator's own ("You") avatar is clickable — it opens the
+ * webcam capture so the loan officer can set their photo. Non-upload bubbles get
+ * a hover delete; upload bubbles (synthesized from case events) are not deletable. */
+function OpBubble({
+	m,
+	showAvatar,
+	officerName,
+	officerAvatar,
+	borrowerName,
+	onAvatarClick,
+	onDelete,
+}: {
+	m: ThreadItem;
+	showAvatar: boolean;
+	officerName: string;
+	officerAvatar: string;
+	borrowerName: string;
+	onAvatarClick: () => void;
+	onDelete: () => void;
+}) {
 	const mine = m.author_kind === "operator";
 	const items = (m.items ?? []) as Array<{ title?: string }>;
 	const align = mine ? "items-end" : "items-start";
 	// Uploads have no deletable row (they are synthesized from case events).
 	const canDelete = m.kind !== "upload";
+
+	// Avatar column (28px): the face on the last bubble of a run, a spacer
+	// otherwise. The operator's own avatar is clickable → opens webcam capture.
+	const avatar = showAvatar ? (
+		mine ? (
+			<Avatar
+				size={28}
+				name={officerName || "You"}
+				photoUrl={officerAvatar || null}
+				onClick={onAvatarClick}
+				title="Set your photo"
+			/>
+		) : (
+			<Avatar size={28} name={borrowerName} title={borrowerName} />
+		)
+	) : (
+		<span className="shrink-0" style={{ width: 28 }} />
+	);
 
 	const inner =
 		m.kind === "upload" ? (
@@ -382,22 +452,27 @@ function OpBubble({ m, onDelete }: { m: ThreadItem; onDelete: () => void }) {
 
 	return (
 		<div className={`group flex flex-col ${align}`}>
-			<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
-				{canDelete && (
-					<button
-						type="button"
-						onClick={onDelete}
-						aria-label="Delete message"
-						className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
-					>
-						<Trash2 size={13} />
-					</button>
-				)}
-				{inner}
+			<div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
+				{avatar}
+				<div className={`flex items-center gap-1.5 ${mine ? "flex-row" : "flex-row-reverse"}`}>
+					{canDelete && (
+						<button
+							type="button"
+							onClick={onDelete}
+							aria-label="Delete message"
+							className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1"
+						>
+							<Trash2 size={13} />
+						</button>
+					)}
+					{inner}
+				</div>
 			</div>
-			<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-1" : "pl-1"}`}>
-				{timeAgo(m.created_at)}
-			</span>
+			{showAvatar && (
+				<span className={`text-[10px] text-slate-400 mt-0.5 ${mine ? "pr-10" : "pl-10"}`}>
+					{timeAgo(m.created_at)}
+				</span>
+			)}
 		</div>
 	);
 }

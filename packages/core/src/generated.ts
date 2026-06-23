@@ -4028,6 +4028,26 @@ export interface components {
              */
             role: string;
         };
+        /** PartyUploadedDocument */
+        PartyUploadedDocument: {
+            /**
+             * Doc Id
+             * @default
+             */
+            doc_id: string;
+            /** File Id */
+            file_id?: string | null;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /**
+             * Processing
+             * @default false
+             */
+            processing: boolean;
+        };
         /**
          * PartyProfile
          * @description Operator profile for a single party.
@@ -4084,6 +4104,11 @@ export interface components {
              * @default
              */
             role: string;
+            /**
+             * Uploaded Docs
+             * @default []
+             */
+            uploaded_docs: components["schemas"]["PartyUploadedDocument"][];
             /**
              * @default {
              *       "has_account": false,

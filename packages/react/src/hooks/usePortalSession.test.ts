@@ -81,12 +81,15 @@ describe("usePortalSession", () => {
 	it("submitIntent updates session on success", async () => {
 		const updatedSession = { ...SESSION_FIXTURE, case_state: "docs_submitted" };
 
-		vi.mocked(fetch)
-			.mockResolvedValueOnce({ ok: true, json: async () => SESSION_FIXTURE } as Response)
-			.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ session: updatedSession }),
-			} as Response);
+		// Route by URL — the hook also opens the SSE stream (/portal/stream) on
+		// mount, so ordered once-mocks would be consumed out from under the POST.
+		vi.mocked(fetch).mockImplementation((url) => {
+			const u = String(url);
+			if (u.includes("/stream")) return Promise.resolve({ ok: true } as Response);
+			if (u.includes("/intents"))
+				return Promise.resolve({ ok: true, json: async () => ({ session: updatedSession }) } as Response);
+			return Promise.resolve({ ok: true, json: async () => SESSION_FIXTURE } as Response);
+		});
 
 		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));
@@ -100,9 +103,12 @@ describe("usePortalSession", () => {
 	});
 
 	it("submitIntent sets server error on non-ok HTTP response", async () => {
-		vi.mocked(fetch)
-			.mockResolvedValueOnce({ ok: true, json: async () => SESSION_FIXTURE } as Response)
-			.mockResolvedValueOnce({ ok: false, status: 409 } as Response);
+		vi.mocked(fetch).mockImplementation((url) => {
+			const u = String(url);
+			if (u.includes("/stream")) return Promise.resolve({ ok: true } as Response);
+			if (u.includes("/intents")) return Promise.resolve({ ok: false, status: 409 } as Response);
+			return Promise.resolve({ ok: true, json: async () => SESSION_FIXTURE } as Response);
+		});
 
 		const { result } = renderHook(() => usePortalSession("abc123"));
 		await waitFor(() => expect(result.current.loading).toBe(false));

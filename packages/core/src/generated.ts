@@ -4192,6 +4192,11 @@ export interface components {
              */
             thread: components["schemas"]["ThreadMessage"][];
             /**
+             * Thread Has More
+             * @default false
+             */
+            thread_has_more: boolean;
+            /**
              * Verified
              * @default false
              */
@@ -4419,6 +4424,11 @@ export interface components {
              * @default []
              */
             thread: components["schemas"]["ThreadMessage"][];
+            /**
+             * Thread Has More
+             * @default false
+             */
+            thread_has_more: boolean;
             /**
              * @default {
              *       "accepted_types": [
@@ -5507,6 +5517,19 @@ export interface components {
             read: boolean;
             /** Status */
             status?: string | null;
+        };
+        /** ThreadPage */
+        ThreadPage: {
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+            /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
         };
         /**
          * TransactionRegion

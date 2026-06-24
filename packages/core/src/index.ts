@@ -24,6 +24,9 @@ import type { components } from "./generated.js";
 /** Portal session response as returned by GET /portal/session */
 export type PortalSession = components["schemas"]["PortalSessionResponse"];
 
+/** A paged slice of a party/portal thread */
+export type ThreadPage = components["schemas"]["ThreadPage"];
+
 /** A single checklist item in a portal session */
 export type ChecklistItem = components["schemas"]["ChecklistItem"];
 

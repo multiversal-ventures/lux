@@ -384,6 +384,21 @@ export class VeritasClient {
 		);
 	}
 
+	/** Page one party's composed thread (request/reply/upload bubbles). */
+	async getPartyMessages(
+		caseId: string,
+		partyId: string,
+		opts: { before?: string; limit?: number } = {},
+	): Promise<components["schemas"]["ThreadPage"]> {
+		const qs = new URLSearchParams();
+		if (opts.before) qs.set("before", opts.before);
+		if (opts.limit) qs.set("limit", String(opts.limit));
+		const suffix = qs.toString() ? `?${qs.toString()}` : "";
+		return this.requestJson<components["schemas"]["ThreadPage"]>(
+			`/api/cases/${caseId}/portal/parties/${partyId}/messages${suffix}`,
+		);
+	}
+
 	/** Resolved case identities not yet engaged as a portal party ("add party"). */
 	async getPortalCandidates(caseId: string): Promise<components["schemas"]["PartyCandidate"][]> {
 		return this.requestJson<components["schemas"]["PartyCandidate"][]>(
@@ -1259,6 +1274,38 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		}
 	}
 
+	async function fetchMessages(
+		sessionId: string,
+		token: string,
+		opts: { before?: string; limit?: number; verifyProof?: string | null } = {},
+	): Promise<
+		| { page: components["schemas"]["ThreadPage"]; error: null }
+		| { page: null; error: PortalClientError }
+	> {
+		try {
+			const qs = new URLSearchParams();
+			if (opts.before) qs.set("before", opts.before);
+			if (opts.limit) qs.set("limit", String(opts.limit));
+			const suffix = qs.toString() ? `?${qs.toString()}` : "";
+			const res = await fetch(`${base}/api/portal/session/${sessionId}/messages${suffix}`, {
+				headers: portalHeaders(token, opts.verifyProof),
+			});
+			if (!res.ok) {
+				return {
+					page: null,
+					error: {
+						code: res.status === 401 ? "expired" : "server",
+						message: `Failed to load messages (${res.status})`,
+						status: res.status,
+					},
+				};
+			}
+			return { page: (await res.json()) as components["schemas"]["ThreadPage"], error: null };
+		} catch {
+			return { page: null, error: { code: "network", message: "Failed to load messages" } };
+		}
+	}
+
 	/** Upload documents to the borrower's own case using portal-token auth.
 	 * The files endpoint accepts X-Portal-Token for the token's authorized case. */
 	async function uploadDocuments(
@@ -1381,6 +1428,7 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 
 	return {
 		fetchSession,
+		fetchMessages,
 		submitIntents,
 		uploadDocuments,
 		claimAccount,

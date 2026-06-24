@@ -25,7 +25,16 @@ export interface BorrowerPortalProps {
  * "link unavailable". No login; the token is the auth.
  */
 export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPortalProps) {
-	const { session, loading, error, submitIntent, uploadDocuments, operatorTyping, sendTyping } = usePortalSession(token);
+	const {
+		session,
+		loading,
+		error,
+		submitIntent,
+		uploadDocuments,
+		operatorTyping,
+		sendTyping,
+		loadMessagesBefore,
+	} = usePortalSession(token);
 	const fileRef = useRef<HTMLInputElement>(null);
 	const lastTyped = useRef(0);
 	// WhatsApp-style auto-scroll: scroll container + bottom sentinel. Stick to the
@@ -34,7 +43,13 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const didInitialScroll = useRef(false);
-	const threadLen = session?.thread.length ?? 0;
+	const [olderThread, setOlderThread] = useState<ThreadMessage[]>([]);
+	const [olderHasMore, setOlderHasMore] = useState(false);
+	const [loadingOlder, setLoadingOlder] = useState(false);
+	const displayedThread = mergeThread(olderThread, session?.thread ?? []);
+	const canLoadOlder =
+		olderHasMore || (olderThread.length === 0 && !!session?.thread_has_more);
+	const threadLen = displayedThread.length;
 	useEffect(() => {
 		const el = scrollRef.current;
 		const bottom = bottomRef.current;
@@ -67,6 +82,11 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	// sets it; the send button flips Send → Save.
 	const [editingId, setEditingId] = useState<string | null>(null);
 
+	useEffect(() => {
+		setOlderThread([]);
+		setOlderHasMore(false);
+	}, [session?.session_id]);
+
 	if (loading) {
 		return <div className={wrap(className)}><p className="text-slate-500">Loading…</p></div>;
 	}
@@ -93,11 +113,26 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 	const accountDone = !!session.has_account;
 	const signed = session.signed;
 	const step = !verified ? 1 : (!accountDone && !skippedAccount) ? 2 : !signed ? 3 : 4;
-	const openRequests = session.thread.filter((m) => m.kind === "request" && m.status === "open");
+	const openRequests = displayedThread.filter((m) => m.kind === "request" && m.status === "open");
 	// Show the friendly "officer will reply" line when the borrower spoke last
 	// (the most recent message is theirs) and the officer isn't mid-reply.
-	const lastMsg = session.thread[session.thread.length - 1];
+	const lastMsg = displayedThread[displayedThread.length - 1];
 	const waitingForReply = !!lastMsg && lastMsg.author_kind === "borrower" && !operatorTyping;
+
+	async function loadEarlierMessages() {
+		const first = displayedThread[0];
+		if (!first || loadingOlder) return;
+		setLoadingOlder(true);
+		try {
+			const page = await loadMessagesBefore(first.created_at);
+			if (page) {
+				setOlderThread((prev) => mergeThread(page.thread, prev));
+				setOlderHasMore(page.has_more);
+			}
+		} finally {
+			setLoadingOlder(false);
+		}
+	}
 
 	async function createAccount(email: string) {
 		await submitIntent([{ type: "set_email", params: { email } }]);
@@ -177,7 +212,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 			</header>
 
 			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 bg-slate-50">
-				{loading && session.thread.length === 0 ? (
+				{loading && displayedThread.length === 0 ? (
 					<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
 						<Loader2 size={22} className="animate-spin" />
 						<p className="text-sm">Loading conversation…</p>
@@ -189,14 +224,26 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 								{session.request_message}
 							</div>
 						)}
-						{session.thread.map((m, i) => {
+						{canLoadOlder && (
+							<div className="mb-3 flex justify-center">
+								<button
+									type="button"
+									onClick={loadEarlierMessages}
+									disabled={loadingOlder}
+									className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-60"
+								>
+									{loadingOlder ? "Loading earlier…" : "Load earlier messages"}
+								</button>
+							</div>
+						)}
+						{displayedThread.map((m, i) => {
 							// Run grouping: a "run" is consecutive messages from the same
 							// author. The "Your loan officer" label shows on the FIRST officer
 							// bubble of a run; the avatar shows on the LAST bubble of a run
 							// (a spacer keeps alignment on the others) — so a back-to-back
 							// reply reads as one person speaking, not a wall of avatars.
-							const prev = session.thread[i - 1];
-							const next = session.thread[i + 1];
+							const prev = displayedThread[i - 1];
+							const next = displayedThread[i + 1];
 							const startsRun = !prev || prev.author_kind !== m.author_kind;
 							const endsRun = !next || next.author_kind !== m.author_kind;
 							const isOfficer = m.author_kind !== "borrower";
@@ -226,7 +273,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 								</div>
 							);
 						})}
-						{session.thread.length === 0 && !operatorTyping && (
+						{displayedThread.length === 0 && !operatorTyping && (
 							<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
 						)}
 						{operatorTyping && <TypingBubble />}
@@ -462,6 +509,17 @@ function TypingBubble() {
 			</div>
 		</div>
 	);
+}
+
+function mergeThread(...chunks: ThreadMessage[][]): ThreadMessage[] {
+	const seen = new Set<string>();
+	const out: ThreadMessage[] = [];
+	for (const item of chunks.flat()) {
+		if (seen.has(item.message_id)) continue;
+		seen.add(item.message_id);
+		out.push(item);
+	}
+	return out.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
 function CodeStep({

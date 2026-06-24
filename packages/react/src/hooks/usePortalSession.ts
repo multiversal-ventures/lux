@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Intent, PortalClientError, PortalSession } from "@multiversal-ventures/lux-core";
+import type { Intent, PortalClientError, PortalSession, ThreadPage } from "@multiversal-ventures/lux-core";
 import { createPortalClient } from "@multiversal-ventures/lux-core";
 
 export interface UsePortalSessionReturn {
@@ -13,6 +13,8 @@ export interface UsePortalSessionReturn {
 	operatorTyping: boolean;
 	/** Signal that the borrower is typing (best-effort, debounce at call site). */
 	sendTyping: () => void;
+	/** Load older chat messages before the given visible message timestamp. */
+	loadMessagesBefore: (before: string) => Promise<ThreadPage | null>;
 }
 
 /**
@@ -151,5 +153,33 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 		[client, session, token, loadSession],
 	);
 
-	return { session, loading, error, submitIntent, uploadDocuments, operatorTyping, sendTyping };
+	const loadMessagesBefore = useCallback(
+		async (before: string) => {
+			if (!session || !token) {
+				setError({ code: "not_ready", message: "Session not ready" });
+				return null;
+			}
+			const result = await client.fetchMessages(session.session_id, token, {
+				before,
+				verifyProof: verifyProofRef.current,
+			});
+			if (result.error) {
+				setError(result.error);
+				return null;
+			}
+			return result.page;
+		},
+		[client, session, token],
+	);
+
+	return {
+		session,
+		loading,
+		error,
+		submitIntent,
+		uploadDocuments,
+		operatorTyping,
+		sendTyping,
+		loadMessagesBefore,
+	};
 }

@@ -12,6 +12,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
+import { getDefaultClient } from "@multiversal-ventures/lux-core";
 import { useEffect, useRef, useState } from "react";
 import { type PortalRequestItem, usePortalSuggestions } from "../../hooks/useCreatePortalLink.js";
 import { useSetOfficerAvatar } from "../../hooks/useOfficerSettings.js";
@@ -100,6 +101,9 @@ export function PartyDetail({
 	const [custom, setCustom] = useState<string[]>([]);
 	const [customInput, setCustomInput] = useState("");
 	const [addingOwn, setAddingOwn] = useState(false);
+	const [olderThread, setOlderThread] = useState<ThreadItem[]>([]);
+	const [olderHasMore, setOlderHasMore] = useState(false);
+	const [loadingOlder, setLoadingOlder] = useState(false);
 	const sugg: PortalRequestItem[] = override ?? suggestions.data ?? [];
 	const { borrowerTyping, sendTyping } = usePortalRealtime(caseId);
 	const markRead = useMarkThreadRead(caseId);
@@ -110,6 +114,10 @@ export function PartyDetail({
 	// read → the borrower's receipt flips to ✓✓. Fires on open (party switch) and
 	// whenever new borrower messages arrive (thread length grows). The endpoint is
 	// idempotent, so re-firing with nothing unread is a cheap no-op.
+	const displayedThread = mergeThread(olderThread, party.thread);
+	const canLoadOlder =
+		olderHasMore || (olderThread.length === 0 && !!party.thread_has_more);
+
 	const hasBorrowerMessages = party.thread.some((m) => m.author_kind === "borrower");
 	useEffect(() => {
 		if (hasBorrowerMessages) markRead.mutate(party.party_id);
@@ -127,7 +135,7 @@ export function PartyDetail({
 	// Auto-scroll to the newest message on first load and whenever the thread
 	// grows — but only if the operator is already near the bottom (within 120px),
 	// so we never yank them away from older history they're reading.
-	const threadLen = party.thread.length;
+	const threadLen = displayedThread.length;
 	useEffect(() => {
 		const el = scrollRef.current;
 		const bottom = bottomRef.current;
@@ -153,6 +161,8 @@ export function PartyDetail({
 		setRegenerated(false);
 		setEditingId(null);
 		setMsg("");
+		setOlderThread([]);
+		setOlderHasMore(false);
 	}, [party.party_id]);
 
 	function selectedItems(): PortalRequestItem[] {
@@ -191,7 +201,7 @@ export function PartyDetail({
 	// ~200 chars; uploads are generic ("[uploaded a document]") so no filename
 	// (PII) reaches the model.
 	function recentThread(): string {
-		const msgs = party.thread.filter((m) => !m.deleted).slice(-12);
+		const msgs = displayedThread.filter((m) => !m.deleted).slice(-12);
 		if (msgs.length === 0) return "";
 		const lines = msgs
 			.map((m) => {
@@ -259,6 +269,21 @@ export function PartyDetail({
 		editMessage.mutate({ partyId: party.party_id, messageId: editingId, body: msg.trim() });
 		setEditingId(null);
 		setMsg("");
+	}
+
+	async function loadEarlierMessages() {
+		const first = displayedThread[0];
+		if (!first || loadingOlder) return;
+		setLoadingOlder(true);
+		try {
+			const page = await getDefaultClient().getPartyMessages(caseId, party.party_id, {
+				before: first.created_at,
+			});
+			setOlderThread((prev) => mergeThread(page.thread, prev));
+			setOlderHasMore(page.has_more);
+		} finally {
+			setLoadingOlder(false);
+		}
 	}
 
 	const portalUrl = party.portal_token
@@ -341,7 +366,7 @@ export function PartyDetail({
 						{copied ? <Check size={16} /> : <Link2 size={16} />}
 					</button>
 				)}
-				{party.thread.length > 0 && (
+				{displayedThread.length > 0 && (
 					<button
 						type="button"
 						onClick={() => {
@@ -376,12 +401,12 @@ export function PartyDetail({
 			<>
 					{/* Conversation — the main area */}
 					<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-slate-50">
-						{loading && party.thread.length === 0 ? (
+						{loading && displayedThread.length === 0 ? (
 							<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
 								<Loader2 size={22} className="animate-spin" />
 								<p className="text-sm">Loading conversation…</p>
 							</div>
-						) : party.thread.length === 0 && !borrowerTyping ? (
+						) : displayedThread.length === 0 && !borrowerTyping ? (
 							<div className="max-w-md mx-auto mt-6 bg-white border border-slate-200 rounded-xl p-5 text-center space-y-3">
 								<p className="text-sm font-medium text-slate-800">Start the conversation</p>
 								<p className="text-xs text-slate-500">
@@ -420,13 +445,26 @@ export function PartyDetail({
 								)}
 							</div>
 						) : (
-							party.thread.map((m, i) => {
+							<>
+								{canLoadOlder && (
+									<div className="mb-3 flex justify-center">
+										<button
+											type="button"
+											onClick={loadEarlierMessages}
+											disabled={loadingOlder}
+											className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-60"
+										>
+											{loadingOlder ? "Loading earlier…" : "Load earlier messages"}
+										</button>
+									</div>
+								)}
+							{displayedThread.map((m, i) => {
 								// Run grouping: a run is consecutive messages from the same
 								// author. The avatar shows only on the LAST bubble of a run
 								// (a spacer holds the column otherwise) so back-to-back
 								// messages read as one speaker, alternating sides.
-								const prev = party.thread[i - 1];
-								const next = party.thread[i + 1];
+								const prev = displayedThread[i - 1];
+								const next = displayedThread[i + 1];
 								const startsRun = !prev || prev.author_kind !== m.author_kind;
 								const endsRun = !next || next.author_kind !== m.author_kind;
 								// WhatsApp-style date pill before the first message and at
@@ -455,7 +493,8 @@ export function PartyDetail({
 										/>
 									</div>
 								);
-							})
+							})}
+							</>
 						)}
 						{borrowerTyping && (
 							<div className="flex justify-start">
@@ -647,6 +686,17 @@ export function PartyDetail({
 			/>
 		</div>
 	);
+}
+
+function mergeThread(...chunks: ThreadItem[][]): ThreadItem[] {
+	const seen = new Set<string>();
+	const out: ThreadItem[] = [];
+	for (const item of chunks.flat()) {
+		if (seen.has(item.message_id)) continue;
+		seen.add(item.message_id);
+		out.push(item);
+	}
+	return out.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
 /** Operator-perspective staggered chat row — avatar + bubble, "You" (operator)

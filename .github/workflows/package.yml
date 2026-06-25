@@ -96,7 +96,7 @@ jobs:
           npm view "@multiversal-ventures/lux-core@$(node -p "require('./package.json').version")" \
             --registry https://npm.pkg.github.com > /dev/null 2>&1
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish @multiversal-ventures/lux-react to GitHub Packages
         working-directory: packages/react
@@ -105,7 +105,7 @@ jobs:
           npm view "@multiversal-ventures/lux-react@$(node -p "require('./package.json').version")" \
             --registry https://npm.pkg.github.com > /dev/null 2>&1
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

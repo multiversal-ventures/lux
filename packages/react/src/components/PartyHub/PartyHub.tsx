@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
 import { partyTypeLabel, roleLabel } from "../../labels.js";
 import { Avatar } from "../Avatar.js";
 import {
 	usePortalOverview,
 	usePortalCandidates,
+	useAddParty,
 	useDeleteParty,
 	usePartyProfile,
 	type PartyView,
+	type PartyCandidate,
 } from "../../hooks/usePartyHub.js";
 import { PartyDetail } from "./PartyDetail.js";
 import { PartyProfilePanel } from "./PartyProfilePanel.js";
@@ -55,6 +57,7 @@ export function PartyHub({ caseId, className, onOpenDocument, selectedPartyId, o
 	const overview = usePortalOverview(caseId);
 	const candidates = usePortalCandidates(caseId);
 	const del = useDeleteParty(caseId);
+	const addParty = useAddParty(caseId);
 
 	const [internalId, setInternalId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
@@ -80,6 +83,20 @@ export function PartyHub({ caseId, className, onOpenDocument, selectedPartyId, o
 	const parties = overview.data?.parties ?? [];
 	const filtered = useMemo(() => filterParties(parties, search, filter), [parties, search, filter]);
 	const selected = parties.find((p) => p.party_id === selectedId) ?? filtered[0] ?? null;
+
+	// Resolved case identities that haven't been engaged as a portal party yet.
+	// The endpoint only returns un-engaged identities, so no dedupe against
+	// `parties` is needed. Surface them directly in the list as one-click "add"
+	// rows — otherwise the operator sees an empty hub even though the borrower
+	// is already resolved on the case, and has to retype a name they can see
+	// nowhere. Hidden under the account/thread filters (candidates have neither).
+	const candidateRows = useMemo<PartyCandidate[]>(() => {
+		if (filter !== "all" && filter !== "no_account") return [];
+		const q = search.trim().toLowerCase();
+		return (candidates.data ?? []).filter(
+			(c) => !q || (`${c.display_name ?? ""} ${roleLabel(c.role)}`).toLowerCase().includes(q),
+		);
+	}, [candidates.data, search, filter]);
 
 	// Controlled mode: keep the URL in sync with the selected party. On first load
 	// (or a stale/missing partyId) a default party is selected but the URL has no
@@ -135,10 +152,35 @@ export function PartyHub({ caseId, className, onOpenDocument, selectedPartyId, o
 				</div>
 
 				<div className="flex-1 overflow-y-auto">
-					{filtered.length === 0 ? (
-						<p className="p-4 text-sm text-slate-400">No matching people.</p>
+					{filtered.length === 0 && candidateRows.length === 0 ? (
+						<p className="p-4 text-sm text-slate-400">
+							{parties.length === 0 && (candidates.data?.length ?? 0) === 0
+								? "No people on this case yet. Add one from the box below."
+								: "No matching people."}
+						</p>
 					) : (
-						filtered.map((p) => <PartyRow key={p.party_id} caseId={caseId} party={p} active={p.party_id === selected?.party_id} profileOpen={profileOpen} onToggleProfile={() => setProfileOpen((o) => !o)} onClick={() => selectParty(p.party_id)} onOpenDocument={onOpenDocument} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id && !controlled) setInternalId(null); } }); }} />)
+						<>
+							{filtered.map((p) => <PartyRow key={p.party_id} caseId={caseId} party={p} active={p.party_id === selected?.party_id} profileOpen={profileOpen} onToggleProfile={() => setProfileOpen((o) => !o)} onClick={() => selectParty(p.party_id)} onOpenDocument={onOpenDocument} onDelete={() => { if (window.confirm(`Remove ${p.display_name || "this person"} from the portal?`)) del.mutate(p.party_id, { onSuccess: () => { if (selectedId === p.party_id && !controlled) setInternalId(null); } }); }} />)}
+							{candidateRows.length > 0 && (
+								<>
+									{filtered.length > 0 && <div className="border-t border-slate-100" />}
+									<p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Resolved on this case</p>
+									{candidateRows.map((c) => (
+										<CandidateRow
+											key={c.identity_id}
+											candidate={c}
+											adding={addParty.isPending}
+											onAdd={() => addParty.mutate({
+												party_type: c.party_type ?? "individual",
+												role: c.role ?? null,
+												display_name: c.display_name ?? null,
+												linked_identity_id: c.identity_id ?? null,
+											})}
+										/>
+									))}
+								</>
+							)}
+						</>
 					)}
 				</div>
 
@@ -180,6 +222,30 @@ const FILTER_LABEL: Record<Filter, string> = {
 	verified: "Verified",
 	no_account: "No account",
 };
+
+/** A resolved-but-not-yet-invited case identity, shown in the list with a
+ * one-click Add that materialises it into a portal party. */
+function CandidateRow({ candidate, adding, onAdd }: { candidate: PartyCandidate; adding: boolean; onAdd: () => void }) {
+	const name = candidate.display_name || roleLabel(candidate.role);
+	return (
+		<div className="group flex items-center gap-2.5 px-4 py-3 hover:bg-slate-50">
+			<Avatar size={36} name={name} />
+			<div className="min-w-0 flex-1">
+				<span className="block text-sm font-medium text-slate-800 truncate">{name}</span>
+				<span className="block text-xs text-slate-400 truncate">{[roleLabel(candidate.role), "Not invited"].filter(Boolean).join(" · ")}</span>
+			</div>
+			<button
+				type="button"
+				onClick={onAdd}
+				disabled={adding}
+				title={`Add ${name} to the portal`}
+				className="shrink-0 inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-50"
+			>
+				<Plus size={13} /> Add
+			</button>
+		</div>
+	);
+}
 
 function filterParties(parties: PartyView[], search: string, filter: Filter): PartyView[] {
 	const q = search.trim().toLowerCase();

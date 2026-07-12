@@ -22,9 +22,23 @@ export const invalidationMap: Record<
 	string,
 	(caseId: string) => QueryKey[]
 > = {
-	"intake.file.processed": (caseId) => [["documents", caseId]],
+	// Documents live-update: hosts query docs under two different keys — lux's
+	// own useDocuments (["documents", caseId]) AND gunnr's useCaseDocuments
+	// (["case", caseId, "documents"], which feeds the "Documents Found" panel).
+	// Invalidate BOTH, and refetch as pages classify (classify.page.completed)
+	// so the count + doc list update live during "Classifying Pages" instead of
+	// only appearing on a manual refresh.
+	"intake.file.processed": (caseId) => [
+		["documents", caseId],
+		["case", caseId, "documents"],
+	],
+	"classify.page.completed": (caseId) => [
+		["documents", caseId],
+		["case", caseId, "documents"],
+	],
 	"extraction.completed": (caseId) => [
 		["documents", caseId],
+		["case", caseId, "documents"],
 		["extractions", caseId],
 	],
 	"banking.completed": (caseId) => [["banking", caseId]],

@@ -16,6 +16,11 @@ export interface BorrowerPortalProps {
 	/** Host hook to create a returnable account for the email (e.g. send a
 	 * Firebase magic link). Called alongside storing the email server-side. */
 	onCreateAccount?: (email: string) => Promise<void>;
+	/** Wrong-credential upload fallback: return the signed-in operator/tenant's
+	 * Bearer token so a portal-token upload that 401/403s (because this browser is
+	 * also signed in to the app) can retry with a credential that authorizes the
+	 * case. Omit for real borrowers. */
+	operatorTokenFallback?: () => Promise<string | null>;
 }
 
 /**
@@ -24,7 +29,7 @@ export interface BorrowerPortalProps {
  * the next. On submit the link is consumed (expires); the next visit shows
  * "link unavailable". No login; the token is the auth.
  */
-export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPortalProps) {
+export function BorrowerPortal({ token, className, onCreateAccount, operatorTokenFallback }: BorrowerPortalProps) {
 	const {
 		session,
 		loading,
@@ -34,7 +39,7 @@ export function BorrowerPortal({ token, className, onCreateAccount }: BorrowerPo
 		operatorTyping,
 		sendTyping,
 		loadMessagesBefore,
-	} = usePortalSession(token);
+	} = usePortalSession(token, { operatorTokenFallback });
 	const fileRef = useRef<HTMLInputElement>(null);
 	const lastTyped = useRef(0);
 	// WhatsApp-style auto-scroll: scroll container + bottom sentinel. Stick to the

@@ -118,6 +118,7 @@ export function CaseEventsProvider({
 	const seenIds = useRef<Set<number>>(new Set());
 	const listeners = useRef<Set<(event: CaseEvent) => void>>(new Set());
 	const abortRef = useRef<(() => void) | null>(null);
+	const raceGuardTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
 	// Keep refs in sync with props so ingestEvent (stored in a useRef) always
 	// reads current values rather than capturing stale closures from mount.
@@ -173,6 +174,22 @@ export function CaseEventsProvider({
 		// before the loader collapses.
 		applyScenarioRunSideEffects(event);
 
+		// Race guard: on a terminal qualify event the per-product
+		// ``scenario.results`` can be persisted a beat AFTER the event fires,
+		// so the immediate invalidation above may refetch scenarios whose
+		// ``results`` are still empty — the Summary tab (summary_result) shows
+		// income while the product tab shows "No results available" until a
+		// manual reload. Re-invalidate scenarios once, shortly after, to pick
+		// up the freshly-written results. (One extra fetch on terminal events
+		// only — not the historical-replay waterfall.)
+		if (event.event_type === "qualify.completed" || event.event_type === "qualify.failed") {
+			const cid = caseIdRef.current;
+			const t = setTimeout(() => {
+				queryClient.invalidateQueries({ queryKey: ["case", cid, "scenarios"] });
+			}, 1500);
+			raceGuardTimers.current.add(t);
+		}
+
 		// Server no longer emits stream.end — no client-side auto-stop needed.
 		// Stream lives until component unmounts (abort called in useEffect cleanup).
 		// autoStop prop is retained for backwards compatibility but is now a no-op
@@ -201,7 +218,21 @@ export function CaseEventsProvider({
 				setConnecting(false);
 				return;
 			}
-			for (const ev of res.data ?? []) ingestEvent.current(ev, false);
+			const backfilled = res.data ?? [];
+			for (const ev of backfilled) ingestEvent.current(ev, false);
+
+			// If the case already reached a terminal state before we mounted,
+			// the terminal event was replayed WITHOUT invalidation (state-only)
+			// above — so a query fetched on mount can hold stale/empty data
+			// (e.g. product-tab "No results available"). Do ONE broad
+			// invalidation so scenarios/results/audit refetch fresh. Single
+			// fetch, not the per-event replay waterfall the backfill avoids.
+			const sawTerminal = backfilled.some(
+				(ev) => ev.event_type === "qualify.completed" || ev.event_type === "qualify.failed",
+			);
+			if (sawTerminal && !cancelled) {
+				queryClient.invalidateQueries({ queryKey: ["case", caseId] });
+			}
 
 			// Open SSE stream.
 			const { abort } = client.streamEventsParsed(
@@ -226,6 +257,8 @@ export function CaseEventsProvider({
 			cancelled = true;
 			abortRef.current?.();
 			abortRef.current = null;
+			for (const t of raceGuardTimers.current) clearTimeout(t);
+			raceGuardTimers.current.clear();
 		};
 	}, [caseId, client]);
 

@@ -23,7 +23,17 @@ export interface UsePortalSessionReturn {
  * @param token - Portal token string (from URL, storage, etc.), or null to
  *   produce an immediate "no_token" error. The caller owns token sourcing.
  */
-export function usePortalSession(token: string | null): UsePortalSessionReturn {
+export function usePortalSession(
+	token: string | null,
+	options?: {
+		/** Wrong-credential fallback for uploads: when the page is open in a
+		 * browser also signed in as an operator/tenant, the portal token can be the
+		 * wrong credential and the upload 401/403s. Return the signed-in user's
+		 * Bearer token to retry with it (the backend still enforces case ownership).
+		 * Real borrowers pass nothing → no fallback. */
+		operatorTokenFallback?: () => Promise<string | null>;
+	},
+): UsePortalSessionReturn {
 	const [session, setSession] = useState<PortalSession | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<PortalClientError | null>(null);
@@ -141,7 +151,9 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 				return false;
 			}
 			setError(null);
-			const result = await client.uploadDocuments(session.case_id, token, files);
+			const result = await client.uploadDocuments(session.case_id, token, files, {
+				operatorTokenFallback: options?.operatorTokenFallback,
+			});
 			if (result.error) {
 				setError(result.error);
 				return false;
@@ -150,7 +162,7 @@ export function usePortalSession(token: string | null): UsePortalSessionReturn {
 			await loadSession(token);
 			return true;
 		},
-		[client, session, token, loadSession],
+		[client, session, token, loadSession, options?.operatorTokenFallback],
 	);
 
 	const loadMessagesBefore = useCallback(

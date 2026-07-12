@@ -1307,24 +1307,43 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 	}
 
 	/** Upload documents to the borrower's own case using portal-token auth.
-	 * The files endpoint accepts X-Portal-Token for the token's authorized case. */
+	 * The files endpoint accepts X-Portal-Token for the token's authorized case.
+	 *
+	 * ``opts.operatorTokenFallback`` handles the mixed-session case: when the page
+	 * is open in a browser that's ALSO signed in as an operator/tenant, the portal
+	 * token can be the wrong credential for this case (stale, or for a sibling
+	 * case) and the upload 401/403s. If a fallback yields the signed-in user's
+	 * Bearer token, we retry with it — the backend still enforces tenant ownership
+	 * (verify_case_access), so this only succeeds when that user legitimately owns
+	 * the case, and is a no-op for real borrowers (no operator session → no
+	 * fallback token). */
 	async function uploadDocuments(
 		caseId: string,
 		token: string,
 		files: File[],
+		opts?: { operatorTokenFallback?: () => Promise<string | null> },
 	): Promise<{ ok: boolean; error: PortalClientError | null }> {
-		try {
+		const doUpload = async (bearer: string) => {
 			const form = new FormData();
 			for (const f of files) form.append("files", f);
 			// The files endpoint authenticates via resolve_caller, whose portal
 			// path is the 32-char-hex Bearer token (entity caller, single-case
 			// scope, no tenant context). The X-Portal-Token header path needs a
 			// tenant credential first, so it 401s for the public borrower.
-			const res = await fetch(`${base}/api/cases/${caseId}/files`, {
+			return fetch(`${base}/api/cases/${caseId}/files`, {
 				method: "POST",
-				headers: { Authorization: `Bearer ${token}` },
+				headers: { Authorization: `Bearer ${bearer}` },
 				body: form,
 			});
+		};
+		try {
+			let res = await doUpload(token);
+			// Wrong-credential retry: the portal token was rejected but a signed-in
+			// operator/tenant session may authorize this case.
+			if ((res.status === 401 || res.status === 403) && opts?.operatorTokenFallback) {
+				const operatorToken = await opts.operatorTokenFallback().catch(() => null);
+				if (operatorToken) res = await doUpload(operatorToken);
+			}
 			if (!res.ok) {
 				return {
 					ok: false,

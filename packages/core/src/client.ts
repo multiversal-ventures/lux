@@ -1345,9 +1345,18 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 				if (operatorToken) res = await doUpload(operatorToken);
 			}
 			if (!res.ok) {
+				// Prefer the backend's descriptive detail (e.g. "Unsupported file
+				// type: …") over a bare status code.
+				let message = `Upload failed (${res.status})`;
+				try {
+					const body = await res.json();
+					if (typeof body?.detail === "string" && body.detail) message = body.detail;
+				} catch {
+					/* non-JSON body — keep the status fallback */
+				}
 				return {
 					ok: false,
-					error: { code: "server", message: `Upload failed (${res.status})`, status: res.status },
+					error: { code: "server", message, status: res.status },
 				};
 			}
 			return { ok: true, error: null };

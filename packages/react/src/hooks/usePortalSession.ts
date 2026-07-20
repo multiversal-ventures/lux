@@ -6,6 +6,11 @@ export interface UsePortalSessionReturn {
 	session: PortalSession | null;
 	loading: boolean;
 	error: PortalClientError | null;
+	/** Upload-only failure (bad file type, server rejection). Kept separate from
+	 * `error` so a failed upload never trips the session-level "link unavailable"
+	 * screen — the portal stays usable and the UI shows this inline instead. */
+	uploadError: PortalClientError | null;
+	clearUploadError: () => void;
 	submitIntent: (intents: Intent[]) => Promise<void>;
 	/** Upload documents to the case, then refresh the session. Returns success. */
 	uploadDocuments: (files: File[]) => Promise<boolean>;
@@ -37,6 +42,7 @@ export function usePortalSession(
 	const [session, setSession] = useState<PortalSession | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<PortalClientError | null>(null);
+	const [uploadError, setUploadError] = useState<PortalClientError | null>(null);
 	const [operatorTyping, setOperatorTyping] = useState(false);
 
 	const client = useMemo(() => createPortalClient(), []);
@@ -147,15 +153,15 @@ export function usePortalSession(
 	const uploadDocuments = useCallback(
 		async (files: File[]) => {
 			if (!session || !token) {
-				setError({ code: "not_ready", message: "Session not ready" });
+				setUploadError({ code: "not_ready", message: "Session not ready" });
 				return false;
 			}
-			setError(null);
+			setUploadError(null);
 			const result = await client.uploadDocuments(session.case_id, token, files, {
 				operatorTokenFallback: options?.operatorTokenFallback,
 			});
 			if (result.error) {
-				setError(result.error);
+				setUploadError(result.error);
 				return false;
 			}
 			// Refresh so the checklist reflects the new documents.
@@ -184,10 +190,14 @@ export function usePortalSession(
 		[client, session, token],
 	);
 
+	const clearUploadError = useCallback(() => setUploadError(null), []);
+
 	return {
 		session,
 		loading,
 		error,
+		uploadError,
+		clearUploadError,
 		submitIntent,
 		uploadDocuments,
 		operatorTyping,

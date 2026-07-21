@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Ban, Check, CheckCheck, FileText, Loader2, Lock, Mail, Paperclip, Pencil, Trash2 } from "lucide-react";
+import { Ban, Check, CheckCheck, FileText, Loader2, Lock, Mail, Paperclip, Pencil, Trash2, X } from "lucide-react";
 import { usePortalSession } from "../../hooks/usePortalSession.js";
 import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
@@ -8,6 +8,11 @@ import { Checklist } from "../Checklist/index.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
 type ThreadMessage = components["schemas"]["ThreadMessage"];
+
+// Must match the backend's ALLOWED_UPLOAD_EXTS (veritas files endpoint) — the
+// picker's `accept` attr and the pre-upload check both derive from this.
+const ACCEPTED_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".heic"];
+const ACCEPT_ATTR = ACCEPTED_EXTS.join(",");
 
 export interface BorrowerPortalProps {
 	/** Portal token from the URL (`?token=…`), or null for an immediate error. */
@@ -34,6 +39,8 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 		session,
 		loading,
 		error,
+		uploadError,
+		clearUploadError,
 		submitIntent,
 		uploadDocuments,
 		operatorTyping,
@@ -79,6 +86,9 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 	}
 	const [skippedAccount, setSkippedAccount] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	// Client-side file-type rejection (no round-trip) — shown in the same
+	// banner as server-side upload errors.
+	const [pickError, setPickError] = useState<string | null>(null);
 	const [finishing, setFinishing] = useState(false);
 	const [replyText, setReplyText] = useState("");
 	const [sendingReply, setSendingReply] = useState(false);
@@ -146,9 +156,23 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 
 	async function onFiles(files: FileList | null) {
 		if (!files || files.length === 0) return;
-		setUploading(true);
-		await uploadDocuments(Array.from(files));
-		setUploading(false);
+		setPickError(null);
+		clearUploadError();
+		const all = Array.from(files);
+		const accepted = all.filter((f) =>
+			ACCEPTED_EXTS.some((ext) => f.name.toLowerCase().endsWith(ext)),
+		);
+		const rejected = all.filter((f) => !accepted.includes(f));
+		if (rejected.length > 0) {
+			setPickError(
+				`${rejected.map((f) => f.name).join(", ")} — unsupported file type. Accepted: PDF, PNG, JPG, HEIC.`,
+			);
+		}
+		if (accepted.length > 0) {
+			setUploading(true);
+			await uploadDocuments(accepted);
+			setUploading(false);
+		}
 		if (fileRef.current) fileRef.current.value = "";
 	}
 
@@ -206,7 +230,7 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 	}
 
 	return (
-		<div className={`flex flex-col h-full mx-auto w-full max-w-2xl bg-white ${className ?? ""}`}>
+		<div className={`flex flex-col h-full mx-auto w-full max-w-2xl bg-white sm:border-x border-slate-200 shadow-sm ${className ?? ""}`}>
 			<header className="px-4 py-3 border-b border-slate-200">
 				<h1 className="font-semibold text-slate-900">
 					{session.requested_by || "Your documents"}
@@ -304,6 +328,19 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 						{finishing ? "Submitting…" : "I've sent everything — submit"}
 					</button>
 				)}
+				{(uploadError || pickError) && (
+					<div className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+						<p className="text-xs text-red-700">{pickError ?? uploadError?.message}</p>
+						<button
+							type="button"
+							aria-label="Dismiss upload error"
+							onClick={() => { setPickError(null); clearUploadError(); }}
+							className="shrink-0 text-red-400 hover:text-red-600"
+						>
+							<X size={14} />
+						</button>
+					</div>
+				)}
 				{editingId && (
 					<div className="flex items-center justify-between text-xs text-indigo-600 mb-1">
 						<span className="font-medium">Editing message</span>
@@ -313,7 +350,7 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 					</div>
 				)}
 				<div className="flex items-end gap-2">
-					<input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={(e) => onFiles(e.target.files)} />
+					<input ref={fileRef} type="file" multiple accept={ACCEPT_ATTR} className="hidden" onChange={(e) => onFiles(e.target.files)} />
 					{/* No attaching while editing an existing message — edit is text-only. */}
 					{!editingId && (
 						<button
@@ -321,7 +358,7 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 							onClick={() => fileRef.current?.click()}
 							disabled={uploading}
 							aria-label="Attach documents"
-							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-lg disabled:opacity-50"
+							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-50 flex items-center justify-center"
 						>
 							<Paperclip size={18} />
 						</button>

@@ -7,7 +7,14 @@ export type BillingCheckoutRequest = { product: string; returnUrl: string };
 export type BillingCheckoutResponse = { url: string };
 export type RecordUsageRequest = { eventKey: string; dedupId: string };
 // Mirrors veritas RecordResult: waived|billed|blocked|failed|errored|duplicate.
-export type RecordUsageResponse = { status: string; ledger_id?: number | null; stripe_event_id?: string | null };
+export type RecordUsageResponse = {
+	status: string;
+	ledger_id?: number | null;
+	// Not currently returned by veritas's /usage route (router.py only sends
+	// status/ledger_id) — typed here for when that's fixed, but always
+	// undefined today.
+	stripe_event_id?: string | null;
+};
 export type BillingStatusResponse = {
 	card_status: string;
 	stripe_customer_id?: string | null;

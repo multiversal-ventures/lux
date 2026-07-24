@@ -132,6 +132,11 @@ export type {
 	DirectUploadProgress,
 	DirectUploadOptions,
 	AddFilesProgress,
+	BillingCheckoutRequest,
+	BillingCheckoutResponse,
+	RecordUsageRequest,
+	RecordUsageResponse,
+	BillingStatusResponse,
 } from "./operator-client.js";
 
 export {

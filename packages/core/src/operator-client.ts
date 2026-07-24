@@ -54,9 +54,18 @@ export type {
 } from "./operator-types.js";
 import type { OperatorClientConfig, Result } from "./operator-types.js";
 
+export type {
+	BillingCheckoutRequest,
+	BillingCheckoutResponse,
+	RecordUsageRequest,
+	RecordUsageResponse,
+	BillingStatusResponse,
+} from "./operator-billing.js";
+
 import { createSpecMethods } from "./operator-spec.js";
 import { createCaseMethods } from "./operator-cases.js";
 import { createUploadMethods } from "./operator-uploads.js";
+import { createBillingMethods } from "./operator-billing.js";
 
 export function createOperatorClient(config: OperatorClientConfig) {
 	const base = config.baseUrl ?? "";
@@ -79,6 +88,7 @@ export function createOperatorClient(config: OperatorClientConfig) {
 		...createSpecMethods(base, authHeaders, request),
 		...createCaseMethods(base, authHeaders, request),
 		...createUploadMethods(base, authHeaders, request),
+		...createBillingMethods(base, authHeaders, request),
 	};
 }
 

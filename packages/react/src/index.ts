@@ -90,6 +90,8 @@ export {
 	buildPortalUrl,
 	useOfficerSettings,
 	useSetOfficerAvatar,
+	useBillingStatus,
+	useCreateBillingCheckout,
 } from "./hooks/index.js";
 export type { UseQualificationReturn, QualificationState, UsePortalSessionReturn, PipelinePhaseResult, PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus, OfficerProfile } from "./hooks/index.js";
 

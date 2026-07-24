@@ -24,3 +24,4 @@ export { useCreatePortalLink, usePortalSuggestions, usePortalLinkStatus, buildPo
 export type { PortalLink, PortalLinkRequest, PortalRequestItem, PortalLinkStatus } from "./useCreatePortalLink.js";
 export { useOfficerSettings, useSetOfficerAvatar } from "./useOfficerSettings.js";
 export type { OfficerProfile } from "./useOfficerSettings.js";
+export { useBillingStatus, useCreateBillingCheckout } from "./useBilling.js";

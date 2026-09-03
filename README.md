@@ -275,9 +275,10 @@ Hand-typed in Lux until the spec includes them (non-exhaustive):
   `prepareUpload`, `startCase`, `prepareAddFiles`, `startAddFiles` as
   low-level Result-returning methods.
 - **Portal token issuance** (`operator-cases.ts`): `createPortalToken(caseId, body)`
-  — calls `POST /api/cases/{id}/portal-tokens`. Body fields (`identity_id`,
-  `role`, `ttl_hours`) are all optional on the SDK side; the Veritas schema
-  applies defaults.
+  — calls `POST /api/cases/{id}/portal-token` (singular — that is the only route
+  Veritas exposes). Body fields (`role`, `ttl_hours`, `borrower_name`,
+  `borrower_email`) are all optional; the Veritas schema applies defaults and
+  resolves the borrower from the case.
 
 Consumer apps (e.g. Gunnr) that use Gunnr BFF routes (`/api/v1/case/...`)
 can call `getDefaultClient().requestJson(...)` with those paths directly.

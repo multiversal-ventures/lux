@@ -148,6 +148,145 @@ describe("VeritasClient", () => {
 			expect(result.narrative).toBe("All good.");
 		});
 	});
+
+	// The POS portal wire contract. The modal tests stub `onCreate`, so these are
+	// the only tests that exercise the path, the verb and the body keys the
+	// server actually parses (`product_id`, `label`, `active`).
+	describe("POS portals", () => {
+		const PORTAL_FIXTURE = {
+			pos_portal_id: "pp-1",
+			product_id: "dscr",
+			slug: "abc123def456",
+			label: "DSCR — my website",
+			url: "https://apply.example.com/apply/abc123def456",
+			active: true,
+			expires_at: null,
+			created_at: "2026-08-25T00:00:00Z",
+		};
+
+		it("createPosPortal POSTs the product and label to /api/pos-portals", async () => {
+			const client = makeTestClient();
+			mockFetch(PORTAL_FIXTURE);
+			const created = await client.createPosPortal({
+				product_id: "dscr",
+				label: "DSCR — my website",
+			});
+			expect(created.slug).toBe("abc123def456");
+			const [url, init] = vi.mocked(fetch).mock.calls[0];
+			expect(url).toBe("/api/pos-portals");
+			expect(init?.method).toBe("POST");
+			expect(JSON.parse(String(init?.body))).toEqual({
+				product_id: "dscr",
+				label: "DSCR — my website",
+			});
+		});
+
+		it("listPosPortals GETs /api/pos-portals", async () => {
+			const client = makeTestClient();
+			mockFetch([PORTAL_FIXTURE]);
+			const portals = await client.listPosPortals();
+			expect(portals).toHaveLength(1);
+			expect(portals[0].pos_portal_id).toBe("pp-1");
+			const [url, init] = vi.mocked(fetch).mock.calls[0];
+			expect(url).toBe("/api/pos-portals");
+			expect(init?.method ?? "GET").toBe("GET");
+		});
+
+		it("deactivatePosPortal PATCHes {active:false} to the portal's own path", async () => {
+			const client = makeTestClient();
+			mockFetch({ ...PORTAL_FIXTURE, active: false });
+			const updated = await client.deactivatePosPortal("pp-1");
+			expect(updated.active).toBe(false);
+			const [url, init] = vi.mocked(fetch).mock.calls[0];
+			expect(url).toBe("/api/pos-portals/pp-1");
+			expect(init?.method).toBe("PATCH");
+			expect(JSON.parse(String(init?.body))).toEqual({ active: false });
+		});
+
+		it("deactivatePosPortal escapes the id into the path", async () => {
+			const client = makeTestClient();
+			mockFetch({ ...PORTAL_FIXTURE, active: false });
+			// Server-minted UUIDs never need this, so it is a consistency guard
+			// with the sibling client (`operator-cases.ts` encodes every segment)
+			// rather than a live exposure — an id is never allowed to add a path.
+			await client.deactivatePosPortal("pp/../me");
+			expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/pos-portals/pp%2F..%2Fme");
+		});
+
+		it("listPosPortalCases GETs the link's own /cases sub-resource", async () => {
+			const client = makeTestClient();
+			mockFetch([
+				{
+					case_id: "case-1",
+					name: null,
+					state: "awaiting_verification",
+					created_at: "2026-08-26T00:00:00Z",
+					parties: [
+						{
+							party_id: "party-1",
+							email: "maria@example.com",
+							display_name: null,
+							role: "borrower",
+						},
+					],
+				},
+			]);
+			const cases = await client.listPosPortalCases("pp-1");
+			// The unverified shape the operator surface renders: an email and
+			// nothing else. If this ever comes back named, Task 5 changed it.
+			expect(cases[0].name).toBeNull();
+			expect(cases[0].parties?.[0].party_id).toBe("party-1");
+			const [url, init] = vi.mocked(fetch).mock.calls[0];
+			expect(url).toBe("/api/pos-portals/pp-1/cases");
+			expect(init?.method ?? "GET").toBe("GET");
+		});
+
+		it("resendAccessCode POSTs to the case+party path with NO body", async () => {
+			const client = makeTestClient();
+			mockFetch({ ok: true, detail: "Access code re-sent to the address on file." });
+			const res = await client.resendAccessCode("case-1", "party-1");
+			expect(res.ok).toBe(true);
+			const [url, init] = vi.mocked(fetch).mock.calls[0];
+			expect(url).toBe("/api/cases/case-1/portal/parties/party-1/resend-code");
+			expect(init?.method).toBe("POST");
+			// Load-bearing, not incidental: a body would let a caller name the
+			// recipient, which is the impersonation path the server's
+			// substitution rule exists to close. The server accepts none.
+			expect(init?.body).toBeUndefined();
+			// And the response carries neither the code nor the address.
+			expect(JSON.stringify(res)).not.toMatch(/\b\d{5}\b/);
+		});
+
+		it("resendAccessCode surfaces the refusal status, not just a message", async () => {
+			const client = makeTestClient();
+			vi.mocked(fetch).mockResolvedValue({
+				ok: false,
+				status: 409,
+				headers: { get: () => "application/json" } as unknown as Headers,
+				text: async () =>
+					JSON.stringify({ detail: "This link has expired. Send them a new link." }),
+			} as unknown as Response);
+			// Both halves matter: the caller branches on `status` and renders
+			// `message`, so losing either collapses four remedies into one.
+			await expect(client.resendAccessCode("case-1", "party-1")).rejects.toMatchObject({
+				status: 409,
+				message: "This link has expired. Send them a new link.",
+			});
+		});
+
+		it("raises the server's `detail` string as the error message", async () => {
+			const client = makeTestClient();
+			vi.mocked(fetch).mockResolvedValue({
+				ok: false,
+				status: 400,
+				headers: { get: () => "application/json" } as unknown as Headers,
+				text: async () => JSON.stringify({ detail: "Unknown or disabled product: x" }),
+			} as unknown as Response);
+			await expect(
+				client.createPosPortal({ product_id: "x", label: "y" }),
+			).rejects.toThrow("Unknown or disabled product: x");
+		});
+	});
 });
 
 describe("createOperatorClient", () => {

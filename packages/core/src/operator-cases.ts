@@ -13,9 +13,14 @@ import type {
 import type { components } from "./generated.js";
 import type { StructuredExtractionsResponse } from "./extractions.js";
 
-// Defined inline — not yet in the OpenAPI spec.
-type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
-type CreatePortalTokenResponse = { token: string; expires_at: string };
+// Straight off the generated spec, same as `index.ts` exports — the local
+// duplicate that used to sit here (to avoid importing the barrel from a module
+// the barrel re-exports) is unnecessary now that both sides read `generated.js`.
+// Every request field is optional AND nullable, TTL in HOURS, and there is no
+// `identity_id` input — the borrower is resolved from the case and the id comes
+// back on the response.
+type CreatePortalTokenRequest = components["schemas"]["PortalTokenRequest"];
+type CreatePortalTokenResponse = components["schemas"]["PortalTokenResponse"];
 type UpdateCaseRequest = { name?: string | null };
 
 /** Stream SSE case events from an authenticated URL, calling onEvent per parsed event. */
@@ -304,13 +309,18 @@ export function createCaseMethods(
 		return `${base}/api/cases/${caseId}/files/${fileId}/pages/${pageNumber}.png`;
 	}
 
-	/** Issue a portal token for a borrower on a case. Caller supplies identity_id. */
+	/** Issue a borrower portal token for a case.
+	 *
+	 * The path is SINGULAR — `POST /api/cases/{id}/portal-token` is the only
+	 * route veritas exposes (`api/cases.py`); the plural spelling this used to
+	 * send was a 404 on every call. The borrower is resolved from the case, so
+	 * the body only carries overrides (role, TTL in hours, borrower name/email). */
 	async function createPortalToken(
 		caseId: string,
 		body: Partial<CreatePortalTokenRequest>,
 	): Promise<Result<CreatePortalTokenResponse>> {
 		try {
-			const res = await fetch(`${base}/api/cases/${caseId}/portal-tokens`, {
+			const res = await fetch(`${base}/api/cases/${caseId}/portal-token`, {
 				method: "POST",
 				headers: authHeaders({ "Content-Type": "application/json" }),
 				body: JSON.stringify(body),

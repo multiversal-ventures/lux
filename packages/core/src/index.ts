@@ -21,9 +21,6 @@ export type { paths, components, operations } from "./generated.js";
 
 import type { components } from "./generated.js";
 
-/** Portal session response as returned by GET /portal/session */
-export type PortalSession = components["schemas"]["PortalSessionResponse"];
-
 /** A paged slice of a party/portal thread */
 export type ThreadPage = components["schemas"]["ThreadPage"];
 
@@ -36,11 +33,36 @@ export type ConsentState = components["schemas"]["ConsentState"];
 /** A typed intent to submit to Veritas */
 export type Intent = components["schemas"]["Intent"];
 
-/** Request body for POST /cases/{id}/portal-tokens — not yet in OpenAPI spec */
-export type CreatePortalTokenRequest = { identity_id: string; role?: string; ttl_seconds?: number };
+/** One create-time input the applicant still has to answer, as advertised on
+ * `PortalSessionResponse.pending_inputs`.
+ *
+ * Deliberately NOT the operator-facing `UserInputFieldResponse`: it carries no
+ * `required_at_create`, no `derive_options_from` and no `spec_name`, and its
+ * `required_when` is already RESOLVED — the server only advertises a field once
+ * that field's predicate holds, so a client never evaluates one. The two types
+ * are scoped differently on purpose; widen neither to match the other.
+ *
+ * Bounds arrive as `minimum` / `maximum`. Spec YAML authors them as `min` /
+ * `max`, but `policy/user_inputs_schema.py` normalises before serialising, so
+ * the short spellings never cross the wire. */
+export type PortalInputField = components["schemas"]["PortalInputField"];
 
-/** Response from POST /cases/{id}/portal-tokens — not yet in OpenAPI spec */
-export type CreatePortalTokenResponse = { token: string; expires_at: string };
+/** One row of the product's borrower-facing document ask list. Every string
+ * (`label`, `note`) is authored in `policy/specs/loan_products.yaml`; a client
+ * renders them verbatim and composes none of its own. An `any_of` group is ONE
+ * row — one upload satisfies it. */
+export type PortalDocumentRequirement = components["schemas"]["PortalDocumentRequirement"];
+
+/** Request body for POST /cases/{id}/portal-token.
+ *
+ * Every field is optional AND nullable server-side, TTL in HOURS. The borrower
+ * is resolved from the case, so there is no `identity_id` input.
+ * `borrower_email` becomes the party's address, which is what lets the borrower
+ * have their access code re-sent. */
+export type CreatePortalTokenRequest = components["schemas"]["PortalTokenRequest"];
+
+/** Response from POST /cases/{id}/portal-token. */
+export type CreatePortalTokenResponse = components["schemas"]["PortalTokenResponse"];
 
 export * from "./auth.js";
 
@@ -66,10 +88,19 @@ export type {
 	SampleInfo,
 	SampleListResponse,
 	CreateSampleCaseResponse,
+	PosPortal,
+	CreatePosPortalRequest,
+	PosPortalCase,
+	PosPortalCaseParty,
+	ResendCodeResult,
+	// Re-exported rather than re-declared here: `client.ts` owns the one
+	// definition. Two aliases would drift.
+	PortalSession,
 	PortalClientConfig,
 	PortalClientError,
 	FetchSessionResult,
 	SubmitIntentsResult,
+	IntentResult,
 } from "./client.js";
 
 export {

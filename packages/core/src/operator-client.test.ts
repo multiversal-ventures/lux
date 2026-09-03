@@ -327,13 +327,41 @@ describe("createOperatorClient — upload methods", () => {
 describe("createOperatorClient — portal token", () => {
 	const client = makeClient();
 
-	it("createPortalToken: POSTs to /api/cases/{id}/portal-tokens", async () => {
-		vi.mocked(fetch).mockResolvedValue(ok({ token: "pt-abc", portal_url: "https://portal.example.com?token=pt-abc", expires_at: "2026-06-01T00:00:00Z" }));
-		const res = await client.createPortalToken("c-1", { identity_id: "id-1" });
+	// SINGULAR. veritas exposes only `POST /api/cases/{id}/portal-token`
+	// (`api/cases.py`), so the plural this used to pin was a 404 on every call.
+	it("createPortalToken: POSTs to /api/cases/{id}/portal-token", async () => {
+		vi.mocked(fetch).mockResolvedValue(ok({ token: "pt-abc", identity_id: "id-1", portal_url: "https://portal.example.com?token=pt-abc", expires_at: "2026-06-01T00:00:00Z" }));
+		const res = await client.createPortalToken("c-1", { role: "borrower" });
 		expect(res.error).toBeNull();
 		expect(res.data?.token).toBe("pt-abc");
-		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/portal-tokens");
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/c-1/portal-token");
 		expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("POST");
+	});
+
+	// The body, not just the route. veritas' `PortalTokenRequest` takes
+	// `ttl_hours`; this used to send `ttl_seconds`, which the server ignored
+	// silently — every caller's TTL was dropped and nothing was red.
+	it("createPortalToken: sends the server's own field names, TTL in hours", async () => {
+		vi.mocked(fetch).mockResolvedValue(
+			ok({
+				token: "pt-abc",
+				identity_id: "id-1",
+				portal_url: "https://portal.example.com?token=pt-abc",
+				expires_at: "2026-06-01T00:00:00Z",
+			}),
+		);
+		await client.createPortalToken("c-1", {
+			role: "borrower",
+			ttl_hours: 72,
+			borrower_name: "Dana Rivers",
+			borrower_email: "dana@example.com",
+		});
+		expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({
+			role: "borrower",
+			ttl_hours: 72,
+			borrower_name: "Dana Rivers",
+			borrower_email: "dana@example.com",
+		});
 	});
 
 	it("createPortalToken: returns network error on fetch throw", async () => {

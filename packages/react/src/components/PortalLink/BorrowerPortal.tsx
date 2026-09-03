@@ -5,14 +5,43 @@ import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
 import { DateSeparator } from "../DateSeparator.js";
 import { Checklist } from "../Checklist/index.js";
+import { ApplicationStep } from "./ApplicationStep.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
 type ThreadMessage = components["schemas"]["ThreadMessage"];
+
+/** Where the applicant is in the flow. Named rather than numbered because the
+ * numbers move: the application stage is present only when the case is scoped
+ * to one product that still wants answers. */
+type Stage = "verify" | "application" | "account" | "consent" | "hub";
 
 // Must match the backend's ALLOWED_UPLOAD_EXTS (veritas files endpoint) — the
 // picker's `accept` attr and the pre-upload check both derive from this.
 const ACCEPTED_EXTS = [".pdf", ".png", ".jpg", ".jpeg", ".heic"];
 const ACCEPT_ATTR = ACCEPTED_EXTS.join(",");
+
+/** Subject line for a borrower-composed email to their case address. Static and
+ * deliberately free of case detail: the address alone routes the mail (the
+ * server resolves the case from the recipient), so nothing identifying needs to
+ * ride in a header the borrower's mail provider will log. */
+const INBOUND_SUBJECT = "Documents for my application";
+
+/**
+ * `mailto:` for the borrower's own case address, composed here rather than
+ * server-side (the server supplies the address and nothing else).
+ *
+ * The address is interpolated verbatim: percent-encoding it would turn `@` into
+ * `%40`, which not every mail client parses back into an addr-spec. It is a
+ * server-minted `{case_id}-{hmac}@{domain}`, never borrower input.
+ *
+ * No `cc`. Veritas has no per-case loan-officer address — `officer_name` is a
+ * display string and `Tenant.owner_email` is a billing contact — so any cc here
+ * would be invented, and publishing an operator's mailbox to every borrower is
+ * not a decision this component gets to make.
+ */
+function inboundMailtoHref(address: string): string {
+	return `mailto:${address}?subject=${encodeURIComponent(INBOUND_SUBJECT)}`;
+}
 
 export interface BorrowerPortalProps {
 	/** Portal token from the URL (`?token=…`), or null for an immediate error. */
@@ -97,6 +126,24 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 	// sets it; the send button flips Send → Save.
 	const [editingId, setEditingId] = useState<string | null>(null);
 
+	// Keeps the stepper from silently losing a chip mid-flow: once the form has
+	// been shown, answering it empties `pending_inputs`, and without this the
+	// remaining steps would renumber under the applicant.
+	//
+	// Declared HERE, above the `loading` / `!session` early returns, and not
+	// beside the `needsInputs` it reads. Below them it is a CONDITIONAL hook:
+	// the first render returns at `loading` having run 13 hooks, the next runs
+	// 14, and React aborts the portal with error #310 ("rendered more hooks
+	// than during the previous render"). The whole page is blank when that
+	// happens. It is recomputed from `session` rather than from `needsInputs`
+	// so it can live up here, where every hook in this component must.
+	const sawApplicationInput =
+		!!session?.verification?.verified && (session?.pending_inputs?.length ?? 0) > 0;
+	const [sawApplication, setSawApplication] = useState(false);
+	useEffect(() => {
+		if (sawApplicationInput) setSawApplication(true);
+	}, [sawApplicationInput]);
+
 	useEffect(() => {
 		setOlderThread([]);
 		setOlderHasMore(false);
@@ -127,7 +174,48 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 	// magic link and returns signed-in) — NOT when the email is merely submitted.
 	const accountDone = !!session.has_account;
 	const signed = session.signed;
-	const step = !verified ? 1 : (!accountDone && !skippedAccount) ? 2 : !signed ? 3 : 4;
+	// `?? []` rather than a bare read: both fields are non-optional in the
+	// current contract but absent entirely from any server predating them, and
+	// this component is shipped to hosts that pin their own veritas version.
+	const pendingInputs = session.pending_inputs ?? [];
+	const requiredDocuments = session.required_documents ?? [];
+	// The applicant's form is owed to them whenever the server still advertises
+	// an unanswered create-time input. `pending_inputs` is already gated on
+	// verification server-side (the pre-verify branch returns before it is
+	// computed), so this can only be non-empty past the code screen — but the
+	// `verified` conjunct is written out anyway, because "the gate is somewhere
+	// else" is how a gate goes missing.
+	const needsInputs = verified && pendingInputs.length > 0;
+	const stage: Stage = !verified
+		? "verify"
+		: needsInputs
+			? "application"
+			: !accountDone && !skippedAccount
+				? "account"
+				: !signed
+					? "consent"
+					: "hub";
+	// The flow is built, not hardcoded, because the application step exists only
+	// for a case scoped to one product that still wants answers.
+	const flow: { key: Stage; label: string }[] = [
+		{ key: "verify", label: "Verify" },
+		...(needsInputs || sawApplication
+			? [{ key: "application" as Stage, label: "Application" }]
+			: []),
+		{ key: "account", label: "Account" },
+		{ key: "consent", label: "Consent" },
+	];
+	const stepNumber = stage === "hub" ? flow.length + 1 : flow.findIndex((s) => s.key === stage) + 1;
+	// The single binding both mail affordances below gate on AND interpolate, so
+	// the gate and the rendered value cannot diverge. Trimmed because the gate is
+	// a truthiness test: a whitespace-only value passes it and composes
+	// `mailto:   ?subject=…`, the address-less compose window the empty-string
+	// case exists to prevent. No deployment can send one — veritas builds this
+	// field with `configured_inbound_address()`, which returns None unless
+	// `inbound_domain()` (an `os.environ.get(...).strip()`) is non-blank, and the
+	// local part is `{canonical uuid}-{hex tag}` — so this guards the property,
+	// it does not fix an observed bug.
+	const inboundAddress = session.inbound_email_address?.trim() || null;
 	const openRequests = displayedThread.filter((m) => m.kind === "request" && m.status === "open");
 	// Show the friendly "officer will reply" line when the borrower spoke last
 	// (the most recent message is theirs) and the officer isn't mid-reply.
@@ -205,25 +293,38 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 		setReplyText("");
 	}
 
-	// Steps 1–3 are gates (centered cards). Step 4 is the full-height chat.
-	if (step !== 4) {
+	// Every stage before "hub" is a gate (a centered card). "hub" is the
+	// full-height chat.
+	if (stage !== "hub") {
 		return (
 			<div className={wrap(className)}>
-				<Stepper current={step} />
-				{step === 1 ? (
+				<Stepper steps={flow.map((s) => s.label)} current={stepNumber} />
+				{stage === "verify" ? (
 					<CodeStep
+						n={stepNumber}
 						verified={session.verification.verified}
 						onVerify={(code) => submitIntent([{ type: "verify", params: { code } }])}
 					/>
-				) : step === 2 ? (
+				) : stage === "application" ? (
+					<ApplicationStep
+						fields={pendingInputs}
+						documents={requiredDocuments}
+						productLabel={session.product_display_label}
+						stepNumber={stepNumber}
+						onSubmitInputs={(inputs) => submitIntent([{ type: "set_inputs", params: { inputs } }])}
+					/>
+				) : stage === "account" ? (
 					<AccountStep
+						n={stepNumber}
 						onSubmit={createAccount}
 						onSkip={() => setSkippedAccount(true)}
+						onSubmitWithoutHook={() => setSkippedAccount(true)}
+						hasAccountHook={!!onCreateAccount}
 						returning={!!session.account_email}
 						initialEmail={session.account_email ?? ""}
 					/>
 				) : (
-					<SignStep name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
+					<SignStep n={stepNumber} name={name} onSign={(signature) => submitIntent([{ type: "sign", params: { signature } }])} />
 				)}
 			</div>
 		);
@@ -251,6 +352,21 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 						{session.request_message && (
 							<div className="mx-auto max-w-[90%] text-center text-xs text-slate-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
 								{session.request_message}
+							</div>
+						)}
+						{/* PROGRESS, not the ask list. `required_documents` is what the
+						    product declares and is rendered once, on the application step;
+						    this is the live state of the request actually outstanding
+						    against this party — which is the loan officer's own words the
+						    moment they hand-author one, at which point the server stops
+						    regenerating this from the product and the two legitimately
+						    diverge. Rendering both here would show contradictory asks.
+						    Gated on a non-empty list because `Checklist`'s empty state is a
+						    full "You're all caught up" card, and a card like that dropped
+						    into a chat transcript reads as the page having broken. */}
+						{(session.checklist ?? []).length > 0 && (
+							<div className="mb-4">
+								<Checklist items={session.checklist} />
 							</div>
 						)}
 						{canLoadOlder && (
@@ -303,7 +419,31 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 							);
 						})}
 						{displayedThread.length === 0 && !operatorTyping && (
-							<p className="text-center text-sm text-slate-400 mt-8">No messages yet.</p>
+							<div className="mt-8 text-center">
+								<p className="text-sm text-slate-400">No messages yet.</p>
+								{/* Gated on `inboundAddress`. `null` is the ordinary case — the
+								    receiving mail domain is unconfigured in every deployment
+								    today — and then this renders NOTHING: no disabled control, no
+								    placeholder, and no address composed on the client.
+								    "from the address your loan officer has for you" is not
+								    hedging: veritas' inbound webhook resolves the sender with
+								    `PortalPartyRepo.get_by_case_email` and drops mail from an
+								    address the case does not already know (router.py, the
+								    `party is None` branch — logged, no row written), so a
+								    borrower mailing from some other account gets silence. */}
+								{inboundAddress && (
+									<p className="mt-2 text-xs text-slate-400">
+										Or email them to{" "}
+										<a
+											href={inboundMailtoHref(inboundAddress)}
+											className="break-all font-medium text-indigo-600 underline underline-offset-2"
+										>
+											{inboundAddress}
+										</a>{" "}
+										from the address your loan officer has for you.
+									</p>
+								)}
+							</div>
 						)}
 						{operatorTyping && <TypingBubble />}
 						{waitingForReply && (
@@ -362,6 +502,29 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 						>
 							<Paperclip size={18} />
 						</button>
+					)}
+					{/* The second way to send a document: the borrower's own case address,
+					    beside the picker that is the first. Same `inboundAddress` gate as the
+					    empty state above — nothing at all when the server sends `null`.
+					    The static `aria-label` is not a secrecy measure, and nothing here
+					    keeps the address out of the DOM: it is this element's `href`, and in
+					    the empty state above it is the link's text AND its accessible name
+					    (`BorrowerPortal.test.tsx` pins `toHaveAccessibleName(ADDRESS)` there),
+					    so a screen reader on that screen reads it out — deliberately: the
+					    borrower has to be able to hear, read and copy it. What the label buys
+					    is only this: the accessible name of THIS icon-only control is the
+					    static string, so it announces its purpose rather than spelling the
+					    address out every time focus lands on it. The address itself is a
+					    capability of the same class as the access code — guard it where it
+					    could leave the page, not in the markup the borrower is meant to read. */}
+					{!editingId && inboundAddress && (
+						<a
+							href={inboundMailtoHref(inboundAddress)}
+							aria-label="Email your documents"
+							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"
+						>
+							<Mail size={18} />
+						</a>
 					)}
 					<textarea
 						value={replyText}
@@ -565,11 +728,13 @@ function mergeThread(...chunks: ThreadMessage[][]): ThreadMessage[] {
 }
 
 function CodeStep({
+	n,
 	verified,
 	onVerify,
 }: {
+	n: number;
 	verified: boolean;
-	onVerify: (code: string) => Promise<void>;
+	onVerify: (code: string) => Promise<unknown>;
 }) {
 	const [code, setCode] = useState("");
 	const [submitting, setSubmitting] = useState(false);
@@ -585,7 +750,7 @@ function CodeStep({
 
 	return (
 		<section>
-			<StepHeading n={1} title="Enter your access code" />
+			<StepHeading n={n} title="Enter your access code" />
 			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
 				<p className="text-sm text-slate-600">
 					Your loan officer sent you a code along with this link. Enter it below to securely
@@ -624,7 +789,7 @@ function CodeStep({
 }
 
 /** E-signature + consent step — type full name to consent and e-sign. */
-function SignStep({ name, onSign }: { name: string; onSign: (signature: string) => Promise<void> }) {
+function SignStep({ n, name, onSign }: { n: number; name: string; onSign: (signature: string) => Promise<unknown> }) {
 	const [signature, setSignature] = useState("");
 	const [agreed, setAgreed] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
@@ -637,7 +802,7 @@ function SignStep({ name, onSign }: { name: string; onSign: (signature: string) 
 
 	return (
 		<section>
-			<StepHeading n={2} title="Consent & e-signature" />
+			<StepHeading n={n} title="Consent & e-signature" />
 			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
 				<p className="text-sm text-slate-600">
 					To share documents electronically, please consent and sign below. You can revoke this
@@ -673,22 +838,47 @@ function SignStep({ name, onSign }: { name: string; onSign: (signature: string) 
 	);
 }
 
-/** Account step — capture an email so the borrower can return (magic link).
+/** Account step — capture an email so the borrower can return.
  *
- * Submitting the email only SENDS the sign-in link; it does not claim the
- * account. So on submit we switch to a local waiting state ("Check your email")
- * and do NOT advance — advancing is driven solely by `session.has_account`
- * flipping true once the borrower clicks the link and returns signed-in (which
- * runs claim-account), or by Skip. The portal silently refetches the session,
- * so the step moves on on its own once the account is claimed. */
+ * What happens next depends entirely on whether the host gave us
+ * `hasAccountHook`. The email is ALWAYS stored server-side via `onSubmit`
+ * (the `set_email` intent), regardless — but only a host that also supplies
+ * `onCreateAccount` (e.g. gunnr, with a Firebase-backed signed-in user) can
+ * actually mail a sign-in link. POS supplies no such hook, because a POS
+ * applicant is a stranger with no session — inventing a credential for them
+ * would be a lie.
+ *
+ * - `hasAccountHook: true` — submitting only SENDS the sign-in link; it does
+ *   not claim the account. So on submit we switch to a local waiting state
+ *   ("Check your email") and do NOT advance — advancing is driven solely by
+ *   `session.has_account` flipping true once the borrower clicks the link and
+ *   returns signed-in (which runs claim-account), or by Skip. The portal
+ *   silently refetches the session, so the step moves on on its own once the
+ *   account is claimed.
+ * - `hasAccountHook: false` — there is no link to wait for. The email is
+ *   already stored the moment `onSubmit` resolves, so the step completes
+ *   immediately (`onSubmitWithoutHook`) rather than parking on a wait that can
+ *   never end. No "check your inbox" claim, spam hint, or Resend control is
+ *   ever shown on this path — nothing was sent. */
 function AccountStep({
+	n,
 	onSubmit,
 	onSkip,
+	onSubmitWithoutHook,
+	hasAccountHook,
 	returning = false,
 	initialEmail = "",
 }: {
+	n: number;
 	onSubmit: (email: string) => Promise<void>;
 	onSkip: () => void;
+	/** Called once `onSubmit` resolves when there is no account-creation hook —
+	 * there is nothing left to wait for, so this advances the step. */
+	onSubmitWithoutHook: () => void;
+	/** Whether the host supplied `onCreateAccount`. Only then can a sign-in
+	 * link actually be sent — everything about the sent-state UI is gated on
+	 * this so the copy never claims an email went out that didn't. */
+	hasAccountHook: boolean;
 	/** They've been here before (an email is already on file) — sign-in framing. */
 	returning?: boolean;
 	initialEmail?: string;
@@ -698,7 +888,13 @@ function AccountStep({
 	const [sent, setSent] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const valid = email.includes("@") && email.includes(".");
-	const title = returning ? "Use your email to continue" : "Create your account";
+	const title = !hasAccountHook
+		? returning
+			? "Your email"
+			: "Add your email"
+		: returning
+			? "Use your email to continue"
+			: "Create your account";
 
 	async function submit() {
 		if (!valid) return;
@@ -706,7 +902,13 @@ function AccountStep({
 		setSubmitting(true);
 		try {
 			await onSubmit(email.trim());
-			setSent(true);
+			if (hasAccountHook) {
+				setSent(true);
+			} else {
+				// Nothing to wait for: the email is already stored. Advance rather
+				// than park on a "check your inbox" state that would never resolve.
+				onSubmitWithoutHook();
+			}
 		} catch (e) {
 			// Surface the real reason (Firebase rate-limit / quota / domain) instead
 			// of leaving the button stuck on "Sending…".
@@ -719,7 +921,7 @@ function AccountStep({
 	if (sent) {
 		return (
 			<section>
-				<StepHeading n={2} title={title} />
+				<StepHeading n={n} title={title} />
 				<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 text-center">
 					<div className="mx-auto h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center">
 						<Mail size={22} className="text-indigo-600" />
@@ -752,7 +954,7 @@ function AccountStep({
 					<button
 						type="button"
 						onClick={onSkip}
-						className="block w-full text-center text-xs text-slate-400 hover:text-slate-600"
+						className="w-full rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium py-2.5"
 					>
 						Skip for now — you can create an account later
 					</button>
@@ -763,12 +965,14 @@ function AccountStep({
 
 	return (
 		<section>
-			<StepHeading n={2} title={title} />
+			<StepHeading n={n} title={title} />
 			<div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
 				<p className="text-sm text-slate-600">
-					{returning
-						? "Use your email to continue your application — we'll send you a secure sign-in link."
-						: "Add your email so you can come back to your application anytime — we'll send you a secure sign-in link."}
+					{hasAccountHook
+						? returning
+							? "Use your email to continue your application — we'll send you a secure sign-in link."
+							: "Add your email so you can come back to your application anytime — we'll send you a secure sign-in link."
+						: "We'll remember your email so you can pick up where you left off."}
 				</p>
 				<input
 					type="email"
@@ -791,7 +995,7 @@ function AccountStep({
 				<button
 					type="button"
 					onClick={onSkip}
-					className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
+					className="w-full rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium py-2.5"
 				>
 					Skip for now — you can create an account later
 				</button>
@@ -800,12 +1004,12 @@ function AccountStep({
 	);
 }
 
-const STEPS = ["Verify", "Account", "Consent"];
-
-function Stepper({ current }: { current: number }) {
+/** Labels come from the caller: the flow is assembled per session, so this
+ * cannot own a fixed list. */
+function Stepper({ steps, current }: { steps: string[]; current: number }) {
 	return (
 		<ol className="flex items-center gap-2 mb-6">
-			{STEPS.map((label, i) => {
+			{steps.map((label, i) => {
 				const n = i + 1;
 				const state = n < current ? "done" : n === current ? "active" : "todo";
 				return (
@@ -824,7 +1028,7 @@ function Stepper({ current }: { current: number }) {
 						<span className={`text-xs ${state === "active" ? "text-slate-900 font-medium" : "text-slate-400"}`}>
 							{label}
 						</span>
-						{n < STEPS.length && <span className="flex-1 h-px bg-slate-200" />}
+						{n < steps.length && <span className="flex-1 h-px bg-slate-200" />}
 					</li>
 				);
 			})}

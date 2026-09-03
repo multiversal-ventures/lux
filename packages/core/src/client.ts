@@ -118,6 +118,46 @@ export interface CreateSampleCaseResponse {
 	sample_id: string;
 }
 
+/**
+ * A published, product-scoped borrower intake link (`GET/POST /api/pos-portals`).
+ *
+ * Wire shape, unmapped: this client passes the server's field names through
+ * exactly as `MeResponse` and `VeritasCaseFile` do. `url` is whatever the
+ * server composed — absolute when the deployment sets a public base URL,
+ * site-relative (`/apply/<slug>`) when it does not, so never assume an origin.
+ *
+ * `expires_at` and `created_at` are optional AND nullable on the server, not
+ * merely nullable: read them with `?? null`, never assume the key is present.
+ */
+export type PosPortal = components["schemas"]["PosPortalResponse"];
+
+/** Body for `POST /api/pos-portals`. The slug is minted server-side. */
+export type CreatePosPortalRequest = components["schemas"]["CreatePosPortalRequest"];
+
+/**
+ * One application started from a published link
+ * (`GET /api/pos-portals/{id}/cases`).
+ *
+ * `name` is null and `parties[].display_name` is null for an applicant who has
+ * only typed an email into a public form — which is every borrower who has not
+ * yet entered their access code. The email is therefore the row's identity;
+ * there is nothing else to render.
+ *
+ * `state` is the raw case state (`awaiting_verification`, `awaiting_documents`,
+ * …), passed through unmapped. These rows are deliberately NOT in the operator
+ * queue (`GET /api/cases` hides `awaiting_verification`), which is the whole
+ * reason this sub-resource exists.
+ */
+export type PosPortalCase = components["schemas"]["PosPortalCaseResponse"];
+
+/** One person on a POS application. Carries the `party_id`
+ * {@link VeritasClient.resendAccessCode} is addressed by. Never a code. */
+export type PosPortalCaseParty = components["schemas"]["PosPortalPartyResponse"];
+
+/** `{ok, detail}` from a successful resend. Carries neither the access code nor
+ * the address — see the route's docstring. */
+export type ResendCodeResult = components["schemas"]["ResendCodeResponse"];
+
 export type ClientHooks = {
 	onApiError?: (info: {
 		error_type: string;
@@ -538,6 +578,71 @@ export class VeritasClient {
 			method: "PUT",
 			body: JSON.stringify({ avatar }),
 		});
+	}
+
+	// -- POS portals (published borrower intake links) --------------------------
+
+	/** Publish a reusable, product-scoped intake link for this tenant.
+	 *
+	 * The slug is minted server-side — it is not a client input. `product_id` is
+	 * validated against the products this tenant has enabled; an unknown one
+	 * comes back as a 400 whose `detail` string becomes the `APIError` message. */
+	async createPosPortal(body: CreatePosPortalRequest): Promise<PosPortal> {
+		return this.requestJson<PosPortal>("/api/pos-portals", {
+			method: "POST",
+			body: JSON.stringify(body),
+		});
+	}
+
+	/** This tenant's intake links, newest first. Deactivated ones are included. */
+	async listPosPortals(): Promise<PosPortal[]> {
+		return this.requestJson<PosPortal[]>("/api/pos-portals");
+	}
+
+	/** Soft-disable a link: the row survives, so a bookmarked `/apply/<slug>`
+	 * fails softly and the cases the link already created keep their provenance.
+	 * The route is a general `PATCH {active}` and re-enabling works too; only the
+	 * disable direction is exposed here, because that is all any caller needs. */
+	async deactivatePosPortal(posPortalId: string): Promise<PosPortal> {
+		return this.requestJson<PosPortal>(`/api/pos-portals/${encodeURIComponent(posPortalId)}`, {
+			method: "PATCH",
+			body: JSON.stringify({ active: false }),
+		});
+	}
+
+	/** The applications one published link produced, newest first.
+	 *
+	 * The only way a client can reach a POS case: they are born
+	 * `awaiting_verification`, which the operator queue (`listTenantCases`)
+	 * excludes, so this is where the `case_id`/`party_id` pair that
+	 * {@link resendAccessCode} needs comes from. Another tenant's portal id is a
+	 * 404, not a 403 — ids must not be probeable. */
+	async listPosPortalCases(posPortalId: string): Promise<PosPortalCase[]> {
+		return this.requestJson<PosPortalCase[]>(
+			`/api/pos-portals/${encodeURIComponent(posPortalId)}/cases`,
+		);
+	}
+
+	/** Re-send a borrower's EXISTING access code to the address on file.
+	 *
+	 * **Resend, never reveal, never redirect.** There is deliberately no request
+	 * body — the destination is `portal_parties.email` and nothing a caller can
+	 * name — and the response carries neither the code nor the address. Do not
+	 * add a body here; a caller-named recipient is the impersonation path the
+	 * server's `_recipient_was_substituted` rule exists to close.
+	 *
+	 * Refusals are distinct on purpose and each has its own remedy, which the
+	 * server writes: 404 the case was reaped, 409 the link is missing/expired/
+	 * consumed/locked-out or the address was substituted, 429 the borrower's
+	 * inbox is over its bound, 502 delivery failed. `requestJson` lifts the
+	 * server's `detail` into `APIError.message`, so a caller should render THAT
+	 * sentence and branch only on `APIError.status` — restating the wording
+	 * client-side is a second copy that drifts. */
+	async resendAccessCode(caseId: string, partyId: string): Promise<ResendCodeResult> {
+		return this.requestJson<ResendCodeResult>(
+			`/api/cases/${encodeURIComponent(caseId)}/portal/parties/${encodeURIComponent(partyId)}/resend-code`,
+			{ method: "POST" },
+		);
 	}
 
 	async getCase(caseId: string): Promise<VeritasCaseDetail> {
@@ -1158,8 +1263,33 @@ export function createVeritasClient(cfg: VeritasClientConfig): VeritasClient {
 // (X-Portal-Token header, /portal/session + /portal/session/:id/intents).
 // ─────────────────────────────────────────────────────────────────────────────
 
-type PortalSession = components["schemas"]["PortalSessionResponse"];
+/**
+ * Portal session response — `GET /api/portal/session`, and embedded as
+ * `.session` in the intents response.
+ *
+ * A bare lookup: the spec refresh landed `inbound_email_address` and
+ * `pending_inputs`, so the hand-spliced intersection this used to carry is gone.
+ *
+ * `inbound_email_address` is optional AND nullable, deliberately: absent on any
+ * server older than veritas `64284d99`, and `null` wherever the receiving mail
+ * domain is unconfigured — which is every deployment today, so `null` is the
+ * ordinary case, not an error. Never construct a fallback address from it and
+ * never cache one: rotating `VERITAS_SECRET` invalidates every address already
+ * minted.
+ */
+export type PortalSession = components["schemas"]["PortalSessionResponse"];
 type Intent = components["schemas"]["Intent"];
+
+/**
+ * Per-intent outcome from `POST /portal/session/:id/intents`.
+ *
+ * The endpoint answers **200 with `status: "error"`** for a rejected intent —
+ * a validation refusal is a renderable answer, not a transport failure — so a
+ * caller that only inspects `res.ok` sees a success and silently drops the
+ * reason. `detail` is the server's own message (several are joined with
+ * `"; "`), each line prefixed with the input name it concerns.
+ */
+export type IntentResult = components["schemas"]["IntentResult"];
 
 /** HTTP header name used to authenticate portal API requests. */
 const PORTAL_AUTH_HEADER = "X-Portal-Token" as const;
@@ -1192,10 +1322,19 @@ export type FetchSessionResult =
 	| { session: PortalSession; error: null }
 	| { session: null; error: PortalClientError };
 
-/** Discriminated union: exactly one of session or error is set. */
+/**
+ * Discriminated union: exactly one of session or error is set.
+ *
+ * `results` carries the per-intent outcomes. It is NOT redundant with `error`:
+ * a refused intent comes back 200 (`error: null`) with `results[i].status ===
+ * "error"`, and on a refusal the server leaves the case untouched — so the
+ * session is byte-identical to the one already held and `results` is the only
+ * evidence anything went wrong. Always an array; `[]` on transport failure and
+ * against a server that omits the key.
+ */
 export type SubmitIntentsResult =
-	| { session: PortalSession; error: null }
-	| { session: null; error: PortalClientError };
+	| { session: PortalSession; results: IntentResult[]; error: null }
+	| { session: null; results: IntentResult[]; error: PortalClientError };
 
 /**
  * Minimal portal session client.
@@ -1260,6 +1399,7 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 			if (!res.ok) {
 				return {
 					session: null,
+					results: [],
 					error: {
 						code: "server",
 						message: `Failed to submit (${res.status})`,
@@ -1267,10 +1407,10 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 					},
 				};
 			}
-			const data: { session: PortalSession } = await res.json();
-			return { session: data.session, error: null };
+			const data: { session: PortalSession; results?: IntentResult[] } = await res.json();
+			return { session: data.session, results: data.results ?? [], error: null };
 		} catch {
-			return { session: null, error: { code: "network", message: "Failed to submit" } };
+			return { session: null, results: [], error: { code: "network", message: "Failed to submit" } };
 		}
 	}
 

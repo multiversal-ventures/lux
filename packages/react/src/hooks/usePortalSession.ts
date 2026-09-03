@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Intent, PortalClientError, PortalSession, ThreadPage } from "@multiversal-ventures/lux-core";
+import type { Intent, IntentResult, PortalClientError, PortalSession, ThreadPage } from "@multiversal-ventures/lux-core";
 import { createPortalClient } from "@multiversal-ventures/lux-core";
 
 export interface UsePortalSessionReturn {
@@ -11,7 +11,13 @@ export interface UsePortalSessionReturn {
 	 * screen — the portal stays usable and the UI shows this inline instead. */
 	uploadError: PortalClientError | null;
 	clearUploadError: () => void;
-	submitIntent: (intents: Intent[]) => Promise<void>;
+	/** Submit intents and return the server's PER-INTENT outcomes.
+	 *
+	 * A refused intent is a 200 with `status: "error"` — `error` above stays
+	 * null and the session comes back unchanged — so these results are the only
+	 * evidence of a refusal. `[]` on transport failure or when the session
+	 * isn't ready. Callers that only care about the session may ignore it. */
+	submitIntent: (intents: Intent[]) => Promise<IntentResult[]>;
 	/** Upload documents to the case, then refresh the session. Returns success. */
 	uploadDocuments: (files: File[]) => Promise<boolean>;
 	/** True while the loan officer is typing (live). */
@@ -126,10 +132,10 @@ export function usePortalSession(
 	}, [token, loadSession]);
 
 	const submitIntent = useCallback(
-		async (intents: Intent[]) => {
+		async (intents: Intent[]): Promise<IntentResult[]> => {
 			if (!session || !token) {
 				setError({ code: "not_ready", message: "Session not ready" });
-				return;
+				return [];
 			}
 			setError(null);
 			const result = await client.submitIntents(
@@ -146,6 +152,10 @@ export function usePortalSession(
 				absorbProof(result.session);
 				setSession(result.session);
 			}
+			// Returned even on the error branch (as `[]`) so callers have one shape
+			// to read. A refusal arrives on the SUCCESS branch — 200, session
+			// unchanged — which is exactly why this cannot be inferred from `error`.
+			return result.results;
 		},
 		[client, session, token, absorbProof],
 	);

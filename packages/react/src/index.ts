@@ -130,6 +130,8 @@ export { BorrowerPortalLink } from "./components/PortalLink/index.js";
 export type { BorrowerPortalLinkProps } from "./components/PortalLink/index.js";
 export { BorrowerPortal } from "./components/PortalLink/index.js";
 export type { BorrowerPortalProps } from "./components/PortalLink/index.js";
+export { ApplicationStep } from "./components/PortalLink/index.js";
+export type { ApplicationStepProps } from "./components/PortalLink/index.js";
 
 // Scenario compound component system
 export {
@@ -463,4 +465,25 @@ export type {
   AddPartyBody,
   MyCaseLink,
 } from "./hooks/usePartyHub.js";
+// POS portals — the loan officer's published borrower intake links
+export {
+  NewBorrowerExperienceModal,
+  usePosPortals,
+  posPortalsQueryKey,
+  BorrowerLinksModal,
+  LINK_COPIED_RESET_MS,
+  usePosPortalCases,
+  posPortalCasesQueryKey,
+  resendOutcomeFromError,
+} from "./components/PosPortals/index.js";
+export type {
+  NewBorrowerExperienceModalProps,
+  PosProductOption,
+  UsePosPortalsReturn,
+  CreatePosPortalInput,
+  BorrowerLinksModalProps,
+  UsePosPortalCasesReturn,
+  ResendOutcome,
+} from "./components/PosPortals/index.js";
+
 export { roleLabel, partyTypeLabel, statusLabel, eventLabel } from "./labels.js";

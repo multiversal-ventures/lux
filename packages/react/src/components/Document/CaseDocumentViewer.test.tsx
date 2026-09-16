@@ -61,11 +61,13 @@ describe("CaseDocumentViewer table sources", () => {
 		);
 
 		expect(boxes).toHaveLength(2);
+		expect(boxes.map((box) => box.style.top)).toEqual(["20%", "24%"]);
 		expect(getByText("Extractions (1)")).toBeTruthy();
 		expect(boxes.every((box) => !box.classList.contains("active"))).toBe(true);
 
 		fireEvent.click(boxes[0]);
 
+		expect(onSelectionChange).toHaveBeenCalledTimes(1);
 		expect(onSelectionChange).toHaveBeenLastCalledWith(
 			expect.objectContaining({ extraction_id: "e-table" }),
 		);
@@ -73,6 +75,7 @@ describe("CaseDocumentViewer table sources", () => {
 
 		fireEvent.click(boxes[1]);
 
+		expect(onSelectionChange).toHaveBeenCalledTimes(2);
 		expect(onSelectionChange).toHaveBeenLastCalledWith(null);
 		expect(boxes.every((box) => !box.classList.contains("active"))).toBe(true);
 	});

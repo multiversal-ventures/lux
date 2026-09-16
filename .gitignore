@@ -9,3 +9,4 @@ openapi.json
 .env.development
 .env.production
 .desloppify/
+.worktrees/

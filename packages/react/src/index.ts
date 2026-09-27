@@ -467,21 +467,21 @@ export type {
 } from "./hooks/usePartyHub.js";
 // POS portals — the loan officer's published borrower intake links
 export {
-  NewBorrowerExperienceModal,
+  NewBorrowerExperiencePanel,
   usePosPortals,
   posPortalsQueryKey,
-  BorrowerLinksModal,
+  BorrowerLinksPanel,
   LINK_COPIED_RESET_MS,
   usePosPortalCases,
   posPortalCasesQueryKey,
   resendOutcomeFromError,
 } from "./components/PosPortals/index.js";
 export type {
-  NewBorrowerExperienceModalProps,
+  NewBorrowerExperiencePanelProps,
   PosProductOption,
   UsePosPortalsReturn,
   CreatePosPortalInput,
-  BorrowerLinksModalProps,
+  BorrowerLinksPanelProps,
   UsePosPortalCasesReturn,
   ResendOutcome,
 } from "./components/PosPortals/index.js";

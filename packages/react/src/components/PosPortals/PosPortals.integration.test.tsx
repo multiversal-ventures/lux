@@ -38,7 +38,7 @@ vi.mock("@multiversal-ventures/lux-core", () => ({
 
 // Imported after the mock so the hook picks up the mocked client.
 const { usePosPortals } = await import("./usePosPortals");
-const { NewBorrowerExperienceModal } = await import("./NewBorrowerExperienceModal");
+const { NewBorrowerExperiencePanel } = await import("./NewBorrowerExperiencePanel");
 
 const products = [{ product_id: "dscr", display_label: "DSCR" }];
 
@@ -52,9 +52,7 @@ function wrapper({ children }: { children: ReactNode }) {
  * `onCreate`, with no adapter in between. */
 function Harness({ onClose }: { onClose: () => void }) {
 	const { create } = usePosPortals();
-	return (
-		<NewBorrowerExperienceModal open onClose={onClose} products={products} onCreate={create} />
-	);
+	return <NewBorrowerExperiencePanel onClose={onClose} products={products} onCreate={create} />;
 }
 
 beforeEach(() => {
@@ -69,7 +67,7 @@ beforeEach(() => {
 	deactivatePosPortal.mockResolvedValue({ ...PORTAL, active: false });
 });
 
-describe("usePosPortals composed into NewBorrowerExperienceModal", () => {
+describe("usePosPortals composed into NewBorrowerExperiencePanel", () => {
 	it("carries the operator's input to the client and the client's URL back to the screen", async () => {
 		render(<Harness onClose={() => {}} />, { wrapper });
 

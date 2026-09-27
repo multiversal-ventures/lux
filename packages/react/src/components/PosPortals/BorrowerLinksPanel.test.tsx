@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * `BorrowerLinksModal` — the surface Task 1(b) exists to build.
+ * `BorrowerLinksPanel` — the surface Task 1(b) exists to build.
  *
  * Every assertion here is about OBSERVABLE DOM, not about a spy having been
  * called, because the defect this fixes was precisely "the value is fetched and
@@ -82,7 +82,7 @@ vi.mock("@multiversal-ventures/lux-core", () => ({
 	}),
 }));
 
-const { BorrowerLinksModal } = await import("./BorrowerLinksModal");
+const { BorrowerLinksPanel } = await import("./BorrowerLinksPanel");
 
 let queryClient: QueryClient;
 
@@ -90,8 +90,8 @@ function wrapper({ children }: { children: ReactNode }) {
 	return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
-function renderModal(props: Partial<{ onClose: () => void; onNewLink: () => void }> = {}) {
-	return render(<BorrowerLinksModal onClose={props.onClose ?? (() => {})} {...props} />, {
+function renderPanel() {
+	return render(<BorrowerLinksPanel />, {
 		wrapper,
 	});
 }
@@ -125,10 +125,10 @@ beforeEach(() => {
 	});
 });
 
-describe("BorrowerLinksModal", () => {
+describe("BorrowerLinksPanel", () => {
 	it("renders the name the operator typed, which nothing did before", async () => {
 		listPosPortals.mockResolvedValue([PORTAL, SECOND_PORTAL]);
-		renderModal();
+		renderPanel();
 
 		// The actual strings, not a count: two links with different names must be
 		// distinguishable, which is the entire reason `label` exists.
@@ -137,7 +137,7 @@ describe("BorrowerLinksModal", () => {
 	});
 
 	it("shows the URL, slug, product and active state per link", async () => {
-		renderModal();
+		renderPanel();
 		await screen.findByText(PORTAL.label);
 
 		const url = screen.getByLabelText(`Application link for ${PORTAL.label}`);
@@ -150,7 +150,7 @@ describe("BorrowerLinksModal", () => {
 	it("a disabled link reads Disabled and offers no Disable button", async () => {
 		// Positive control for the test above: "Active" is not a constant.
 		listPosPortals.mockResolvedValue([{ ...PORTAL, active: false }]);
-		renderModal();
+		renderPanel();
 
 		expect(await screen.findByText("Disabled")).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
@@ -165,7 +165,7 @@ describe("BorrowerLinksModal", () => {
 		listPosPortals.mockResolvedValue([
 			{ ...PORTAL, active: true, expires_at: "2020-01-01T00:00:00Z" },
 		]);
-		renderModal();
+		renderPanel();
 
 		expect(await screen.findByText("Expired")).toBeInTheDocument();
 		expect(screen.queryByText("Active")).toBeNull();
@@ -178,7 +178,7 @@ describe("BorrowerLinksModal", () => {
 		listPosPortals.mockResolvedValue([
 			{ ...PORTAL, active: true, expires_at: "2099-01-01T00:00:00Z" },
 		]);
-		renderModal();
+		renderPanel();
 
 		expect(await screen.findByText("Active")).toBeInTheDocument();
 		expect(screen.queryByText("Expired")).toBeNull();
@@ -186,7 +186,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("Disable soft-disables through the client and the row updates", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await screen.findByText(PORTAL.label);
 
 		listPosPortals.mockResolvedValue([{ ...PORTAL, active: false }]);
@@ -200,7 +200,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("does not fetch a link's applications until it is expanded", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await screen.findByText(PORTAL.label);
 
 		// Negative half.
@@ -214,7 +214,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("an unverified applicant is identified by their email, not by a placeholder", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await expandFirstLink(user);
 
 		expect(screen.getAllByText("maria@example.com").length).toBeGreaterThan(0);
@@ -226,7 +226,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("resend mails the code and never shows it, but does show the address", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await expandFirstLink(user);
 
 		await user.click(screen.getByRole("button", { name: /resend code/i }));
@@ -243,7 +243,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("a 409 and a 502 produce different sentences and different affordances", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await expandFirstLink(user);
 
 		// 409 — terminal for this action. The server's remedy is rendered and no
@@ -270,7 +270,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("a 429 says to wait rather than that nothing happened", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await expandFirstLink(user);
 
 		resendAccessCode.mockRejectedValueOnce(
@@ -285,7 +285,7 @@ describe("BorrowerLinksModal", () => {
 
 	it("a 404 says the application is gone and refreshes the list", async () => {
 		const user = userEvent.setup();
-		renderModal();
+		renderPanel();
 		await expandFirstLink(user);
 
 		listPosPortalCases.mockResolvedValue([]);
@@ -302,7 +302,7 @@ describe("BorrowerLinksModal", () => {
 	it("says so when a link has produced no applications", async () => {
 		const user = userEvent.setup();
 		listPosPortalCases.mockResolvedValue([]);
-		renderModal();
+		renderPanel();
 		await screen.findByText(PORTAL.label);
 		await user.click(screen.getByRole("button", { name: /show applications/i }));
 
@@ -313,109 +313,31 @@ describe("BorrowerLinksModal", () => {
 
 	it("renders an empty state rather than an empty box", async () => {
 		listPosPortals.mockResolvedValue([]);
-		renderModal();
+		renderPanel();
 		expect(
 			await screen.findByText(/you have not published any borrower links yet/i),
 		).toBeInTheDocument();
 	});
 
 	/**
-	 * The layout contract of the native `<dialog>` — asserted as classes, which
-	 * is normally a smell, except that the regression it guards WAS a class
-	 * string.
-	 *
-	 * When this modal moved from a `fixed inset-0 flex items-start
-	 * justify-center` backdrop div to `showModal()`, the wrapper's classes came
-	 * with it. A `showModal()`ed dialog is not a wrapper AROUND a card, it IS the
-	 * card: the UA centres it with `margin: auto` against `inset: 0`, so `m-0`
-	 * over-constrains it into a tall box pinned to the left edge, `max-w-none`
-	 * lets it fill the viewport, and `bg-black/50` tints the card instead of
-	 * dimming the page. Every test in this file stayed green throughout, because
-	 * happy-dom computes no layout — the class string is the only part of this an
-	 * in-process test can hold. (The geometry itself was checked in Chrome.)
+	 * The panel is body only: no dialog box, no title, no close control. The host
+	 * wraps it (gunnr in the same Radix `Dialog` every other modal in that app
+	 * uses), so the classes asserted here are the scroll contract and nothing
+	 * else. The dialog-geometry tests this file used to carry went with the
+	 * `<dialog>` they described.
 	 */
-	it("is a centred, bounded box dimmed by ::backdrop, not a full-viewport wrapper", async () => {
-		renderModal();
+	it("scrolls its own content and takes the host's size class", async () => {
+		render(<BorrowerLinksPanel className="max-h-[70vh]" />, { wrapper });
 		await screen.findByText(PORTAL.label);
-		const dialog = screen.getByRole("dialog");
-		const classes = dialog.className.split(/\s+/);
-
-		// Tailwind preflight resets `margin: 0` on `*`, so the UA's centring has
-		// to be put back explicitly or the box pins to the corner.
-		expect(classes).toContain("m-auto");
-		// Bounded on both axes, so it is sized to its content, not the viewport.
-		expect(classes).toContain("max-w-3xl");
-		expect(classes).toContain("max-h-[85vh]");
-		// The dim belongs to `::backdrop`, the only surface that paints behind a
-		// top-layer element.
-		expect(dialog.className).toMatch(/\bbackdrop:bg-/);
-		// `p-0`, so that the whole dialog box is covered by its children: the
-		// backdrop-click handler keys on `e.target === dialog`, and padding would
-		// turn a click just inside the card's edge into a dismissal.
-		expect(classes).toContain("p-0");
-
-		for (const wrapperOnly of [
-			"fixed",
-			"inset-0",
-			"m-0",
-			"max-w-none",
-			"max-h-none",
-			"bg-black/50",
-		]) {
-			expect(classes).not.toContain(wrapperOnly);
-		}
-	});
-
-	it("scrolls the list inside the dialog rather than growing past the viewport", async () => {
-		renderModal();
-		const label = await screen.findByText(PORTAL.label);
-		const dialog = screen.getByRole("dialog");
-		// The dialog clips — it is the scroll region's frame, not the scroller.
-		expect(dialog.className.split(/\s+/)).toContain("overflow-hidden");
-
-		// …and the list, the only part of this surface that grows without bound,
-		// is what scrolls.
-		const scroller = label.closest(".overflow-y-auto");
+		const scroller = document.querySelector(".overflow-y-auto") as HTMLElement;
 		expect(scroller).not.toBeNull();
-		expect(dialog.contains(scroller)).toBe(true);
-		// `min-h-0` is what lets `overflow-y-auto` ever have an overflow: a flex
-		// child's default `min-height: auto` refuses to shrink below its content,
-		// so without it the dialog grows past `max-h-[85vh]` and nothing scrolls.
-		const scrollerClasses = (scroller as HTMLElement).className.split(/\s+/);
-		expect(scrollerClasses).toContain("min-h-0");
-		expect(scrollerClasses).toContain("flex-1");
+		expect(scroller.className.split(/\s+/)).toContain("max-h-[70vh]");
 	});
 
-	it("a click on the dialog box itself is the backdrop, and closes", async () => {
-		// With the box shrunk to its content there is no exposed dialog surface
-		// inside the card, so `e.target === dialog` now means exactly one thing:
-		// the click landed on `::backdrop`. Chrome reports the `<dialog>` as the
-		// target for such a click — verified there by dispatching a real mouse
-		// event at a point outside `getBoundingClientRect()` — and this is the
-		// in-process half: the handler is wired, and a click on a descendant does
-		// NOT dismiss.
-		const onClose = vi.fn();
-		const user = userEvent.setup();
-		renderModal({ onClose });
+	it("renders no dialog of its own — that belongs to the host", async () => {
+		renderPanel();
 		await screen.findByText(PORTAL.label);
-
-		await user.click(screen.getByRole("heading", { name: "Borrower links" }));
-		expect(onClose).not.toHaveBeenCalled();
-
-		await user.click(screen.getByRole("dialog"));
-		expect(onClose).toHaveBeenCalledTimes(1);
-	});
-
-	it("the New link button appears only when the host wires it", async () => {
-		const onNewLink = vi.fn();
-		const { unmount } = renderModal({ onNewLink });
-		const user = userEvent.setup();
-		await user.click(await screen.findByRole("button", { name: "New link" }));
-		expect(onNewLink).toHaveBeenCalled();
-		unmount();
-
-		renderModal();
-		await screen.findByText(PORTAL.label);
-		expect(screen.queryByRole("button", { name: "New link" })).toBeNull();
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
 	});
 });

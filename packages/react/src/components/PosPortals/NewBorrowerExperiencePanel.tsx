@@ -1,4 +1,4 @@
-import { Check, Copy, X } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import type { PosPortal } from "@multiversal-ventures/lux-core";
@@ -58,9 +58,19 @@ export const CREATE_DEADLINE_MS = 15_000;
 const DEADLINE_MESSAGE =
 	"The server did not answer in time. A link may already have been created — it will not be shown here, so trying again may leave a duplicate.";
 
-export interface NewBorrowerExperienceModalProps {
-	open: boolean;
+export interface NewBorrowerExperiencePanelProps {
+	/** Dismiss. Called only by the Cancel button here; every other dismissal
+	 * route belongs to the host's dialog, which is why {@link
+	 * NewBorrowerExperiencePanelProps.onBusyChange} exists. */
 	onClose: () => void;
+	/** Raised whenever a create starts or settles. The host holds the dialog, so
+	 * the host is the only place that can refuse Escape, an outside click and the
+	 * dialog's own close control while a create is in flight — see the
+	 * `requestClose` docstring for why that refusal exists and why it is
+	 * bounded. */
+	onBusyChange?: (busy: boolean) => void;
+	/** Extra classes for the scroll container, e.g. a host-chosen max height. */
+	className?: string;
 	/** The products this tenant may publish a link for. The caller supplies the
 	 * list — this component never hardcodes or filters products. */
 	products: PosProductOption[];
@@ -84,21 +94,26 @@ export interface NewBorrowerExperienceModalProps {
  * `url` is displayed verbatim rather than composed here, because it is
  * site-relative when the deployment has no public base URL configured.
  */
-export function NewBorrowerExperienceModal({
-	open,
+export function NewBorrowerExperiencePanel({
 	onClose,
+	onBusyChange,
+	className,
 	products,
 	onCreate,
-}: NewBorrowerExperienceModalProps) {
+}: NewBorrowerExperiencePanelProps) {
 	const [label, setLabel] = useState("");
 	const [productId, setProductId] = useState("");
 	const [created, setCreated] = useState<Pick<PosPortal, "slug" | "url"> | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [labelError, setLabelError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	// Mirrored out on every transition rather than read back in: the host needs
+	// it to hold its dialog shut mid-create, and a prop would make two sources of
+	// truth for a flag this component alone sets.
+	useEffect(() => {
+		onBusyChange?.(busy);
+	}, [busy, onBusyChange]);
 	const [copied, setCopied] = useState(false);
-	const wasOpen = useRef(open);
-	const dialogRef = useRef<HTMLDialogElement>(null);
 
 	// The create deadline's timer, on a ref rather than only in `submit`'s closure
 	// so that unmount can clear it. `submit`'s `finally` covers both settled paths,
@@ -114,21 +129,10 @@ export function NewBorrowerExperienceModal({
 		};
 	}, []);
 
-	// Reopening starts a fresh form. Without this the previous link's URL is
-	// still on screen the next time the operator opens the dialog, which reads
-	// as "you already made this one".
-	useEffect(() => {
-		if (open && !wasOpen.current) {
-			setLabel("");
-			setProductId("");
-			setCreated(null);
-			setError(null);
-			setLabelError(null);
-			setBusy(false);
-			setCopied(false);
-		}
-		wasOpen.current = open;
-	}, [open]);
+	// No reopen-reset effect: the host mounts this only while its dialog is open,
+	// so every open is a fresh mount and therefore a fresh form. A component that
+	// survived a close would show the previous link's URL on the next open, which
+	// reads as "you already made this one".
 
 	// "Copied" is transient feedback, not a mode: without this the button reads
 	// "Copied" for the rest of the dialog's life and a second copy looks like a
@@ -138,47 +142,6 @@ export function NewBorrowerExperienceModal({
 		const timer = setTimeout(() => setCopied(false), COPIED_RESET_MS);
 		return () => clearTimeout(timer);
 	}, [copied]);
-
-	// `<dialog>` only exists in the DOM while `open` is true (the early return
-	// below omits it entirely when closed), so every mount needs its own
-	// `showModal()` — guarded on `dialog.open` so this effect can safely
-	// re-run on every `busy` change (see below) without ever calling
-	// `showModal()` on an already-open dialog, which throws.
-	//
-	// Escape fires the dialog's native `cancel` (then `close`) event — a
-	// dismissal route exactly like the backdrop, X, and Cancel button, so it
-	// gets the same busy guard `requestClose` enforces elsewhere: blocked
-	// while a create is in flight, otherwise let through and unmounted via
-	// `onClose`.
-	//
-	// Backdrop click-to-close is wired here too, via `addEventListener`
-	// rather than an `onClick` prop on the `<dialog>` — a synthetic click
-	// handler on a non-interactive element would need a paired key handler to
-	// satisfy a11y lint, but that handler would be theater: the dialog is
-	// already keyboard-dismissable natively (Escape, handled above), so
-	// there is no missing keyboard path to add.
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		if (open && !dialog.open) dialog.showModal();
-		const handleCancel = (e: Event) => {
-			if (busy) e.preventDefault();
-		};
-		const handleClose = () => onClose();
-		const handleBackdropClick = (e: MouseEvent) => {
-			if (e.target === dialog && !busy) onClose();
-		};
-		dialog.addEventListener("cancel", handleCancel);
-		dialog.addEventListener("close", handleClose);
-		dialog.addEventListener("click", handleBackdropClick);
-		return () => {
-			dialog.removeEventListener("cancel", handleCancel);
-			dialog.removeEventListener("close", handleClose);
-			dialog.removeEventListener("click", handleBackdropClick);
-		};
-	}, [open, busy, onClose]);
-
-	if (!open) return null;
 
 	// Derived rather than stored, so a products list that arrives after mount
 	// still selects something instead of submitting an empty product_id. It is
@@ -230,9 +193,12 @@ export function NewBorrowerExperienceModal({
 	 * The link itself is not lost — `listPosPortals` still returns it — but
 	 * recovering it needs a list UI that nobody owns yet.
 	 *
-	 * This covers the operator-initiated routes only (backdrop, X, Cancel). A
-	 * parent that flips `open` to false, or unmounts the modal, still drops the
-	 * result; the component cannot refuse that.
+	 * This covers the Cancel button, the only dismissal route this panel owns.
+	 * Escape, an outside click and the dialog's own close control belong to the
+	 * host's dialog, which refuses them off `onBusyChange` — see
+	 * gunnr's `PosPortalDialog`. A host that ignores `onBusyChange`, or that
+	 * unmounts the panel outright, still drops the result; this component cannot
+	 * refuse that.
 	 *
 	 * The guard is bounded, and that bound is the only thing standing between it
 	 * and a dialog nothing can dismiss: `busy` is released by
@@ -253,144 +219,101 @@ export function NewBorrowerExperienceModal({
 	}
 
 	return (
-		// A `showModal()`ed dialog IS the card, not a full-viewport wrapper around
-		// one: the UA gives `dialog:modal` `position: fixed; inset: 0; margin: auto`
-		// and it is that `margin: auto` against `inset: 0` that centres it. Tailwind
-		// preflight resets `margin: 0` on `*`, so `m-auto` has to restore the
-		// centring explicitly — without it the box is over-constrained,
-		// `right`/`bottom` are dropped, and it pins to the top-left corner.
-		//
-		// The dim therefore has to be a `backdrop:` utility: a translucent
-		// background on the element would tint the card rather than the page, and
-		// `::backdrop` is the only
-		// surface that paints behind something in the top layer. Written as a
-		// literal colour because Tailwind v4 compiles the palette-with-opacity
-		// form to a `color-mix()` over `var(--color-black)`, and `::backdrop`
-		// inheriting
-		// custom properties from its originating element is a recent change.
-		//
-		// `p-0` on the dialog is a dismissal concern, not a cosmetic one: the
-		// backdrop click below keys on `e.target === dialog`, so padding on the
-		// dialog would turn a click just inside the card's edge into a dismissal.
-		<dialog
-			ref={dialogRef}
-			className="m-auto flex max-h-[85vh] w-[calc(100%-2rem)] max-w-md flex-col overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl backdrop:bg-[rgb(0_0_0/0.5)]"
-			aria-label="New borrower experience"
-		>
-			<div className="flex flex-none items-center justify-between px-5 pt-5 pb-3">
-				<h2 className="text-base font-semibold text-slate-900">New borrower experience</h2>
-				<button
-					type="button"
-					onClick={requestClose}
-					disabled={busy}
-					aria-label="Close"
-					className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center disabled:opacity-50"
-				>
-					<X size={18} />
-				</button>
-			</div>
+		<div className={className ? `overflow-y-auto ${className}` : "overflow-y-auto"}>
+			{error ? (
+				<p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+					{error}
+				</p>
+			) : null}
 
-			{/* Short as this form is, a phone in landscape is shorter still, so the
-			    body scrolls rather than letting the dialog outgrow `max-h-[85vh]`.
-			    `min-h-0` is what makes that work: a flex child's default
-			    `min-height: auto` refuses to shrink below its content, and
-			    `overflow-y-auto` on a box that never shrinks never overflows. */}
-			<div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-				{error ? (
-					<p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-						{error}
-					</p>
-				) : null}
-
-				{created ? (
-					<div>
-						<p className="text-sm text-slate-600">Share this link, or embed it on your site.</p>
-						<div className="mt-3 flex items-center gap-2">
-							<input
-								readOnly
-								value={created.url}
-								aria-label="Application link"
-								className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-							/>
-							<button
-								type="button"
-								onClick={() => copy(created.url)}
-								className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-							>
-								{copied ? <Check size={15} /> : <Copy size={15} />}
-								{copied ? "Copied" : "Copy link"}
-							</button>
-						</div>
-						<div className="mt-4 flex justify-end">
-							<button
-								type="button"
-								onClick={requestClose}
-								className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-							>
-								Done
-							</button>
-						</div>
-					</div>
-				) : (
-					<div>
-						<label htmlFor="pos-portal-label" className="block text-sm font-medium text-slate-700">
-							Name
-						</label>
+			{created ? (
+				<div>
+					<p className="text-sm text-slate-600">Share this link, or embed it on your site.</p>
+					<div className="mt-3 flex items-center gap-2">
 						<input
-							id="pos-portal-label"
-							value={label}
-							onChange={(e) => setLabel(e.target.value)}
-							placeholder="DSCR — my website"
-							aria-invalid={labelError ? true : undefined}
-							aria-describedby={labelError ? "pos-portal-label-error" : undefined}
-							className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+							readOnly
+							value={created.url}
+							aria-label="Application link"
+							className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
 						/>
-						{labelError ? (
-							<p id="pos-portal-label-error" className="mt-1 text-xs text-red-600">
-								{labelError}
-							</p>
-						) : null}
-
-						<label
-							htmlFor="pos-portal-product"
-							className="mt-4 block text-sm font-medium text-slate-700"
+						<button
+							type="button"
+							onClick={() => copy(created.url)}
+							className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
 						>
-							Product
-						</label>
-						<select
-							id="pos-portal-product"
-							value={selectedProductId}
-							onChange={(e) => setProductId(e.target.value)}
-							className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
-						>
-							{products.map((p) => (
-								<option key={p.product_id} value={p.product_id}>
-									{p.display_label}
-								</option>
-							))}
-						</select>
-
-						<div className="mt-5 flex items-center justify-end gap-2">
-							<button
-								type="button"
-								onClick={requestClose}
-								disabled={busy}
-								className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
-							>
-								Cancel
-							</button>
-							<button
-								type="button"
-								onClick={() => void submit()}
-								disabled={busy || !selectedProductId}
-								className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-							>
-								{busy ? "Creating…" : "Create link"}
-							</button>
-						</div>
+							{copied ? <Check size={15} /> : <Copy size={15} />}
+							{copied ? "Copied" : "Copy link"}
+						</button>
 					</div>
-				)}
-			</div>
-		</dialog>
+					<div className="mt-4 flex justify-end">
+						<button
+							type="button"
+							onClick={requestClose}
+							className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+						>
+							Done
+						</button>
+					</div>
+				</div>
+			) : (
+				<div>
+					<label htmlFor="pos-portal-label" className="block text-sm font-medium text-slate-700">
+						Name
+					</label>
+					<input
+						id="pos-portal-label"
+						value={label}
+						onChange={(e) => setLabel(e.target.value)}
+						placeholder="DSCR — my website"
+						aria-invalid={labelError ? true : undefined}
+						aria-describedby={labelError ? "pos-portal-label-error" : undefined}
+						className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+					/>
+					{labelError ? (
+						<p id="pos-portal-label-error" className="mt-1 text-xs text-red-600">
+							{labelError}
+						</p>
+					) : null}
+
+					<label
+						htmlFor="pos-portal-product"
+						className="mt-4 block text-sm font-medium text-slate-700"
+					>
+						Product
+					</label>
+					<select
+						id="pos-portal-product"
+						value={selectedProductId}
+						onChange={(e) => setProductId(e.target.value)}
+						className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+					>
+						{products.map((p) => (
+							<option key={p.product_id} value={p.product_id}>
+								{p.display_label}
+							</option>
+						))}
+					</select>
+
+					<div className="mt-5 flex items-center justify-end gap-2">
+						<button
+							type="button"
+							onClick={requestClose}
+							disabled={busy}
+							className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={() => void submit()}
+							disabled={busy || !selectedProductId}
+							className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+						>
+							{busy ? "Creating…" : "Create link"}
+						</button>
+					</div>
+				</div>
+			)}
+		</div>
 	);
 }

@@ -1,6 +1,6 @@
 import type { PosPortal, PosPortalCase } from "@multiversal-ventures/lux-core";
-import { Check, ChevronDown, ChevronRight, Copy, Mail, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, ChevronRight, Copy, Mail } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { type ResendOutcome, usePosPortalCases } from "./usePosPortalCases.js";
 import { usePosPortals } from "./usePosPortals.js";
@@ -9,73 +9,43 @@ import { usePosPortals } from "./usePosPortals.js";
  * Exported so a test waits on the real window instead of restating the number. */
 export const LINK_COPIED_RESET_MS = 1500;
 
-export interface BorrowerLinksModalProps {
-	onClose: () => void;
-	/** Opens the publish-a-link dialog. Optional: a host that has not wired one
-	 * renders no button, rather than a button that does nothing. */
-	onNewLink?: () => void;
+export interface BorrowerLinksPanelProps {
+	/** Extra classes for the scroll container, e.g. a host-chosen max height. */
+	className?: string;
 }
 
 /**
  * Manage published borrower links — and reach the applications they produced.
  *
- * ## Where this lives, and why it is not part of the create dialog
+ * ## Body only: the host owns the dialog
  *
- * `NewBorrowerExperienceModal` is a two-field form with a one-shot result: it
- * shows the URL of the link just minted and nothing else. Hanging a list off it
- * would mean an operator who wants to look something up must first start
- * creating something they do not want. So this is a sibling surface, opened by
- * its own control, and the create dialog is untouched.
+ * This renders the list and nothing around it — no dialog box, no title, no
+ * close control. The host wraps it in whatever modal its app already uses, the
+ * way gunnr's `BorrowerLinksDialog` wraps it in the same Radix `Dialog` every
+ * other modal in that app uses. A second dialog implementation shipped from
+ * here would mean two backdrops, two focus traps and two close affordances in
+ * one product — which is exactly what this package's `BorrowerPortalLink`
+ * already avoids by being a card its host puts in a dialog.
  *
  * ## Why there is no `open` prop
  *
- * Unlike the create dialog, this component's existence IS its openness. That is
- * deliberate rather than inconsistent: it calls `usePosPortals()`, whose query
- * has no `enabled` gate, so an `open={false}` render that returned `null` would
- * still fire `GET /api/pos-portals` — React hooks cannot be skipped. Making
- * mounting the only way to open it puts the fetch gate somewhere a caller
- * cannot get wrong. Hosts render `{open && <BorrowerLinksModal … />}`.
+ * This component's existence IS its openness. It calls `usePosPortals()`, whose
+ * query has no `enabled` gate, so an `open={false}` render that returned `null`
+ * would still fire `GET /api/pos-portals` — React hooks cannot be skipped.
+ * Making mounting the only way to open it puts the fetch gate somewhere a
+ * caller cannot get wrong. Hosts render `{open && <BorrowerLinksPanel … />}`,
+ * inside a dialog that is itself only mounted while open.
  *
  * The same reasoning one level down: a link's applications are fetched only for
  * the row the operator expands ({@link LinkApplications} is mounted per
  * expansion, and `usePosPortalCases(null)` fetches nothing), so opening this
  * surface costs exactly one request no matter how many links a tenant has.
  */
-export function BorrowerLinksModal({ onClose, onNewLink }: BorrowerLinksModalProps) {
+export function BorrowerLinksPanel({ className }: BorrowerLinksPanelProps) {
 	const { portals, loading, error, deactivate } = usePosPortals();
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [busyId, setBusyId] = useState<string | null>(null);
 	const [actionError, setActionError] = useState<string | null>(null);
-	const dialogRef = useRef<HTMLDialogElement>(null);
-
-	// Mounting this component IS opening it (see the class docstring), so the
-	// native dialog opens once, on mount — `showModal()` is what gives it a
-	// real modal accessibility tree entry, browser-managed focus trap, and
-	// Escape-to-dismiss, none of which a plain `role="dialog"` div provides.
-	//
-	// The backdrop click-to-close also lives here rather than as an `onClick`
-	// prop on the `<dialog>`: a synthetic click handler on a non-interactive
-	// element would need a paired key handler to satisfy a11y lint, but that
-	// handler would be theater — the dialog is already keyboard-dismissable
-	// natively (Escape → `close`, handled below), so there is no missing
-	// keyboard path to add.
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		if (!dialog.open) dialog.showModal();
-		const handleClose = () => onClose();
-		const handleBackdropClick = (e: MouseEvent) => {
-			// Only a click that lands on the dialog's own box (i.e. the padded
-			// area, not a descendant) counts as "outside the card".
-			if (e.target === dialog) onClose();
-		};
-		dialog.addEventListener("close", handleClose);
-		dialog.addEventListener("click", handleBackdropClick);
-		return () => {
-			dialog.removeEventListener("close", handleClose);
-			dialog.removeEventListener("click", handleBackdropClick);
-		};
-	}, [onClose]);
 
 	async function disable(portal: PosPortal) {
 		setBusyId(portal.pos_portal_id);
@@ -90,100 +60,41 @@ export function BorrowerLinksModal({ onClose, onNewLink }: BorrowerLinksModalPro
 	}
 
 	return (
-		// ## Why these classes and not the wrapper's
-		//
-		// A `showModal()`ed dialog is NOT a full-viewport wrapper that happens to
-		// contain a card — it IS the card. The UA gives `dialog:modal`
-		// `position: fixed; inset: 0; width/height: fit-content; margin: auto`,
-		// and it is that `margin: auto` against `inset: 0` that centres it.
-		// Tailwind's preflight resets `margin: 0` on `*`, so `m-auto` has to put
-		// the centring back explicitly; without it the box is over-constrained,
-		// `right`/`bottom` are dropped, and it pins to the top-left corner.
-		//
-		// For the same reason the dim is a `backdrop:` utility and not a
-		// translucent background on the element: the dialog's own box is the
-		// card, so a translucent black there tints the card, not the page. `::backdrop` is the only surface
-		// that paints behind a top-layer element. The colour is written as a
-		// literal rather than the palette-with-opacity form because Tailwind v4
-		// compiles that to `color-mix(… var(--color-black) …)`, and
-		// `::backdrop` inheriting custom properties from its originating element
-		// is a recent change — a literal renders the same everywhere.
-		//
-		// `p-0` (not padding on the dialog) matters for dismissal, not looks:
-		// backdrop-click-to-close keys on `e.target === dialog`, and any padding
-		// would make a click just inside the card's edge land on the dialog box
-		// itself and close it.
-		<dialog
-			ref={dialogRef}
-			className="m-auto flex max-h-[85vh] w-[calc(100%-2rem)] max-w-3xl flex-col overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl backdrop:bg-[rgb(0_0_0/0.5)]"
-			aria-label="Borrower links"
-		>
-			<div className="flex flex-none items-center justify-between px-5 pt-5 pb-3">
-				<h2 className="text-base font-semibold text-slate-900">Borrower links</h2>
-				<div className="flex items-center gap-2">
-					{onNewLink ? (
-						<button
-							type="button"
-							onClick={onNewLink}
-							className="rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-						>
-							New link
-						</button>
-					) : null}
-					<button
-						type="button"
-						onClick={onClose}
-						aria-label="Close"
-						className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-					>
-						<X size={18} />
-					</button>
-				</div>
-			</div>
+		<div className={className ? `overflow-y-auto ${className}` : "overflow-y-auto"}>
+			{actionError ? (
+				<p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+					{actionError}
+				</p>
+			) : null}
+			{error ? (
+				<p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+					{error.message}
+				</p>
+			) : null}
 
-			{/* The list is the only part that grows without bound, so it — not the
-			    dialog — is what scrolls. `min-h-0` is load-bearing: a flex child's
-			    default `min-height: auto` refuses to shrink below its content, so
-			    without it `overflow-y-auto` never has an overflow to act on and the
-			    dialog grows past `max-h-[85vh]` instead. */}
-			<div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-				{actionError ? (
-					<p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-						{actionError}
-					</p>
-				) : null}
-				{error ? (
-					<p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-						{error.message}
-					</p>
-				) : null}
-
-				{loading ? (
-					<p className="py-6 text-center text-sm text-slate-500">Loading your links…</p>
-				) : portals.length === 0 ? (
-					<p className="py-6 text-center text-sm text-slate-500">
-						You have not published any borrower links yet.
-					</p>
-				) : (
-					<ul className="divide-y divide-slate-100">
-						{portals.map((portal) => (
-							<LinkRow
-								key={portal.pos_portal_id}
-								portal={portal}
-								expanded={expandedId === portal.pos_portal_id}
-								onToggle={() =>
-									setExpandedId((cur) =>
-										cur === portal.pos_portal_id ? null : portal.pos_portal_id,
-									)
-								}
-								busy={busyId === portal.pos_portal_id}
-								onDisable={() => void disable(portal)}
-							/>
-						))}
-					</ul>
-				)}
-			</div>
-		</dialog>
+			{loading ? (
+				<p className="py-6 text-center text-sm text-slate-500">Loading your links…</p>
+			) : portals.length === 0 ? (
+				<p className="py-6 text-center text-sm text-slate-500">
+					You have not published any borrower links yet.
+				</p>
+			) : (
+				<ul className="divide-y divide-slate-100">
+					{portals.map((portal) => (
+						<LinkRow
+							key={portal.pos_portal_id}
+							portal={portal}
+							expanded={expandedId === portal.pos_portal_id}
+							onToggle={() =>
+								setExpandedId((cur) => (cur === portal.pos_portal_id ? null : portal.pos_portal_id))
+							}
+							busy={busyId === portal.pos_portal_id}
+							onDisable={() => void disable(portal)}
+						/>
+					))}
+				</ul>
+			)}
+		</div>
 	);
 }
 

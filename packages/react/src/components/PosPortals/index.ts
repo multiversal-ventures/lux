@@ -1,12 +1,12 @@
-export { NewBorrowerExperienceModal } from "./NewBorrowerExperienceModal.js";
+export { NewBorrowerExperiencePanel } from "./NewBorrowerExperiencePanel.js";
 export type {
-	NewBorrowerExperienceModalProps,
+	NewBorrowerExperiencePanelProps,
 	PosProductOption,
-} from "./NewBorrowerExperienceModal.js";
+} from "./NewBorrowerExperiencePanel.js";
 export { usePosPortals, posPortalsQueryKey } from "./usePosPortals.js";
 export type { UsePosPortalsReturn, CreatePosPortalInput } from "./usePosPortals.js";
-export { BorrowerLinksModal, LINK_COPIED_RESET_MS } from "./BorrowerLinksModal.js";
-export type { BorrowerLinksModalProps } from "./BorrowerLinksModal.js";
+export { BorrowerLinksPanel, LINK_COPIED_RESET_MS } from "./BorrowerLinksPanel.js";
+export type { BorrowerLinksPanelProps } from "./BorrowerLinksPanel.js";
 export {
 	usePosPortalCases,
 	posPortalCasesQueryKey,

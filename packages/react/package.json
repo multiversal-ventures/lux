@@ -5,6 +5,11 @@
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/multiversal-ventures/lux.git",
+    "directory": "packages/react"
+  },
   "files": [
     "dist"
   ],

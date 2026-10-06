@@ -29,6 +29,45 @@ export interface UsePortalSessionReturn {
 }
 
 /**
+ * The verify proof lives in TAB-SCOPED sessionStorage, keyed to the token it
+ * was minted for (the server binds the HMAC to that exact string, so a proof
+ * from another token is useless and we must not send it).
+ *
+ * It was a `useRef`, which a page refresh wiped — the borrower was re-asked for
+ * the access code every reload. sessionStorage is same-origin and per-tab, so a
+ * new tab still asks, and the server's 12h TTL is unchanged.
+ */
+const PROOF_KEY = "lux.portal.verify";
+
+function readProof(token: string | null): string | null {
+	if (!token) return null;
+	try {
+		const raw = sessionStorage.getItem(PROOF_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw) as { token?: string; proof?: string };
+		return parsed.token === token && parsed.proof ? parsed.proof : null;
+	} catch {
+		return null; // private mode, quota, or a hand-edited value
+	}
+}
+
+function writeProof(token: string, proof: string): void {
+	try {
+		sessionStorage.setItem(PROOF_KEY, JSON.stringify({ token, proof }));
+	} catch {
+		/* storage unavailable — the session still works, it just re-asks on refresh */
+	}
+}
+
+function clearProof(): void {
+	try {
+		sessionStorage.removeItem(PROOF_KEY);
+	} catch {
+		/* nothing to do */
+	}
+}
+
+/**
  * Manage the lifecycle of a portal session for a given token.
  *
  * @param token - Portal token string (from URL, storage, etc.), or null to
@@ -54,17 +93,34 @@ export function usePortalSession(
 	const client = useMemo(() => createPortalClient(), []);
 
 	// Ephemeral verify-proof: the access code is a per-browser-session gate; the
-	// claimed account is the only durable credential. The proof lives in MEMORY
-	// ONLY (a ref — never localStorage/sessionStorage), so a page refresh / new
-	// tab wipes it → no X-Portal-Verify header → if the borrower has no account
-	// the server re-asks the code. After they verify (intent returns a proof) the
-	// ref is set and in-session refetches stay verified.
-	const verifyProofRef = useRef<string | null>(null);
+	// claimed account is the only durable credential. The ref mirrors the
+	// tab-scoped sessionStorage copy (see PROOF_KEY) so a refresh keeps the
+	// borrower verified while a new tab still re-asks the code.
+	const verifyProofRef = useRef<string | null>(readProof(token));
 
-	// Absorb a fresh proof from any session response into the in-memory ref.
-	const absorbProof = useCallback((s: PortalSession | null) => {
-		if (s?.verify_proof) verifyProofRef.current = s.verify_proof;
-	}, []);
+	// Re-read when the token changes: a different loan's token must not reuse the
+	// previous one's proof. Declared BEFORE the stream/load effects so they see
+	// the fresh value.
+	useEffect(() => {
+		verifyProofRef.current = readProof(token);
+	}, [token]);
+
+	// Absorb a fresh proof from any session response into the ref + storage; a
+	// `requires_code` response means the server rejected ours, so drop it.
+	const absorbProof = useCallback(
+		(s: PortalSession | null) => {
+			if (s?.requires_code) {
+				verifyProofRef.current = null;
+				clearProof();
+				return;
+			}
+			if (s?.verify_proof && token) {
+				verifyProofRef.current = s.verify_proof;
+				writeProof(token, s.verify_proof);
+			}
+		},
+		[token],
+	);
 
 	// Silent refresh — updates the session without the loading flicker (used by
 	// the real-time stream so new messages just appear).
@@ -84,6 +140,9 @@ export function usePortalSession(
 	useEffect(() => {
 		if (!token) return;
 		let typingTimer: ReturnType<typeof setTimeout> | undefined;
+		// `extraction.system.extracted` fires once PER DOCUMENT, so a ten-document case
+		// emits a burst. Coalesce into one refetch on the trailing edge.
+		let refetchTimer: ReturnType<typeof setTimeout> | undefined;
 		const unsub = client.streamPortalEvents(token, (ping) => {
 			// (stream gates on the same proof; pings only trigger a gated refetch)
 			if (ping.type === "portal.typing") {
@@ -93,12 +152,14 @@ export function usePortalSession(
 					typingTimer = setTimeout(() => setOperatorTyping(false), 3000);
 				}
 			} else {
-				void refreshSession(token);
+				if (refetchTimer) clearTimeout(refetchTimer);
+				refetchTimer = setTimeout(() => void refreshSession(token), 400);
 			}
 		}, verifyProofRef.current);
 		return () => {
 			unsub();
 			if (typingTimer) clearTimeout(typingTimer);
+			if (refetchTimer) clearTimeout(refetchTimer);
 		};
 	}, [token, client, refreshSession]);
 

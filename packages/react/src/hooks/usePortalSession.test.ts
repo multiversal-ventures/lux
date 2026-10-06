@@ -127,3 +127,57 @@ describe("usePortalSession", () => {
 		expect(result.current.error?.code).toBe("not_ready");
 	});
 });
+
+describe("verify proof persistence", () => {
+	beforeEach(() => sessionStorage.clear());
+
+	/** Headers sent on the /portal/session fetch (the stream fetch also fires on mount). */
+	function sessionFetchHeaders(): Headers {
+		const call = vi
+			.mocked(fetch)
+			.mock.calls.find(([url]) => String(url).endsWith("/portal/session"));
+		expect(call).toBeDefined();
+		return new Headers((call?.[1] as RequestInit).headers);
+	}
+
+	it("reuses a stored proof for the same token across a remount", async () => {
+		sessionStorage.setItem(
+			"lux.portal.verify",
+			JSON.stringify({ token: "tok-1", proof: "proof-1" }),
+		);
+		vi.mocked(fetch).mockResolvedValue({
+			ok: true,
+			json: async () => ({ session_id: "s", verification: { verified: true } }),
+		} as Response);
+
+		renderHook(() => usePortalSession("tok-1"));
+		await waitFor(() => expect(fetch).toHaveBeenCalled());
+		await waitFor(() => expect(sessionFetchHeaders().get("X-Portal-Verify")).toBe("proof-1"));
+	});
+
+	it("ignores a proof stored under a different token", async () => {
+		sessionStorage.setItem(
+			"lux.portal.verify",
+			JSON.stringify({ token: "other", proof: "proof-1" }),
+		);
+		vi.mocked(fetch).mockResolvedValue({
+			ok: true,
+			json: async () => ({ session_id: "s" }),
+		} as Response);
+
+		renderHook(() => usePortalSession("tok-1"));
+		await waitFor(() => expect(fetch).toHaveBeenCalled());
+		await waitFor(() => expect(sessionFetchHeaders().get("X-Portal-Verify")).toBeNull());
+	});
+
+	it("clears the stored proof when the server asks for a code", async () => {
+		sessionStorage.setItem("lux.portal.verify", JSON.stringify({ token: "tok-1", proof: "stale" }));
+		vi.mocked(fetch).mockResolvedValue({
+			ok: true,
+			json: async () => ({ session_id: "s", requires_code: true }),
+		} as Response);
+
+		renderHook(() => usePortalSession("tok-1"));
+		await waitFor(() => expect(sessionStorage.getItem("lux.portal.verify")).toBeNull());
+	});
+});

@@ -2,6 +2,34 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { usePortalSession } from "@multiversal-ventures/lux-react";
 
+// Capture the stream callback so tests can push events synchronously instead
+// of driving a real SSE body. Everything else on the client stays real, so
+// `fetchSession` still goes through the stubbed global `fetch`.
+const stream = vi.hoisted(() => ({
+	onPing: null as ((ping: { type: string; actor?: string }) => void) | null,
+}));
+
+vi.mock("@multiversal-ventures/lux-core", async () => {
+	const actual = await vi.importActual<typeof import("@multiversal-ventures/lux-core")>(
+		"@multiversal-ventures/lux-core",
+	);
+	return {
+		...actual,
+		createPortalClient: (...args: Parameters<typeof actual.createPortalClient>) => ({
+			...actual.createPortalClient(...args),
+			streamPortalEvents: (
+				_token: string,
+				onPing: (ping: { type: string; actor?: string }) => void,
+			) => {
+				stream.onPing = onPing;
+				return () => {
+					stream.onPing = null;
+				};
+			},
+		}),
+	};
+});
+
 const SESSION_FIXTURE = {
 	session_id: "sess-1",
 	entity: { identity_id: "id-1", name: "Alice", role: "borrower" },
@@ -179,5 +207,136 @@ describe("verify proof persistence", () => {
 
 		renderHook(() => usePortalSession("tok-1"));
 		await waitFor(() => expect(sessionStorage.getItem("lux.portal.verify")).toBeNull());
+	});
+
+	/** Headers of the most recent /portal/session fetch. */
+	function lastSessionHeaders(): Headers {
+		const calls = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith("/portal/session"));
+		expect(calls.length).toBeGreaterThan(0);
+		return new Headers((calls[calls.length - 1][1] as RequestInit).headers);
+	}
+
+	it("re-reads the proof when the token changes after mount", async () => {
+		// Stored for tok-2 only: the mount-time read for tok-1 yields nothing, so
+		// only the token-change effect can pick this up.
+		sessionStorage.setItem("lux.portal.verify", JSON.stringify({ token: "tok-2", proof: "proof-2" }));
+		vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ session_id: "s" }) } as Response);
+
+		const { rerender } = renderHook(({ token }) => usePortalSession(token), {
+			initialProps: { token: "tok-1" },
+		});
+		await waitFor(() => expect(lastSessionHeaders().get("X-Portal-Token")).toBe("tok-1"));
+		expect(lastSessionHeaders().get("X-Portal-Verify")).toBeNull();
+
+		rerender({ token: "tok-2" });
+
+		await waitFor(() => expect(lastSessionHeaders().get("X-Portal-Token")).toBe("tok-2"));
+		expect(lastSessionHeaders().get("X-Portal-Verify")).toBe("proof-2");
+	});
+
+	it("never carries one token's proof over to a token with no stored proof", async () => {
+		sessionStorage.setItem("lux.portal.verify", JSON.stringify({ token: "tok-1", proof: "proof-1" }));
+		vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ session_id: "s" }) } as Response);
+
+		const { rerender } = renderHook(({ token }) => usePortalSession(token), {
+			initialProps: { token: "tok-1" },
+		});
+		await waitFor(() => expect(lastSessionHeaders().get("X-Portal-Verify")).toBe("proof-1"));
+
+		rerender({ token: "tok-2" });
+
+		await waitFor(() => expect(lastSessionHeaders().get("X-Portal-Token")).toBe("tok-2"));
+		expect(lastSessionHeaders().get("X-Portal-Verify")).toBeNull();
+	});
+
+	it("treats a malformed stored value as no proof instead of throwing", async () => {
+		sessionStorage.setItem("lux.portal.verify", "{not json");
+		vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ session_id: "s" }) } as Response);
+
+		const { result } = renderHook(() => usePortalSession("tok-1"));
+
+		await waitFor(() => expect(result.current.session).not.toBeNull());
+		expect(result.current.error).toBeNull();
+		expect(sessionFetchHeaders().get("X-Portal-Verify")).toBeNull();
+	});
+});
+
+describe("stream-driven refetch", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		vi.useFakeTimers();
+		vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ session_id: "s" }) } as Response);
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	const sessionFetches = () =>
+		vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith("/portal/session")).length;
+
+	const advance = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
+
+	const emit = (ping: { type: string; actor?: string }) =>
+		act(() => {
+			expect(stream.onPing).not.toBeNull();
+			stream.onPing?.(ping);
+		});
+
+	/** Mount and let the initial load settle; returns the hook result. */
+	async function mount() {
+		const hook = renderHook(() => usePortalSession("tok-1"));
+		await advance(0);
+		expect(sessionFetches()).toBe(1);
+		return hook.result;
+	}
+
+	it("coalesces a burst of events within 400 ms into one refetch", async () => {
+		await mount();
+
+		for (let i = 0; i < 5; i++) {
+			await emit({ type: "extraction.system.extracted" });
+			await advance(100);
+		}
+		// Last event was 100 ms ago; the trailing edge is still 300 ms away.
+		expect(sessionFetches()).toBe(1);
+
+		await advance(300);
+		expect(sessionFetches()).toBe(2);
+
+		await advance(5000);
+		expect(sessionFetches()).toBe(2);
+	});
+
+	it("does not let a typing event cancel a pending refetch", async () => {
+		const result = await mount();
+
+		await emit({ type: "extraction.system.extracted" });
+		await advance(200);
+		await emit({ type: "portal.typing", actor: "operator" });
+		expect(result.current.operatorTyping).toBe(true);
+
+		await advance(200); // 400 ms after the refetch event
+		expect(sessionFetches()).toBe(2);
+		expect(result.current.operatorTyping).toBe(true);
+	});
+
+	it("does not let a pending refetch cancel the typing reset", async () => {
+		const result = await mount();
+
+		await emit({ type: "portal.typing", actor: "operator" });
+		expect(result.current.operatorTyping).toBe(true);
+
+		// Arrives 200 ms before the typing reset, so the refetch is still pending
+		// at the moment the 3000 ms typing timer fires.
+		await advance(2800);
+		await emit({ type: "extraction.system.extracted" });
+
+		await advance(200); // t = 3000
+		expect(result.current.operatorTyping).toBe(false);
+		expect(sessionFetches()).toBe(1); // refetch still pending, not cancelled
+
+		await advance(200); // t = 3200
+		expect(sessionFetches()).toBe(2);
 	});
 });

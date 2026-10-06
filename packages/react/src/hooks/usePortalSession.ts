@@ -96,11 +96,11 @@ export function usePortalSession(
 	// claimed account is the only durable credential. The ref mirrors the
 	// tab-scoped sessionStorage copy (see PROOF_KEY) so a refresh keeps the
 	// borrower verified while a new tab still re-asks the code.
-	const verifyProofRef = useRef<string | null>(readProof(token));
+	const verifyProofRef = useRef<string | null>(null);
 
-	// Re-read when the token changes: a different loan's token must not reuse the
-	// previous one's proof. Declared BEFORE the stream/load effects so they see
-	// the fresh value.
+	// Read on mount and re-read when the token changes: a different loan's token
+	// must not reuse the previous one's proof. Declared BEFORE the stream/load
+	// effects (effects run in declaration order) so their first fetch sees it.
 	useEffect(() => {
 		verifyProofRef.current = readProof(token);
 	}, [token]);

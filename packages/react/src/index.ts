@@ -133,6 +133,15 @@ export type { BorrowerPortalProps } from "./components/PortalLink/index.js";
 export { ApplicationStep } from "./components/PortalLink/index.js";
 export type { ApplicationStepProps } from "./components/PortalLink/index.js";
 
+// Loan status — the borrower's status card, dashboard table and the one
+// tone → classes map every status pill in lux goes through.
+export { LoanStatusBadge, LoanActionPill, loanToneClasses } from "./components/LoanStatus/index.js";
+export type { LoanStatusBadgeProps } from "./components/LoanStatus/index.js";
+export { LoanStatusCard } from "./components/LoanStatus/index.js";
+export type { LoanStatusCardProps } from "./components/LoanStatus/index.js";
+export { BorrowerLoansTable } from "./components/LoanStatus/index.js";
+export type { BorrowerLoansTableProps } from "./components/LoanStatus/index.js";
+
 // Scenario compound component system
 export {
   CaseScenarioProvider,

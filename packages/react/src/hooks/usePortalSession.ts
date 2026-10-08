@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Intent, IntentResult, PortalClientError, PortalSession, ThreadPage } from "@multiversal-ventures/lux-core";
+import type { FormPreviewResponse, Intent, IntentResult, PortalClientError, PortalSession, ThreadPage } from "@multiversal-ventures/lux-core";
 import { createPortalClient } from "@multiversal-ventures/lux-core";
 
 export interface UsePortalSessionReturn {
@@ -26,6 +26,14 @@ export interface UsePortalSessionReturn {
 	sendTyping: () => void;
 	/** Load older chat messages before the given visible message timestamp. */
 	loadMessagesBefore: (before: string) => Promise<ThreadPage | null>;
+	/** Ask the server what the application form would look like if `inputs`
+	 * were the borrower's answers — the same two lists the session carries.
+	 *
+	 * This exists so no client ever evaluates a `required_when` itself: lux's
+	 * own evaluator compares with `===` and fails open on the list `equals`
+	 * form DSCR's document rows rely on. `null` on a refusal or a transport
+	 * failure, so a preview can never take the form down with it. */
+	previewForm: (inputs: Record<string, unknown>) => Promise<FormPreviewResponse | null>;
 }
 
 /**
@@ -261,6 +269,23 @@ export function usePortalSession(
 		[client, session, token],
 	);
 
+	const previewForm = useCallback(
+		async (inputs: Record<string, unknown>): Promise<FormPreviewResponse | null> => {
+			if (!session || !token) return null;
+			const result = await client.previewPortalForm(
+				session.session_id,
+				token,
+				inputs,
+				verifyProofRef.current,
+			);
+			// A refused preview is deliberately NOT surfaced as a session error:
+			// the form the borrower is typing into is still valid, and
+			// `set_inputs` is what enforces the answers on submit.
+			return result.preview;
+		},
+		[client, session, token],
+	);
+
 	const clearUploadError = useCallback(() => setUploadError(null), []);
 
 	return {
@@ -274,5 +299,6 @@ export function usePortalSession(
 		operatorTyping,
 		sendTyping,
 		loadMessagesBefore,
+		previewForm,
 	};
 }

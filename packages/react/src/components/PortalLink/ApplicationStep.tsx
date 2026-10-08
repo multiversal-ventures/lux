@@ -17,16 +17,25 @@
  * displays `6.5` — holds identically on both surfaces. There is one deliberate
  * substitution, {@link PortalSelectField}; see its docstring.
  *
- * ## Two passes, not one form
+ * ## One pass
  *
- * `pending_inputs` is resolved server-side against the answers stored so far:
- * a conditional field is advertised only once its `required_when` predicate
- * already holds, and an answered field drops out. So answering
- * `transaction_type: purchase` makes `proposed_purchase_price` appear on the
- * NEXT session, and the same round-trip is what makes the purchase agreement
- * appear in `required_documents`. This component therefore never evaluates a
- * predicate itself — it renders the list it was handed, submits, and renders
- * whatever list comes back.
+ * The form reacts while the borrower fills it in. When a field marked `decides`
+ * changes, the component asks the SERVER what the form should look like now
+ * (`POST /portal/session/{id}/form-preview`, 250ms debounce) and replaces its
+ * fields and documents with the answer, keeping the values already typed.
+ *
+ * It never evaluates a `required_when` predicate itself. lux's evaluator uses
+ * `===` and fails open on the list `equals` DSCR's document rows rely on (see
+ * veritas `policy/required_documents.py`), so a second evaluator here is exactly
+ * the drift that module exists to prevent.
+ *
+ * `pending_inputs` is still resolved server-side against the answers STORED so
+ * far — a field answered in the draft alone stays while its condition holds and
+ * drops out once saved — so without `onPreview` the component degrades to
+ * exactly its old behaviour: render the list it was handed, submit, render
+ * whatever comes back. A saved discriminator never appears in `pending_inputs`
+ * at all, so this surface can only preview off a field it is still being asked
+ * for.
  *
  * ## `required_documents` is the ASK, `checklist` is PROGRESS
  *
@@ -43,7 +52,7 @@ import type {
 	PortalInputField,
 	components,
 } from "@multiversal-ventures/lux-core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
 	DynamicUserInputsFormFields,
@@ -325,7 +334,41 @@ export interface ApplicationStepProps {
 	 * results — the ONLY place a refusal is observable (it arrives 200, with the
 	 * session unchanged). */
 	onSubmitInputs: (inputs: Record<string, unknown>) => Promise<IntentResult[]>;
+	/** Ask the server to re-resolve both lists against a DRAFT of the answers.
+	 *
+	 * Called only when a `decides` field changes: `decides` marks a field some
+	 * `required_when` reads, so changing any other field can move neither list
+	 * and the round trip is skipped. `null` (a refusal, a vanished case, a
+	 * network drop) leaves the form exactly as it is. Omit the prop and the
+	 * form falls back to one list per session. */
+	onPreview?: (inputs: Record<string, unknown>) => Promise<{
+		pending_inputs: PortalInputField[];
+		required_documents: PortalDocumentRequirement[];
+	} | null>;
 }
+
+/**
+ * The answers as the server wants them: only what was actually answered, keyed
+ * by the names it advertised. Shared by the preview and the submit so a draft
+ * and a `set_inputs` can never disagree about what was typed. Values pass
+ * through UNSCALED — `NumericField` already stores a percentage as the fraction
+ * the engine reads.
+ */
+function answeredOnly(
+	values: Record<string, unknown>,
+	fields: readonly PortalInputField[],
+): Record<string, unknown> {
+	const answers: Record<string, unknown> = {};
+	for (const field of fields) {
+		const value = values[field.name];
+		if (value === undefined || value === null || value === "") continue;
+		answers[field.name] = value;
+	}
+	return answers;
+}
+
+/** How long a `decides` field sits still before the preview round trip. */
+const PREVIEW_DEBOUNCE_MS = 250;
 
 export function ApplicationStep({
 	fields,
@@ -333,8 +376,18 @@ export function ApplicationStep({
 	productLabel,
 	stepNumber,
 	onSubmitInputs,
+	onPreview,
 }: ApplicationStepProps) {
-	const adapted = useMemo(() => fields.map(toUserInputField), [fields]);
+	// The server's answer to "what would the form be with these answers?" —
+	// null until a `decides` field has moved, and dropped whenever a new
+	// session arrives (the props below are then the newer truth).
+	const [preview, setPreview] = useState<{
+		fields: readonly PortalInputField[];
+		documents: readonly PortalDocumentRequirement[];
+	} | null>(null);
+	const effectiveFields = preview?.fields ?? fields;
+	const effectiveDocuments = preview?.documents ?? documents;
+	const adapted = useMemo(() => effectiveFields.map(toUserInputField), [effectiveFields]);
 	const [values, setValues] = useState<Record<string, unknown>>({});
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	const [submitting, setSubmitting] = useState(false);
@@ -353,7 +406,7 @@ export function ApplicationStep({
 		setValues((prev) => {
 			const next = { ...prev };
 			let changed = false;
-			for (const field of fields) {
+			for (const field of effectiveFields) {
 				if (next[field.name] === undefined && field.default != null) {
 					next[field.name] = field.default;
 					changed = true;
@@ -361,7 +414,43 @@ export function ApplicationStep({
 			}
 			return changed ? next : prev;
 		});
+	}, [effectiveFields]);
+
+	// A newer session supersedes any preview: `fields` is then resolved against
+	// answers that are actually STORED, which a draft preview is not.
+	// `fields` is the TRIGGER, not a value the body reads: a new array identity
+	// means a new session, and the preview it would have replaced is stale.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above
+	useEffect(() => {
+		setPreview(null);
 	}, [fields]);
+
+	// Debounced server preview, armed only by a `decides` field. A response that
+	// lands after a newer request is dropped — the borrower keeps typing while
+	// it is in flight.
+	const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const previewSeq = useRef(0);
+	useEffect(() => {
+		return () => {
+			if (previewTimer.current) clearTimeout(previewTimer.current);
+		};
+	}, []);
+
+	function schedulePreview(answers: Record<string, unknown>) {
+		if (!onPreview) return;
+		if (previewTimer.current) clearTimeout(previewTimer.current);
+		const seq = ++previewSeq.current;
+		previewTimer.current = setTimeout(async () => {
+			const result = await onPreview(answers);
+			// A refusal leaves the form untouched: the server is the only
+			// evaluator, and it declined to answer, not to accept the answers.
+			if (!result || seq !== previewSeq.current) return;
+			setPreview({
+				fields: result.pending_inputs ?? [],
+				documents: result.required_documents ?? [],
+			});
+		}, PREVIEW_DEBOUNCE_MS);
+	}
 
 	// Client-side mirror of the server's own bounds. `requiredAtCreateOnly:
 	// false` reads `field.required`, which `portal_form` sets on EVERY field it
@@ -372,7 +461,7 @@ export function ApplicationStep({
 	const missing = adapted.filter((f) => clientErrors[f.name]);
 	const canSubmit = missing.length === 0;
 
-	const refusalParts = refusal ? splitRefusal(refusal, fields) : null;
+	const refusalParts = refusal ? splitRefusal(refusal, effectiveFields) : null;
 
 	// Client errors only after the applicant has touched the control — a form
 	// that opens covered in red says nothing useful. A server refusal shows
@@ -391,12 +480,7 @@ export function ApplicationStep({
 		// pass through UNSCALED: `NumericField` already stores a `percentage` as
 		// the fraction the engine reads (6.5 typed → 0.065 stored), and touching
 		// it here is how a rate becomes 650%.
-		const inputs: Record<string, unknown> = {};
-		for (const field of fields) {
-			const value = values[field.name];
-			if (value === undefined || value === null || value === "") continue;
-			inputs[field.name] = value;
-		}
+		const inputs = answeredOnly(values, effectiveFields);
 		setSubmitting(true);
 		setRefusal(null);
 		const results = await onSubmitInputs(inputs);
@@ -420,13 +504,26 @@ export function ApplicationStep({
 						A few details about the loan you're applying for. Your loan officer sees these as soon
 						as you send them.
 					</p>
+					{/* Keyed on the field list because `DynamicUserInputsFormFields`
+					    renders each field's renderer INLINE in a `.map`, so those
+					    renderers' hooks are its own: a list that grows mid-life
+					    changes its hook count and React aborts the form with #310.
+					    Remounting is safe — every answer lives in `values` here, and
+					    a renderer's own state is a transient editing buffer. */}
 					<DynamicUserInputsFormFields
+						key={adapted.map((f) => f.name).join("|")}
 						fields={adapted}
 						value={values}
 						errors={shownErrors}
 						onChange={(key, value) => {
-							setValues((prev) => ({ ...prev, [key]: value }));
+							const next = { ...values, [key]: value };
+							setValues(next);
 							setTouched((prev) => ({ ...prev, [key]: true }));
+							// Only a `decides` field can move either list, so only one arms
+							// a round trip. The draft sent is every answer so far.
+							if (effectiveFields.find((f) => f.name === key)?.decides) {
+								schedulePreview(answeredOnly(next, effectiveFields));
+							}
 						}}
 						slots={{ defaultRenderer: (props) => portalFieldRenderer(props.field)(props) }}
 						classNames={{
@@ -477,7 +574,7 @@ export function ApplicationStep({
 						</output>
 					)}
 				</div>
-				<DocumentAsks documents={documents} />
+				<DocumentAsks documents={effectiveDocuments} />
 			</div>
 		</section>
 	);

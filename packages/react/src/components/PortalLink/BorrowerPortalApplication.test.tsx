@@ -43,6 +43,7 @@ const LOAN_AMOUNT = {
 	step: null,
 	options: [],
 	required_when: null,
+	decides: false,
 };
 
 const ANNUAL_RATE = {
@@ -58,6 +59,7 @@ const ANNUAL_RATE = {
 	step: 0.001,
 	options: [],
 	required_when: null,
+	decides: false,
 };
 
 /** The ONE field in the catalog that declares an `override.default`. It is here
@@ -76,6 +78,7 @@ const TERM_MONTHS = {
 	step: null,
 	options: [],
 	required_when: null,
+	decides: false,
 };
 
 /** The deciding input. Note `default: null` — the spec's server-side default of
@@ -98,6 +101,9 @@ const TRANSACTION_TYPE = {
 		{ value: "cash_out_refi", label: "Cash-Out Refi" },
 	],
 	required_when: null,
+	// Some `required_when` reads this field, so changing it can move both
+	// lists — which is exactly when a preview round-trip pays.
+	decides: true,
 };
 
 /** Advertised ONLY on the pass after `transaction_type: purchase` is stored.
@@ -116,6 +122,7 @@ const PURCHASE_PRICE = {
 	step: null,
 	options: [],
 	required_when: { field: "transaction_type", equals: "purchase" },
+	decides: false,
 };
 
 // ─── Wire fixtures: the product's document asks ──────────────────────────────
@@ -215,7 +222,11 @@ function hubSession(overrides: Record<string, unknown> = {}) {
 	});
 }
 
-function mountWith(session: Record<string, unknown>, submitIntent: Mock = vi.fn()) {
+function mountWith(
+	session: Record<string, unknown>,
+	submitIntent: Mock = vi.fn(),
+	previewForm?: Mock,
+) {
 	if (!submitIntent.getMockImplementation() && submitIntent.mock.results.length === 0) {
 		submitIntent.mockResolvedValue([]);
 	}
@@ -230,6 +241,7 @@ function mountWith(session: Record<string, unknown>, submitIntent: Mock = vi.fn(
 		operatorTyping: false,
 		sendTyping: vi.fn(),
 		loadMessagesBefore: vi.fn(),
+		previewForm,
 	});
 	const view = render(<BorrowerPortal token="tok" />);
 	return {
@@ -249,6 +261,7 @@ function mountWith(session: Record<string, unknown>, submitIntent: Mock = vi.fn(
 				operatorTyping: false,
 				sendTyping: vi.fn(),
 				loadMessagesBefore: vi.fn(),
+				previewForm,
 			});
 			view.rerender(<BorrowerPortal token="tok" />);
 		},
@@ -741,4 +754,105 @@ it("survives the loading -> loaded transition every real visit begins with", asy
 	// Positive control: the application step actually rendered. Without it this
 	// test would pass against a component that renders nothing at all.
 	expect(await screen.findByLabelText(/proposed loan amount/i)).toBeInTheDocument();
+});
+
+// ─── One pass: the server previews the form while it is being filled in ─────
+
+/** What `POST /portal/session/{id}/form-preview` answers once
+ * `transaction_type: purchase` is in the DRAFT but not yet saved: the deciding
+ * field STAYS (its answer is unsaved, so it is still pending) and its
+ * conditional dependant and document row have appeared. */
+function purchasePreview() {
+	return {
+		pending_inputs: [LOAN_AMOUNT, ANNUAL_RATE, TERM_MONTHS, TRANSACTION_TYPE, PURCHASE_PRICE],
+		required_documents: [...UNCONDITIONAL_DOCS, PURCHASE_DOC],
+	};
+}
+
+describe("one pass — the server resolves the form as it is filled in", () => {
+	it("previews when a decides field changes", async () => {
+		const user = userEvent.setup();
+		const previewForm = vi.fn().mockResolvedValue(purchasePreview());
+		mountWith(passOneSession(), vi.fn(), previewForm);
+
+		await user.selectOptions(screen.getByLabelText(TRANSACTION_TYPE.label), "purchase");
+
+		await waitFor(() => expect(previewForm).toHaveBeenCalledTimes(1));
+		// The draft it sends is the answers so far — including the one just made.
+		expect(previewForm.mock.calls[0][0]).toMatchObject({
+			transaction_type: "purchase",
+			proposed_term_months: 360,
+		});
+	});
+
+	it("does not preview when a non-decides field changes", async () => {
+		const user = userEvent.setup();
+		const previewForm = vi.fn().mockResolvedValue(purchasePreview());
+		mountWith(passOneSession(), vi.fn(), previewForm);
+
+		await user.type(screen.getByLabelText(LOAN_AMOUNT.label), "500000");
+		// Longer than the debounce: a round trip would have fired by now.
+		await new Promise((resolve) => setTimeout(resolve, 400));
+
+		expect(previewForm).not.toHaveBeenCalled();
+	});
+
+	it("replaces the fields and documents with the preview's", async () => {
+		const user = userEvent.setup();
+		const previewForm = vi.fn().mockResolvedValue(purchasePreview());
+		mountWith(passOneSession(), vi.fn(), previewForm);
+
+		expect(screen.queryByLabelText(PURCHASE_PRICE.label)).not.toBeInTheDocument();
+		expect(screen.queryByText(PURCHASE_DOC.label)).not.toBeInTheDocument();
+
+		await user.selectOptions(screen.getByLabelText(TRANSACTION_TYPE.label), "purchase");
+
+		// No second session, no rerender: the server answered the preview.
+		expect(await screen.findByLabelText(PURCHASE_PRICE.label)).toBeInTheDocument();
+		expect(screen.getByText(PURCHASE_DOC.label)).toBeInTheDocument();
+	});
+
+	it("keeps the values already typed when the field list is replaced", async () => {
+		const user = userEvent.setup();
+		const previewForm = vi.fn().mockResolvedValue(purchasePreview());
+		mountWith(passOneSession(), vi.fn(), previewForm);
+
+		await fillEverythingExceptTransactionType(user);
+		await user.selectOptions(screen.getByLabelText(TRANSACTION_TYPE.label), "purchase");
+		await screen.findByLabelText(PURCHASE_PRICE.label);
+
+		// The currency renderer re-formats from the stored number, which is the
+		// proof the value survived the list being replaced under it.
+		expect(screen.getByLabelText(LOAN_AMOUNT.label)).toHaveValue("$500,000.00");
+		expect(screen.getByLabelText(ANNUAL_RATE.label)).toHaveValue(6.5);
+		expect(screen.getByLabelText(TRANSACTION_TYPE.label)).toHaveValue("purchase");
+	});
+
+	it("submits every answer in one set_inputs", async () => {
+		const user = userEvent.setup();
+		const submitIntent = vi.fn().mockResolvedValue([]);
+		const previewForm = vi.fn().mockResolvedValue(purchasePreview());
+		mountWith(passOneSession(), submitIntent, previewForm);
+
+		await fillEverythingExceptTransactionType(user);
+		await user.selectOptions(screen.getByLabelText(TRANSACTION_TYPE.label), "purchase");
+		await user.type(await screen.findByLabelText(PURCHASE_PRICE.label), "650000");
+		await user.click(screen.getByRole("button", { name: /continue/i }));
+
+		expect(submitIntent).toHaveBeenCalledTimes(1);
+		expect(submitIntent.mock.calls[0][0]).toEqual([
+			{
+				type: "set_inputs",
+				params: {
+					inputs: {
+						proposed_loan_amount: 500000,
+						proposed_annual_rate: 0.065,
+						proposed_term_months: 360,
+						transaction_type: "purchase",
+						proposed_purchase_price: 650000,
+					},
+				},
+			},
+		]);
+	});
 });

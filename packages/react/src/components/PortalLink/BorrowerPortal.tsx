@@ -5,6 +5,7 @@ import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
 import { DateSeparator } from "../DateSeparator.js";
 import { Checklist } from "../Checklist/index.js";
+import { LoanStatusCard } from "../LoanStatus/index.js";
 import { ApplicationStep } from "./ApplicationStep.js";
 import type { components } from "@multiversal-ventures/lux-core";
 
@@ -55,6 +56,10 @@ export interface BorrowerPortalProps {
 	 * also signed in to the app) can retry with a credential that authorizes the
 	 * case. Omit for real borrowers. */
 	operatorTokenFallback?: () => Promise<string | null>;
+	/** Back to the borrower's own "My loans" dashboard. Given, the hub header
+	 * offers the control; omitted, there is nothing to go back to (a one-off
+	 * emailed link) and none is rendered. */
+	onBack?: () => void;
 }
 
 /**
@@ -63,7 +68,13 @@ export interface BorrowerPortalProps {
  * the next. On submit the link is consumed (expires); the next visit shows
  * "link unavailable". No login; the token is the auth.
  */
-export function BorrowerPortal({ token, className, onCreateAccount, operatorTokenFallback }: BorrowerPortalProps) {
+export function BorrowerPortal({
+	token,
+	className,
+	onCreateAccount,
+	operatorTokenFallback,
+	onBack,
+}: BorrowerPortalProps) {
 	const {
 		session,
 		loading,
@@ -75,6 +86,7 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 		operatorTyping,
 		sendTyping,
 		loadMessagesBefore,
+		previewForm,
 	} = usePortalSession(token, { operatorTokenFallback });
 	const fileRef = useRef<HTMLInputElement>(null);
 	const lastTyped = useRef(0);
@@ -312,6 +324,7 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 						productLabel={session.product_display_label}
 						stepNumber={stepNumber}
 						onSubmitInputs={(inputs) => submitIntent([{ type: "set_inputs", params: { inputs } }])}
+						onPreview={previewForm}
 					/>
 				) : stage === "account" ? (
 					<AccountStep
@@ -332,14 +345,39 @@ export function BorrowerPortal({ token, className, onCreateAccount, operatorToke
 
 	return (
 		<div className={`flex flex-col h-full mx-auto w-full max-w-2xl bg-white sm:border-x border-slate-200 shadow-sm ${className ?? ""}`}>
-			<header className="px-4 py-3 border-b border-slate-200">
-				<h1 className="font-semibold text-slate-900">
-					{session.requested_by || "Your documents"}
-				</h1>
-				<p className="text-xs text-slate-500">
-					{openRequests.length > 0 ? `${openRequests.length} request${openRequests.length > 1 ? "s" : ""} pending` : "All caught up"}
-				</p>
+			<header className="px-4 py-3 border-b border-slate-200 flex items-start justify-between gap-3">
+				<div className="min-w-0">
+					<h1 className="font-semibold text-slate-900">
+						{session.requested_by || "Your documents"}
+					</h1>
+					<p className="text-xs text-slate-500">
+						{openRequests.length > 0 ? `${openRequests.length} request${openRequests.length > 1 ? "s" : ""} pending` : "All caught up"}
+					</p>
+				</div>
+				{onBack && (
+					<button
+						type="button"
+						onClick={onBack}
+						className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+					>
+						My loans
+					</button>
+				)}
 			</header>
+
+			{/* PINNED, deliberately outside the scroll container below: the status
+			    is what the borrower came to read, and inside `overflow-y-auto` it
+			    would scroll away with the thread. Guarded because all three blocks
+			    are additive and nullable. */}
+			{session.loan_status && (
+				<div data-testid="loan-status-card" className="px-3 pt-3 bg-slate-50">
+					<LoanStatusCard
+						status={session.loan_status}
+						summary={session.loan_summary}
+						decision={session.decision}
+					/>
+				</div>
+			)}
 
 			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 bg-slate-50">
 				{loading && displayedThread.length === 0 ? (

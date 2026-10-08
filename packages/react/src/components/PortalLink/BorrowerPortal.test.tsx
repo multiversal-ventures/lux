@@ -360,3 +360,70 @@ describe("BorrowerPortal account step — onCreateAccount gating", () => {
 		expect(screen.getByRole("heading", { name: SIGN_STEP_HEADING })).toBeInTheDocument();
 	});
 });
+
+// ─── The loan status card and the "My loans" control ─────────────────────────
+
+/** The three additive session blocks, as a verified session carries them. */
+const LOAN_STATUS = {
+	key: "documents_needed",
+	label: "Additional documents needed",
+	tone: "warning",
+	description: "Your loan officer needs a few more documents.",
+	action_count: 2,
+};
+
+const LOAN_SUMMARY = {
+	property_label: "412 Alder St, Portland OR",
+	product_label: "DSCR (Investment Property)",
+	fields: [{ label: "Loan amount", display: "$420,000" }],
+};
+
+function mountHub(overrides: Record<string, unknown> = {}, props: { onBack?: () => void } = {}) {
+	mockUsePortalSession.mockReturnValue({
+		session: step4Session(overrides),
+		loading: false,
+		error: null,
+		uploadError: null,
+		clearUploadError: vi.fn(),
+		submitIntent: vi.fn(),
+		uploadDocuments: vi.fn(),
+		operatorTyping: false,
+		sendTyping: vi.fn(),
+		loadMessagesBefore: vi.fn(),
+	});
+	return render(<BorrowerPortal token="tok" onBack={props.onBack} />);
+}
+
+describe("BorrowerPortal loan status card", () => {
+	it("pins the loan status card above the thread", () => {
+		const { container } = mountHub({ loan_status: LOAN_STATUS, loan_summary: LOAN_SUMMARY });
+
+		const card = screen.getByTestId("loan-status-card");
+		expect(card).toBeInTheDocument();
+		expect(screen.getByText("Additional documents needed")).toBeInTheDocument();
+
+		// A card inside the scroll container would scroll away with the thread.
+		const scroller = container.querySelector(".overflow-y-auto") as HTMLElement;
+		expect(scroller).toBeTruthy();
+		expect(scroller.contains(card)).toBe(false);
+	});
+
+	it("renders no status card when the session has no loan_status", () => {
+		// An older veritas, or a case with no portal party: the three fields are
+		// additive and nullable, and the hub must render without them.
+		mountHub();
+		expect(screen.queryByTestId("loan-status-card")).not.toBeInTheDocument();
+	});
+
+	it("shows a My loans control when onBack is given", async () => {
+		const onBack = vi.fn();
+		mountHub({ loan_status: LOAN_STATUS }, { onBack });
+		await userEvent.click(screen.getByRole("button", { name: /my loans/i }));
+		expect(onBack).toHaveBeenCalledTimes(1);
+	});
+
+	it("shows none when it is not", () => {
+		mountHub({ loan_status: LOAN_STATUS });
+		expect(screen.queryByRole("button", { name: /my loans/i })).not.toBeInTheDocument();
+	});
+});

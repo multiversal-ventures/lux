@@ -34,6 +34,7 @@ import { clockTime, isSameDay } from "../../timeAgo.js";
 import { Avatar } from "../Avatar.js";
 import { DateSeparator } from "../DateSeparator.js";
 import { WebcamCaptureModal } from "../WebcamCaptureModal.js";
+import { LoanDecisionPanel } from "./LoanDecisionPanel.js";
 import type { PartyMentionRef } from "./PartyHub.js";
 
 type ThreadItem = PartyView["thread"][number];
@@ -396,6 +397,10 @@ export function PartyDetail({
 					<X size={16} />
 				</button>
 			</header>
+
+			{/* The decision is case-level, so the same panel is pinned under every
+			    party's header. */}
+			<LoanDecisionPanel caseId={caseId} />
 
 			{/* Conversation — the main area (always; the profile now lives in the sidebar) */}
 			<>

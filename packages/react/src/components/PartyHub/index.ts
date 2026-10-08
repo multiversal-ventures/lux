@@ -8,3 +8,5 @@ export { RequestComposer } from "./RequestComposer.js";
 export { PartyDetail } from "./PartyDetail.js";
 export { PartyProfilePanel } from "./PartyProfilePanel.js";
 export { AddPartyPanel } from "./AddPartyPanel.js";
+export { LoanDecisionPanel } from "./LoanDecisionPanel.js";
+export type { LoanDecisionPanelProps } from "./LoanDecisionPanel.js";

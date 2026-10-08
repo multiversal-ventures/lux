@@ -142,6 +142,10 @@ export type { LoanStatusCardProps } from "./components/LoanStatus/index.js";
 export { BorrowerLoansTable } from "./components/LoanStatus/index.js";
 export type { BorrowerLoansTableProps } from "./components/LoanStatus/index.js";
 
+// The officer's publish action — the only path a decision takes to a borrower.
+export { LoanDecisionPanel } from "./components/PartyHub/index.js";
+export type { LoanDecisionPanelProps } from "./components/PartyHub/index.js";
+
 // Scenario compound component system
 export {
   CaseScenarioProvider,

@@ -4,24 +4,47 @@
  */
 
 export interface paths {
-    "/api/auth/me": {
+    "/api/ai/specs/generate": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Auth Me
-         * @description Return the authenticated caller's identity and tenant status.
-         *
-         *     Used by frontends to determine: who am I, do I have a tenant,
-         *     what's my role? The response shape is intentionally flat and
-         *     stable — frontends depend on it.
-         */
-        get: operations["auth_me_api_auth_me_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Generate Spec
+         * @description Generate a Veritas spec YAML from a plain-text product description.
+         *
+         *     Restricted to tenant/operator scope — the same gate every spec-lifecycle
+         *     endpoint in ``api/specs.py`` (create / submit / approve / reject / retire)
+         *     uses. AI-assisted generation is part of the same authoring surface.
+         */
+        post: operations["generate_spec_api_ai_specs_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/specs/generate/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Spec Stream
+         * @description Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.
+         *     Final event is a line starting with META: followed by JSON {name, domain, version}.
+         *
+         *     Tenant/operator only — see ``generate_spec`` for the trust-boundary rationale.
+         */
+        post: operations["generate_spec_stream_api_ai_specs_generate_stream_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -51,6 +74,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Me
+         * @description Return the authenticated caller's identity and tenant status.
+         *
+         *     Used by frontends to determine: who am I, do I have a tenant,
+         *     what's my role? The response shape is intentionally flat and
+         *     stable — frontends depend on it.
+         */
+        get: operations["auth_me_api_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/tenant/join": {
         parameters: {
             query?: never;
@@ -71,413 +118,6 @@ export interface paths {
          *     - Code validation + consume is atomic in the repo.
          */
         post: operations["join_tenant_with_code_api_auth_tenant_join_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Case Audit
-         * @description Full audit trail for a case. Restricted to tenant/operator scope.
-         */
-        get: operations["get_case_audit_api_cases__case_id__audit_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/audit/specs/{spec_name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Spec Audit
-         * @description Audit trail for a specific spec within a case. Restricted to tenant/operator scope.
-         */
-        get: operations["get_spec_audit_api_cases__case_id__audit_specs__spec_name__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/audit/functions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Case Function Calls
-         * @description All domain function calls for a case — for compliance queries.
-         *
-         *     Restricted to tenant/operator scope: portal callers should not introspect
-         *     the calculation audit trail.
-         */
-        get: operations["get_case_function_calls_api_cases__case_id__audit_functions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Session
-         * @description Validate a portal token and return the composed session.
-         *
-         *     This is the primary entry point for entity-facing UIs. One call
-         *     returns everything the portal needs: entity info, checklist,
-         *     consent state, verification level, and upload config.
-         *
-         *     The token is read from the ``X-Portal-Token`` header (preferred — keeps it
-         *     out of access logs and browser history). The ``?token=`` query param is
-         *     accepted as a legacy fallback for SSE / iframe surfaces that can't set
-         *     headers.
-         */
-        get: operations["get_session_api_portal_session_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/session/{session_id}/intents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit Intents
-         * @description Execute a batch of typed intents and return the refreshed session.
-         *
-         *     Intents execute in array order. If one fails, remaining intents
-         *     are skipped and partial results are returned with the error. Auth is the
-         *     portal token (X-Portal-Token header preferred) — the same direct-validation
-         *     path as GET /session, so the public no-login portal works without tenant
-         *     context (resolve_caller's within-tenant path 401s for borrower callers).
-         */
-        post: operations["submit_intents_api_portal_session__session_id__intents_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/session/{session_id}/messages": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Portal Messages
-         * @description Older page of the borrower's own portal thread.
-         *
-         *     The cursor is ``(before, before_seq)`` — the timestamp and ``seq`` of the
-         *     first visible item of the page the client already holds. ``before_seq`` is
-         *     ADDITIVE: a client sending ``before`` alone keeps working exactly as before,
-         *     it just cannot page cleanly through messages that share a timestamp
-         *     (everything one request wrote), which is the bug ``seq`` exists to close.
-         *     Send both.
-         */
-        get: operations["portal_messages_api_portal_session__session_id__messages_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/claim-account": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Claim Account
-         * @description Attach a Firebase account to the borrower's portal — token-gated.
-         *
-         *     Auth is the borrower's CURRENT portal token (proves they're the borrower for
-         *     this party); the Firebase id token is verified only to capture a trusted uid.
-         *     Upserts a ``users`` row with role=borrower and links the party's
-         *     account_user_id, so future magic-link logins resolve to this account. NOT a
-         *     JWT-authed endpoint, so it never hits the operator auto-provision path.
-         */
-        post: operations["claim_account_api_portal_claim_account_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/my-cases": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * My Cases
-         * @description Cases the signed-in borrower (magic-link account) can access, each with a
-         *     fresh/reused portal token so the existing token-based portal still drives it.
-         */
-        get: operations["my_cases_api_portal_my_cases_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Portal Stream
-         * @description Real-time portal stream for the borrower (token-authed). Emits MINIMAL
-         *     pings only (event type + typing actor) — never event_data — so nothing
-         *     internal/PII leaks; the client refetches the gated session for content.
-         */
-        get: operations["portal_stream_api_portal_stream_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/portal/typing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Portal Typing
-         * @description Borrower typing signal — transient, broadcast to the operator stream.
-         */
-        post: operations["portal_typing_api_portal_typing_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tenants/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register Tenant
-         * @description Register a new tenant. Returns API credentials — save the client_secret, it is shown once.
-         */
-        post: operations["register_tenant_api_tenants_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tenants/credentials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Credential
-         * @description Create an additional API credential for the authenticated tenant.
-         *
-         *     Restricted to tenant/operator callers — portal/entity tokens cannot mint
-         *     tenant credentials (would be a privilege escalation from PORTAL_PERMS).
-         */
-        post: operations["create_credential_api_tenants_credentials_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/integrations/{provider}/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register Integration
-         * @description Self-serve registration for a push provider (e.g. brook). Creates the
-         *     tenant + credential and stores the provider's callback creds. Returns the
-         *     tenant API credential — the secret is shown once.
-         */
-        post: operations["register_integration_api_integrations__provider__register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/integrations/{provider}/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Login
-         * @description Redirect the lender to the provider's OAuth consent screen.
-         */
-        get: operations["login_api_integrations__provider__login_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/integrations/{provider}/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Callback
-         * @description Exchange the code, register the tenant, and wire both directions.
-         */
-        get: operations["callback_api_integrations__provider__callback_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/integrations/{provider}/landing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Landing Page */
-        get: operations["landing_page_api_integrations__provider__landing_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/integrations/{provider}/viewer": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Viewer Page */
-        get: operations["viewer_page_api_integrations__provider__viewer_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/integrations/{provider}/signup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Signup */
-        post: operations["signup_api_integrations__provider__signup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/portal/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Upload Page */
-        get: operations["upload_page_portal_upload_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -515,34 +155,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal-token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Mint Portal Token
-         * @description Mint a borrower portal token for a case. Tenant/operator only.
-         *
-         *     Lets an external app (e.g. the Brook Salesforce package) send a borrower a
-         *     secure upload link before any documents exist. Resolves the case's borrower
-         *     person (creating a stub when identity resolution has not run), then the
-         *     portal party for that person — adopting an unclaimed one, creating one only
-         *     when there is none to adopt — and issues a time-limited token scoped to
-         *     (party, case, role); identity rides along as metadata. The caller composes
-         *     the borrower-facing URL — the portal host is never hardcoded here.
-         */
-        post: operations["mint_portal_token_api_cases__case_id__portal_token_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/cases/{case_id}": {
         parameters: {
             query?: never;
@@ -574,7 +186,171 @@ export interface paths {
         patch: operations["update_case_api_cases__case_id__patch"];
         trace?: never;
     };
-    "/api/cases/{case_id}/reprocess": {
+    "/api/cases/{case_id}/attestation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the signed attestation artifact for a case
+         * @description Return the case's Signed Tree Head as a signed in-toto attestation.
+         *
+         *     The artifact carries the in-toto Statement (subject = source documents,
+         *     predicate = the Merkle Signed Tree Head), a detached signature, the schema
+         *     catalog, a compact JWS for offline verification, and the issuer public JWK.
+         *
+         *     Pass ``?format=jws`` to receive only ``{"jws": "<compact-jws>"}`` — useful
+         *     for clients that verify the JWS directly without the expanded artifact.
+         *
+         *     Errors: 409 when the case is not finalized, 422 when its audit log is empty,
+         *     404 when the case does not exist, 404/403 when the caller may not access it.
+         */
+        get: operations["get_attestation_api_cases__case_id__attestation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Case Audit
+         * @description Full audit trail for a case. Restricted to tenant/operator scope.
+         */
+        get: operations["get_case_audit_api_cases__case_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/audit/functions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Case Function Calls
+         * @description All domain function calls for a case — for compliance queries.
+         *
+         *     Restricted to tenant/operator scope: portal callers should not introspect
+         *     the calculation audit trail.
+         */
+        get: operations["get_case_function_calls_api_cases__case_id__audit_functions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/audit/specs/{spec_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Spec Audit
+         * @description Audit trail for a specific spec within a case. Restricted to tenant/operator scope.
+         */
+        get: operations["get_spec_audit_api_cases__case_id__audit_specs__spec_name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/banking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Banking
+         * @description Return per-account + per-borrower banking rollups for a case.
+         */
+        get: operations["get_banking_api_cases__case_id__banking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/banking/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Banking Transactions
+         * @description Return all classified transactions for a case.
+         *
+         *     Reads from the parquet written after Phase 4 (classification + transfer
+         *     detection). Returns empty if banking has not completed or the case has
+         *     not been (re)processed since classified-transaction persistence was added.
+         */
+        get: operations["get_banking_transactions_api_cases__case_id__banking_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/consistency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a Merkle consistency proof between two tree sizes
+         * @description Return a Merkle consistency proof between sizes ``from`` and ``to``.
+         *
+         *     Proves the audit log at the smaller size is an untampered prefix of the log
+         *     at the larger size — the append-only guarantee. Both roots are returned so
+         *     a verifier can confirm each independently.
+         *
+         *     Errors: 400 for an invalid range (require ``1 <= from <= to <= tree_size``),
+         *     404 when the case does not exist, 409 when the case is not finalized.
+         */
+        get: operations["get_consistency_proof_api_cases__case_id__consistency_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/decision": {
         parameters: {
             query?: never;
             header?: never;
@@ -584,19 +360,21 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Reprocess Case
-         * @description Re-run the full pipeline (classify → extract → identify → qualify) on an already-uploaded case.
+         * Publish Case Decision
+         * @description Publish the officer's decision to the borrower.
          *
-         *     Skips intake — uses files and pages already in the DB and FileStore.
+         *     The only thing that puts an approval in front of a borrower. Writes the
+         *     decision row, one thread message per portal party, and the
+         *     ``qualification.operator.decided`` audit event — all in one transaction.
          */
-        post: operations["reprocess_case_api_cases__case_id__reprocess_post"];
+        post: operations["publish_case_decision_api_cases__case_id__decision_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/suggested_products": {
+    "/api/cases/{case_id}/decision/draft": {
         parameters: {
             query?: never;
             header?: never;
@@ -604,18 +382,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Suggested Products
-         * @description Return the document-driven product suggestion persisted on the case.
+         * Decision Draft
+         * @description What to prefill the officer's decision form with.
          *
-         *     Populated by the post-stitch hook (see
-         *     ``temporal.activities.stitch.stitch_activity``). Returns an empty list
-         *     when stitch hasn't run yet — the UI should fall back to showing the
-         *     full product list from ``GET /products`` in that case.
-         *
-         *     Lux subscribes to the ``case.products.suggested`` SSE event to
-         *     live-update when the suggestion arrives during the upload flow.
+         *     Reads nothing and writes nothing of its own: the terms, the suggested
+         *     outcome, the outstanding conditions and the borrower's current status all
+         *     come from ``load_draft``.
          */
-        get: operations["get_suggested_products_api_cases__case_id__suggested_products_get"];
+        get: operations["decision_draft_api_cases__case_id__decision_draft_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -624,7 +398,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pos-portals": {
+    "/api/cases/{case_id}/decisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -632,58 +406,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Pos Portals
-         * @description This tenant's portals, newest first. Includes deactivated ones.
-         */
-        get: operations["list_pos_portals_api_pos_portals_get"];
-        put?: never;
-        /**
-         * Create Pos Portal
-         * @description Publish a reusable, product-scoped intake link for this tenant.
-         */
-        post: operations["create_pos_portal_api_pos_portals_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/pos-portals/{pos_portal_id}/cases": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Pos Portal Cases
-         * @description The applications one published link produced, newest first.
+         * Decision History
+         * @description Every decision published on this case, newest first.
          *
-         *     **Why this route exists rather than a flag on the operator queue.** A POS
-         *     case is born ``awaiting_verification``, which ``CaseRepo.list_cases``
-         *     excludes by default (``HIDDEN_FROM_QUEUE_STATES``) because an applicant who
-         *     has not proved control of their address is not queue work. That default is
-         *     left exactly as it is: this route reads ``CaseRepo.list_by_origin``, a
-         *     separate query whose whole purpose is those rows. Widening ``GET /api/cases``
-         *     with an ``exclude_states`` parameter would have moved the hidden-state
-         *     decision into a client argument and changed the queue's contract for every
-         *     caller; the counting reads (``count_in_flight`` for billing,
-         *     ``count_for_admission`` for the door) are untouched either way — neither
-         *     reads this route or its repo method.
-         *
-         *     Scoped twice, deliberately: ``get_for_tenant`` proves the portal is the
-         *     caller's (404 rather than 403 for another tenant's id, matching
-         *     ``update_pos_portal`` so this route cannot be used to probe which ids
-         *     exist), and ``list_by_origin`` puts ``tenant_id`` in the WHERE clause as
-         *     well. Isolation does not rest on one check.
-         *
-         *     Parties come back with the case because that is what the resend action is
-         *     addressed by — ``POST /api/cases/{case_id}/portal/parties/{party_id}/
-         *     resend-code``. The access code is NOT here and is not derivable from
-         *     anything here; the operator can command a re-send to the address on file and
-         *     nothing more.
+         *     Append-only: a correction is a new row, so this is the audit trail an
+         *     operator (and a regulator) reads. ``current_status`` is the same derivation
+         *     the draft route and the borrower's own page answer from.
          */
-        get: operations["list_pos_portal_cases_api_pos_portals__pos_portal_id__cases_get"];
+        get: operations["decision_history_api_cases__case_id__decisions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -692,7 +422,467 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pos-portals/{pos_portal_id}": {
+    "/api/cases/{case_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Documents
+         * @description List documents for a case, joined with source File for filename.
+         */
+        get: operations["list_documents_api_cases__case_id__documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/documents/{doc_id}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Transactions
+         * @description Return all parquet-backed transaction rows for a document,
+         *     grouped by the region/page that produced them.
+         */
+        get: operations["list_transactions_api_cases__case_id__documents__doc_id__transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Entities
+         * @description List all entity groups for a case, including their document IDs.
+         */
+        get: operations["list_entities_api_cases__case_id__entities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/entities/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Entities
+         * @description Merge source entity group into target. Moves all docs, deletes source.
+         */
+        post: operations["merge_entities_api_cases__case_id__entities_merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/entities/{entity_group_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Entity
+         * @description Confirm an entity group, marking it as operator-confirmed.
+         */
+        post: operations["confirm_entity_api_cases__case_id__entities__entity_group_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Events
+         * @description Return the audit event history for a case, optionally filtered by event_type.
+         */
+        get: operations["get_events_api_cases__case_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/events/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Events
+         * @description SSE stream of case events. Polls Postgres by event_id cursor.
+         *
+         *     Clients connect and receive events as they arrive:
+         *         data: {"event_id": 1, "event_type": "qualify.spec.evaluated", ...}
+         *
+         *     Pass ``?cursor=N`` to start from event_id N+1 (exclusive). The client
+         *     should backfill historical events via ``GET /events`` first, record the
+         *     last event_id, then open this stream with ``?cursor=<last_id>``. This
+         *     prevents the stream from replaying historical ``case.system.completed``
+         *     events on every reconnect — which would cause an immediate ``stream.end``
+         *     even though the case is still receiving refinement events.
+         */
+        get: operations["stream_events_api_cases__case_id__events_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/events/{event_id}/proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a Merkle inclusion proof for one audit event
+         * @description Return a Merkle inclusion (audit) proof that ``event_id`` is in the tree.
+         *
+         *     The proof's ``leaf`` is the base64url-encoded canonical leaf payload bytes
+         *     (the exact bytes that were hashed); clients re-hash it and walk
+         *     ``audit_path`` to reconstruct ``merkle_root``.
+         *
+         *     Errors: 404 when the case or the event does not exist, 409 when the case is
+         *     not finalized, 422 when its audit log is empty.
+         */
+        get: operations["get_inclusion_proof_api_cases__case_id__events__event_id__proof_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/extractions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Extractions
+         * @description List extractions (with sources) for a case.
+         *
+         *     Filters (in priority order):
+         *       ?doc_id=   — single document
+         *       ?doc_type= — all docs of this type (optionally narrowed by ?tax_year=)
+         *       (none)     — all docs in the case
+         */
+        get: operations["list_extractions_api_cases__case_id__extractions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/extractions/structured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Structured Extractions
+         * @description Return extractions grouped into ontology regions for a document type.
+         *
+         *     Loads the ontology (DB-first, disk fallback) and assembles per-document
+         *     structured views that organise field/row extractions by region.
+         *
+         *     Filters:
+         *       ?doc_type=<str>         — required; selects all docs of this type
+         *       &doc_id=<uuid>          — optional; narrows to a single document
+         */
+        get: operations["list_structured_extractions_api_cases__case_id__extractions_structured_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Files
+         * @description List uploaded files for a case.
+         */
+        get: operations["list_files_api_cases__case_id__files_get"];
+        put?: never;
+        /**
+         * Upload Files
+         * @description Upload documents (PDF/PNG/JPG/HEIC) to a case and trigger the intake → extract → identify pipeline.
+         *
+         *     Accepts both tenant auth and portal token auth. ``authorized_case_id``
+         *     rejects portal callers asking for a case other than the one their token
+         *     was minted for *before* any DB read; ``verify_case_access`` is kept as
+         *     the cross-tenant defense once the case row is loaded. Caller must carry
+         *     the ``write:files`` permission (PORTAL_PERMS / TENANT_PERMS).
+         */
+        post: operations["upload_files_api_cases__case_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/files/download-zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Files Zip
+         * @description Download all uploaded files for a case as a single ZIP archive.
+         *
+         *     The archive is cached in Redis after the first build and served from
+         *     cache on subsequent requests. The cache is invalidated automatically
+         *     when new files are uploaded (``POST /files``). A TTL backstop (default
+         *     1 hour, override with ``ZIP_CACHE_TTL`` env var) ensures stale entries
+         *     never linger indefinitely.
+         *
+         *     Files are fetched from the file store by content hash. Files missing
+         *     from storage are skipped with a warning rather than failing the whole
+         *     download.
+         */
+        get: operations["download_files_zip_api_cases__case_id__files_download_zip_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/files/{file_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download File
+         * @description Stream the original PDF for a file.
+         */
+        get: operations["download_file_api_cases__case_id__files__file_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/files/{file_id}/pages/{page_number}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Page Png
+         * @description Return the PNG bytes for a given (case, file, page_number) triple.
+         */
+        get: operations["get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Identities
+         * @description List borrower identities for a case: persons + entities + financial institutions.
+         *
+         *     By default returns the flat case-level view. Pass
+         *     ``?scenario_id=...`` to filter through the active product's
+         *     ``borrowers:`` assembly so the response matches what the scenario's
+         *     Borrowers tab shows (e.g. DSCR returns a property primary with
+         *     landlord-person relationships, no tenants).
+         *
+         *     Results are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.
+         *     The cache key includes ``scenario_id`` when present so scenario-
+         *     pinned and unfiltered results don't share state.
+         */
+        get: operations["list_identities_api_cases__case_id__identities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Overview
+         * @description Full operator Party Hub view: parties, threads, verification, docs.
+         */
+        get: operations["portal_overview_api_cases__case_id__portal_get"];
+        put?: never;
+        /**
+         * Create Portal Link
+         * @description Issue a single-use, 48h borrower portal token for a case, with an
+         *     optional document/follow-up request the borrower portal renders.
+         *
+         *     Tenant/operator only — portal callers cannot mint links. Ties the token to
+         *     the case's primary borrower entity so the borrower opens a no-login portal
+         *     scoped to their own case. The operator's selected follow-up/completeness
+         *     items + custom items + message are persisted as a ``portal_request`` and
+         *     shown on the borrower portal, attributed to the requesting tenant. Returns
+         *     the token + expiry; the client builds the shareable URL.
+         */
+        post: operations["create_portal_link_api_cases__case_id__portal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint Portal Token
+         * @description Mint a borrower portal token for a case. Tenant/operator only.
+         *
+         *     Lets an external app (e.g. the Brook Salesforce package) send a borrower a
+         *     secure upload link before any documents exist. Resolves the case's borrower
+         *     person (creating a stub when identity resolution has not run), then the
+         *     portal party for that person — adopting an unclaimed one, creating one only
+         *     when there is none to adopt — and issues a time-limited token scoped to
+         *     (party, case, role); identity rides along as metadata. The caller composes
+         *     the borrower-facing URL — the portal host is never hardcoded here.
+         */
+        post: operations["mint_portal_token_api_cases__case_id__portal_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Candidates
+         * @description Case borrowers not yet engaged as portal parties (add-party picker).
+         */
+        get: operations["portal_candidates_api_cases__case_id__portal_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Party
+         * @description Create a portal party on the case (optionally pre-linked to an identity).
+         */
+        post: operations["add_party_api_cases__case_id__portal_parties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -702,19 +892,302 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete Party
+         * @description Remove a party (and its thread) from a case's portal.
+         */
+        delete: operations["delete_party_api_cases__case_id__portal_parties__party_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach Document
+         * @description Set a party's role on a case document (e.g. 'borrower on bank_statement').
+         */
+        post: operations["attach_document_api_cases__case_id__portal_parties__party_id__documents_post"];
         delete?: never;
         options?: never;
         head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /**
-         * Update Pos Portal
-         * @description Soft-disable (or re-enable) a portal.
-         *
-         *     There is no DELETE. Cases already created through the link keep their
-         *     ``cases.origin = 'pos:<slug>'`` provenance and keep running; only new
-         *     applications are refused. 404 — not 403 — for another tenant's portal id,
-         *     so this route cannot be used to probe which ids exist.
+         * Link Party
+         * @description Link a party to a resolved case identity (the confidence link).
          */
-        patch: operations["update_pos_portal_api_pos_portals__pos_portal_id__patch"];
+        post: operations["link_party_api_cases__case_id__portal_parties__party_id__link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Party Messages
+         * @description Older/newer page of one party's composed thread.
+         *
+         *     Initial overview carries only the latest slice; this endpoint pages backward
+         *     from the first visible item while keeping upload bubbles in chronological
+         *     order with request/reply rows.
+         *
+         *     The cursor is ``(before, before_seq)`` — the first visible item's timestamp
+         *     and ``seq``. ``before_seq`` is ADDITIVE: existing clients send ``before``
+         *     alone and keep working exactly as before. They just cannot page cleanly
+         *     through messages that share a timestamp (everything one request wrote),
+         *     which is the bug ``seq`` exists to close, so clients should send both.
+         */
+        get: operations["party_messages_api_cases__case_id__portal_parties__party_id__messages_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Clear Party Thread
+         * @description Clear a party's conversation thread (operator 'delete chat to resend').
+         *
+         *     Keeps the party + their portal link/code; only wipes the messages and resets
+         *     the captured email so the borrower can re-do the account/email step. Lets the
+         *     operator start the conversation over without removing the person.
+         */
+        delete: operations["clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/messages/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Party Message
+         * @description Operator soft-deletes one of their OWN messages from a party's thread.
+         *
+         *     Own-only: the operator may delete ONLY operator-authored messages — never a
+         *     borrower's message. Guarded against IDOR: case access is verified, the
+         *     message must exist, belong to the URL party, and that party must belong to
+         *     the URL case. Upload bubbles are synthesized from events (non-row ids), so
+         *     ``get_message`` returns None for them — they 404 here and stay undeletable.
+         *     The delete is SOFT (``deleted_at`` set, row kept) so the thread shows a
+         *     tombstone. After delete, publishes ``portal.thread_changed`` so both sides
+         *     refetch.
+         */
+        delete: operations["delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Edit Party Message
+         * @description Operator edits the body of one of their OWN messages on a party's thread.
+         *
+         *     Own-only: only operator-authored messages may be edited — never a borrower's.
+         *     Guarded against IDOR: case access is verified, the message must exist, belong
+         *     to the URL party, and that party must belong to the URL case. A deleted
+         *     message can't be edited (404 — its content is gone). An empty/whitespace body
+         *     is rejected (422). After the edit, publishes ``portal.thread_changed`` so
+         *     both sides refetch.
+         */
+        patch: operations["edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch"];
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Party Profile
+         * @description Operator "what we know about this party" profile panel.
+         *
+         *     Identity, masked identifiers (tail only — never the full SSN/EIN), contact/
+         *     address facts pulled from the documents the party appears on, where they're
+         *     mentioned, and lifecycle status. Every enrichment is best-effort: a party
+         *     with no linked identity still returns name/role/status/documents.
+         *
+         *     IDOR-guarded: the URL party must belong to the URL case (tenant proved
+         *     transitively by ``verify_case_access``).
+         */
+        get: operations["party_profile_api_cases__case_id__portal_parties__party_id__profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Thread Read
+         * @description Operator marks a party's borrower messages as read → ✓✓ on the borrower side.
+         *
+         *     Stamps ``read_at`` on this party's unread borrower-authored messages. When
+         *     anything actually flipped, publishes a transient ``portal.read`` signal to
+         *     the borrower's stream so their receipts update live (same mechanism as the
+         *     typing indicator). Idempotent — re-reading an already-read thread is a no-op.
+         */
+        post: operations["mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue Link
+         * @description Regenerate a party's 5-digit access code (and reset the attempt counter).
+         *
+         *     A borrower who fumbled the code 5 times is locked out, or the operator just
+         *     wants a fresh code to share. Mints a NEW random 5-digit code on the active
+         *     token and clears attempts — the link (token) is unchanged, only the code the
+         *     borrower types. Returns the new code so the operator can read it out.
+         */
+        post: operations["reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/parties/{party_id}/resend-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Access Code
+         * @description Re-send the borrower's existing 5-digit access code to their own address.
+         *
+         *     The stuck-borrower remedy: a POS applicant whose first email never arrived
+         *     has an application nobody can reach, because the code lives only in
+         *     ``portal_tokens.access_code``.
+         *
+         *     **Resend, never reveal.** The code is not in the response, not in the log,
+         *     and not derivable from either — see ``ResendCodeResponse``. Nor can the
+         *     operator supply or change the destination: there is deliberately NO request
+         *     body, so the address is whatever ``portal_parties.email`` already holds, and
+         *     the refusal in ``code_email._recipient_was_substituted`` still applies —
+         *     an address written through the borrower's own link after party creation is
+         *     refused here exactly as it is for the borrower's ``request_code`` intent.
+         *     Without that, this route would be the bypass that rule exists to prevent.
+         *
+         *     Sibling comparison, because it is easy to misread this route as stricter
+         *     than it is: ``reissue_link`` above MINTS a new code and returns it to the
+         *     operator, by design and unchanged. What is guarded here is the resend of the
+         *     EXISTING code — the one an unverified borrower may already hold — not the
+         *     operator's ability to hand out a fresh one.
+         *
+         *     Every refusal is a status code, never a 200 with a sad sentence: an operator
+         *     resending into a reaped case must not read like a success.
+         */
+        post: operations["resend_access_code_api_cases__case_id__portal_parties__party_id__resend_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Portal Request
+         * @description Append a request to a party's portal thread, reusing its active token.
+         *
+         *     The token is keyed by ``party_id``, so even an unmapped party (no linked
+         *     identity) can be messaged immediately — it always has a portal token. The
+         *     linked identity, when present, is carried into the token as metadata.
+         */
+        post: operations["send_portal_request_api_cases__case_id__portal_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/portal/requests/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Portal Request
+         * @description AI-draft a borrower-friendly request message. Creates no message/event.
+         *
+         *     Durable when Temporal is up: starts ``PreparePartyAIMessageWorkflow`` (which
+         *     retries the AI step and caches the draft on the party's prepared row),
+         *     resolved to the case's latest prepared party. Falls back to calling
+         *     ``draft_request_text`` directly when Temporal is down or no prepared party
+         *     exists. Response shape (``{text}``) is unchanged either way.
+         */
+        post: operations["draft_portal_request_api_cases__case_id__portal_requests_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/cases/{case_id}/portal/status": {
@@ -799,366 +1272,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Portal Overview
-         * @description Full operator Party Hub view: parties, threads, verification, docs.
-         */
-        get: operations["portal_overview_api_cases__case_id__portal_get"];
-        put?: never;
-        /**
-         * Create Portal Link
-         * @description Issue a single-use, 48h borrower portal token for a case, with an
-         *     optional document/follow-up request the borrower portal renders.
-         *
-         *     Tenant/operator only — portal callers cannot mint links. Ties the token to
-         *     the case's primary borrower entity so the borrower opens a no-login portal
-         *     scoped to their own case. The operator's selected follow-up/completeness
-         *     items + custom items + message are persisted as a ``portal_request`` and
-         *     shown on the borrower portal, attributed to the requesting tenant. Returns
-         *     the token + expiry; the client builds the shareable URL.
-         */
-        post: operations["create_portal_link_api_cases__case_id__portal_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Party Profile
-         * @description Operator "what we know about this party" profile panel.
-         *
-         *     Identity, masked identifiers (tail only — never the full SSN/EIN), contact/
-         *     address facts pulled from the documents the party appears on, where they're
-         *     mentioned, and lifecycle status. Every enrichment is best-effort: a party
-         *     with no linked identity still returns name/role/status/documents.
-         *
-         *     IDOR-guarded: the URL party must belong to the URL case (tenant proved
-         *     transitively by ``verify_case_access``).
-         */
-        get: operations["party_profile_api_cases__case_id__portal_parties__party_id__profile_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/messages": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Party Messages
-         * @description Older/newer page of one party's composed thread.
-         *
-         *     Initial overview carries only the latest slice; this endpoint pages backward
-         *     from the first visible item while keeping upload bubbles in chronological
-         *     order with request/reply rows.
-         *
-         *     The cursor is ``(before, before_seq)`` — the first visible item's timestamp
-         *     and ``seq``. ``before_seq`` is ADDITIVE: existing clients send ``before``
-         *     alone and keep working exactly as before. They just cannot page cleanly
-         *     through messages that share a timestamp (everything one request wrote),
-         *     which is the bug ``seq`` exists to close, so clients should send both.
-         */
-        get: operations["party_messages_api_cases__case_id__portal_parties__party_id__messages_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Clear Party Thread
-         * @description Clear a party's conversation thread (operator 'delete chat to resend').
-         *
-         *     Keeps the party + their portal link/code; only wipes the messages and resets
-         *     the captured email so the borrower can re-do the account/email step. Lets the
-         *     operator start the conversation over without removing the person.
-         */
-        delete: operations["clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Send Portal Request
-         * @description Append a request to a party's portal thread, reusing its active token.
-         *
-         *     The token is keyed by ``party_id``, so even an unmapped party (no linked
-         *     identity) can be messaged immediately — it always has a portal token. The
-         *     linked identity, when present, is carried into the token as metadata.
-         */
-        post: operations["send_portal_request_api_cases__case_id__portal_requests_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/requests/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Draft Portal Request
-         * @description AI-draft a borrower-friendly request message. Creates no message/event.
-         *
-         *     Durable when Temporal is up: starts ``PreparePartyAIMessageWorkflow`` (which
-         *     retries the AI step and caches the draft on the party's prepared row),
-         *     resolved to the case's latest prepared party. Falls back to calling
-         *     ``draft_request_text`` directly when Temporal is down or no prepared party
-         *     exists. Response shape (``{text}``) is unchanged either way.
-         */
-        post: operations["draft_portal_request_api_cases__case_id__portal_requests_draft_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/candidates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Portal Candidates
-         * @description Case borrowers not yet engaged as portal parties (add-party picker).
-         */
-        get: operations["portal_candidates_api_cases__case_id__portal_candidates_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Add Party
-         * @description Create a portal party on the case (optionally pre-linked to an identity).
-         */
-        post: operations["add_party_api_cases__case_id__portal_parties_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/link": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Link Party
-         * @description Link a party to a resolved case identity (the confidence link).
-         */
-        post: operations["link_party_api_cases__case_id__portal_parties__party_id__link_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/reissue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reissue Link
-         * @description Regenerate a party's 5-digit access code (and reset the attempt counter).
-         *
-         *     A borrower who fumbled the code 5 times is locked out, or the operator just
-         *     wants a fresh code to share. Mints a NEW random 5-digit code on the active
-         *     token and clears attempts — the link (token) is unchanged, only the code the
-         *     borrower types. Returns the new code so the operator can read it out.
-         */
-        post: operations["reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/resend-code": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resend Access Code
-         * @description Re-send the borrower's existing 5-digit access code to their own address.
-         *
-         *     The stuck-borrower remedy: a POS applicant whose first email never arrived
-         *     has an application nobody can reach, because the code lives only in
-         *     ``portal_tokens.access_code``.
-         *
-         *     **Resend, never reveal.** The code is not in the response, not in the log,
-         *     and not derivable from either — see ``ResendCodeResponse``. Nor can the
-         *     operator supply or change the destination: there is deliberately NO request
-         *     body, so the address is whatever ``portal_parties.email`` already holds, and
-         *     the refusal in ``code_email._recipient_was_substituted`` still applies —
-         *     an address written through the borrower's own link after party creation is
-         *     refused here exactly as it is for the borrower's ``request_code`` intent.
-         *     Without that, this route would be the bypass that rule exists to prevent.
-         *
-         *     Sibling comparison, because it is easy to misread this route as stricter
-         *     than it is: ``reissue_link`` above MINTS a new code and returns it to the
-         *     operator, by design and unchanged. What is guarded here is the resend of the
-         *     EXISTING code — the one an unverified borrower may already hold — not the
-         *     operator's ability to hand out a fresh one.
-         *
-         *     Every refusal is a status code, never a 200 with a sad sentence: an operator
-         *     resending into a reaped case must not read like a success.
-         */
-        post: operations["resend_access_code_api_cases__case_id__portal_parties__party_id__resend_code_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Party
-         * @description Remove a party (and its thread) from a case's portal.
-         */
-        delete: operations["delete_party_api_cases__case_id__portal_parties__party_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/messages/{message_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Party Message
-         * @description Operator soft-deletes one of their OWN messages from a party's thread.
-         *
-         *     Own-only: the operator may delete ONLY operator-authored messages — never a
-         *     borrower's message. Guarded against IDOR: case access is verified, the
-         *     message must exist, belong to the URL party, and that party must belong to
-         *     the URL case. Upload bubbles are synthesized from events (non-row ids), so
-         *     ``get_message`` returns None for them — they 404 here and stay undeletable.
-         *     The delete is SOFT (``deleted_at`` set, row kept) so the thread shows a
-         *     tombstone. After delete, publishes ``portal.thread_changed`` so both sides
-         *     refetch.
-         */
-        delete: operations["delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Edit Party Message
-         * @description Operator edits the body of one of their OWN messages on a party's thread.
-         *
-         *     Own-only: only operator-authored messages may be edited — never a borrower's.
-         *     Guarded against IDOR: case access is verified, the message must exist, belong
-         *     to the URL party, and that party must belong to the URL case. A deleted
-         *     message can't be edited (404 — its content is gone). An empty/whitespace body
-         *     is rejected (422). After the edit, publishes ``portal.thread_changed`` so
-         *     both sides refetch.
-         */
-        patch: operations["edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch"];
-        trace?: never;
-    };
-    "/api/cases/{case_id}/portal/parties/{party_id}/read": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Mark Thread Read
-         * @description Operator marks a party's borrower messages as read → ✓✓ on the borrower side.
-         *
-         *     Stamps ``read_at`` on this party's unread borrower-authored messages. When
-         *     anything actually flipped, publishes a transient ``portal.read`` signal to
-         *     the borrower's stream so their receipts update live (same mechanism as the
-         *     typing indicator). Idempotent — re-reading an already-read thread is a no-op.
-         */
-        post: operations["mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/cases/{case_id}/portal/typing": {
         parameters: {
             query?: never;
@@ -1179,7 +1292,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cases/{case_id}/portal/parties/{party_id}/documents": {
+    "/api/cases/{case_id}/qualify": {
         parameters: {
             query?: never;
             header?: never;
@@ -1189,100 +1302,20 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Attach Document
-         * @description Set a party's role on a case document (e.g. 'borrower on bank_statement').
-         */
-        post: operations["attach_document_api_cases__case_id__portal_parties__party_id__documents_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/entities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Entities
-         * @description List all entity groups for a case, including their document IDs.
-         */
-        get: operations["list_entities_api_cases__case_id__entities_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/entities/{entity_group_id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm Entity
-         * @description Confirm an entity group, marking it as operator-confirmed.
-         */
-        post: operations["confirm_entity_api_cases__case_id__entities__entity_group_id__confirm_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/entities/merge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Merge Entities
-         * @description Merge source entity group into target. Moves all docs, deletes source.
-         */
-        post: operations["merge_entities_api_cases__case_id__entities_merge_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/identities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Identities
-         * @description List borrower identities for a case: persons + entities + financial institutions.
+         * Qualify Case
+         * @description Trigger qualification on an already-extracted case.
          *
-         *     By default returns the flat case-level view. Pass
-         *     ``?scenario_id=...`` to filter through the active product's
-         *     ``borrowers:`` assembly so the response matches what the scenario's
-         *     Borrowers tab shows (e.g. DSCR returns a property primary with
-         *     landlord-person relationships, no tenants).
+         *     Tenant/operator only — qualification is an underwriting decision, not a
+         *     portal-user action. PORTAL_PERMS does not include any qualify capability.
          *
-         *     Results are cached in Redis for ``SCENARIO_CACHE_TTL`` seconds.
-         *     The cache key includes ``scenario_id`` when present so scenario-
-         *     pinned and unfiltered results don't share state.
+         *     Pass ?spec_id=<uuid> to run a specific DB-stored spec.
+         *     Without spec_id, runs the case's own product set (spec_filter-scoped).
+         *
+         *     Inputs come from ``QualifyWorkflowInput.from_case`` — same anchor and
+         *     context as the original launch, so a later qualify never re-cuts the
+         *     analysis years or trips the pre-eval input gate.
          */
-        get: operations["list_identities_api_cases__case_id__identities_get"];
-        put?: never;
-        post?: never;
+        post: operations["qualify_case_api_cases__case_id__qualify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1307,1029 +1340,6 @@ export interface paths {
         get: operations["list_relationships_api_cases__case_id__relationships_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/stages/{stage}/excel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download Stage Excel
-         * @description Return an ``.xlsx`` for ``extraction``, ``income``, ``unified_bank_statement``, or ``credit``.
-         *
-         *     Query params mirror the legacy Gunnr ``excel-url`` contract (refinement-aware income export TBD).
-         */
-        get: operations["download_stage_excel_api_cases__case_id__stages__stage__excel_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Files
-         * @description List uploaded files for a case.
-         */
-        get: operations["list_files_api_cases__case_id__files_get"];
-        put?: never;
-        /**
-         * Upload Files
-         * @description Upload documents (PDF/PNG/JPG/HEIC) to a case and trigger the intake → extract → identify pipeline.
-         *
-         *     Accepts both tenant auth and portal token auth. ``authorized_case_id``
-         *     rejects portal callers asking for a case other than the one their token
-         *     was minted for *before* any DB read; ``verify_case_access`` is kept as
-         *     the cross-tenant defense once the case row is loaded. Caller must carry
-         *     the ``write:files`` permission (PORTAL_PERMS / TENANT_PERMS).
-         */
-        post: operations["upload_files_api_cases__case_id__files_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/files/{file_id}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download File
-         * @description Stream the original PDF for a file.
-         */
-        get: operations["download_file_api_cases__case_id__files__file_id__download_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/files/download-zip": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download Files Zip
-         * @description Download all uploaded files for a case as a single ZIP archive.
-         *
-         *     The archive is cached in Redis after the first build and served from
-         *     cache on subsequent requests. The cache is invalidated automatically
-         *     when new files are uploaded (``POST /files``). A TTL backstop (default
-         *     1 hour, override with ``ZIP_CACHE_TTL`` env var) ensures stale entries
-         *     never linger indefinitely.
-         *
-         *     Files are fetched from the file store by content hash. Files missing
-         *     from storage are skipped with a warning rather than failing the whole
-         *     download.
-         */
-        get: operations["download_files_zip_api_cases__case_id__files_download_zip_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/qualify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Qualify Case
-         * @description Trigger qualification on an already-extracted case.
-         *
-         *     Tenant/operator only — qualification is an underwriting decision, not a
-         *     portal-user action. PORTAL_PERMS does not include any qualify capability.
-         *
-         *     Pass ?spec_id=<uuid> to run a specific DB-stored spec.
-         *     Without spec_id, runs all registered product specs.
-         */
-        post: operations["qualify_case_api_cases__case_id__qualify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/files/{file_id}/pages/{page_number}.png": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Page Png
-         * @description Return the PNG bytes for a given (case, file, page_number) triple.
-         */
-        get: operations["get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Scenarios
-         * @description List all scenarios with their latest manifests and spec results for comparison.
-         */
-        get: operations["list_scenarios_api_cases__id__scenarios_get"];
-        put?: never;
-        /**
-         * Create Scenario
-         * @description Create a scenario for a case. Tenant/operator only — scenarios are an
-         *     underwriting-side concept; portal callers should not author them.
-         */
-        post: operations["create_scenario_api_cases__id__scenarios_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Scenario
-         * @description Get detail for one scenario, including server-side rendering hints.
-         */
-        get: operations["get_scenario_api_cases__id__scenarios__sid__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Scenario
-         * @description Delete one scenario.
-         */
-        delete: operations["delete_scenario_api_cases__id__scenarios__sid__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Scenario
-         * @description Re-run qualify against the scenario's latest manifest.
-         *
-         *     Equivalent to ``start_refinement`` but resolves the manifest by
-         *     ``get_latest_manifest(sid)`` so callers don't need to know the
-         *     refinement id. Useful for "rerun the last attempt" UX (e.g. after
-         *     a transient worker outage); for "rerun with new operator inputs"
-         *     use ``POST .../refinements`` then ``.../refinements/{rid}/start``.
-         */
-        post: operations["start_scenario_api_cases__id__scenarios__sid__start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Scenario Summary
-         * @description Return cached or freshly generated LLM narrative summary + name for a scenario.
-         *
-         *     Thin wrapper around ``ensure_scenario_summary`` — see that helper for
-         *     the actual generation + persistence logic. Pass ``?refresh=true`` to
-         *     bust the DB cache and force regeneration.
-         */
-        get: operations["get_scenario_summary_api_cases__id__scenarios__sid__summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Refinement Summary
-         * @description Return cached or freshly generated LLM narrative summary + name for a refinement.
-         *
-         *     Mirrors ``get_scenario_summary`` but scoped to a single refinement
-         *     manifest's selections. Persists to ``selection_manifests.{name, summary,
-         *     summary_eval, summary_sections}``.
-         */
-        get: operations["get_refinement_summary_api_cases__id__scenarios__sid__refinements__rid__summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/advice": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Scenario Advice
-         * @description Rule-based advice items + LLM narrative. Falls back to items-only if AI unavailable.
-         */
-        get: operations["get_scenario_advice_api_cases__id__scenarios__sid__advice_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/refinements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Refinements
-         * @description List refinements for a scenario.
-         *
-         *     By default, refinements replaced by an AI correction are hidden; pass
-         *     ``?include_superseded=true`` for the full history.
-         */
-        get: operations["list_refinements_api_cases__id__scenarios__sid__refinements_get"];
-        put?: never;
-        /**
-         * Create Refinement
-         * @description Create a refinement (selection manifest) for a scenario.
-         */
-        post: operations["create_refinement_api_cases__id__scenarios__sid__refinements_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Refinement
-         * @description Get refinement detail.
-         */
-        get: operations["get_refinement_api_cases__id__scenarios__sid__refinements__rid__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Refinement
-         * @description Kick off a Temporal qualify workflow against an existing manifest.
-         *
-         *     The refinement (= ``SelectionManifest``) was created by ``POST
-         *     /scenarios/{sid}/refinements`` with the operator's selections +
-         *     overrides. This endpoint hands ``manifest_id`` to ``QualifyWorkflow``
-         *     so the activity re-evaluates that manifest in place, writing fresh
-         *     ``spec_results`` rows and flipping the parent scenario from
-         *     ``running`` → ``completed`` / ``failed`` when it's done.
-         *
-         *     The workflow id is unique per run (``refinement-{rid}-run-{epoch}``)
-         *     so re-running a refinement (e.g. after an extraction edit) doesn't
-         *     collide with the prior Temporal execution.
-         */
-        post: operations["start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/operators": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Operators
-         * @description List all operators for the authenticated tenant.
-         *
-         *     Requires tenant/operator scope: portal callers must not enumerate the
-         *     operator directory (names + emails) for their tenant.
-         */
-        get: operations["list_operators_api_operators_get"];
-        put?: never;
-        /**
-         * Create Operator
-         * @description Create a new operator for the authenticated tenant.
-         */
-        post: operations["create_operator_api_operators_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/operators/{operator_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Revoke Operator
-         * @description Revoke an operator. Verifies the operator belongs to the requesting tenant.
-         */
-        delete: operations["revoke_operator_api_operators__operator_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Status
-         * @description Return current case status. Will try Redis first when wired in; Postgres is the fallback.
-         */
-        get: operations["get_status_api_cases__case_id__status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Events
-         * @description Return the audit event history for a case, optionally filtered by event_type.
-         */
-        get: operations["get_events_api_cases__case_id__events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/events/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream Events
-         * @description SSE stream of case events. Polls Postgres by event_id cursor.
-         *
-         *     Clients connect and receive events as they arrive:
-         *         data: {"event_id": 1, "event_type": "qualify.spec.evaluated", ...}
-         *
-         *     Pass ``?cursor=N`` to start from event_id N+1 (exclusive). The client
-         *     should backfill historical events via ``GET /events`` first, record the
-         *     last event_id, then open this stream with ``?cursor=<last_id>``. This
-         *     prevents the stream from replaying historical ``case.system.completed``
-         *     events on every reconnect — which would cause an immediate ``stream.end``
-         *     even though the case is still receiving refinement events.
-         */
-        get: operations["stream_events_api_cases__case_id__events_stream_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/attestation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get the signed attestation artifact for a case
-         * @description Return the case's Signed Tree Head as a signed in-toto attestation.
-         *
-         *     The artifact carries the in-toto Statement (subject = source documents,
-         *     predicate = the Merkle Signed Tree Head), a detached signature, the schema
-         *     catalog, a compact JWS for offline verification, and the issuer public JWK.
-         *
-         *     Pass ``?format=jws`` to receive only ``{"jws": "<compact-jws>"}`` — useful
-         *     for clients that verify the JWS directly without the expanded artifact.
-         *
-         *     Errors: 409 when the case is not finalized, 422 when its audit log is empty,
-         *     404 when the case does not exist, 404/403 when the caller may not access it.
-         */
-        get: operations["get_attestation_api_cases__case_id__attestation_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/events/{event_id}/proof": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a Merkle inclusion proof for one audit event
-         * @description Return a Merkle inclusion (audit) proof that ``event_id`` is in the tree.
-         *
-         *     The proof's ``leaf`` is the base64url-encoded canonical leaf payload bytes
-         *     (the exact bytes that were hashed); clients re-hash it and walk
-         *     ``audit_path`` to reconstruct ``merkle_root``.
-         *
-         *     Errors: 404 when the case or the event does not exist, 409 when the case is
-         *     not finalized, 422 when its audit log is empty.
-         */
-        get: operations["get_inclusion_proof_api_cases__case_id__events__event_id__proof_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/consistency": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a Merkle consistency proof between two tree sizes
-         * @description Return a Merkle consistency proof between sizes ``from`` and ``to``.
-         *
-         *     Proves the audit log at the smaller size is an untampered prefix of the log
-         *     at the larger size — the append-only guarantee. Both roots are returned so
-         *     a verifier can confirm each independently.
-         *
-         *     Errors: 400 for an invalid range (require ``1 <= from <= to <= tree_size``),
-         *     404 when the case does not exist, 409 when the case is not finalized.
-         */
-        get: operations["get_consistency_proof_api_cases__case_id__consistency_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Documents
-         * @description List documents for a case, joined with source File for filename.
-         */
-        get: operations["list_documents_api_cases__case_id__documents_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/extractions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Extractions
-         * @description List extractions (with sources) for a case.
-         *
-         *     Filters (in priority order):
-         *       ?doc_id=   — single document
-         *       ?doc_type= — all docs of this type (optionally narrowed by ?tax_year=)
-         *       (none)     — all docs in the case
-         */
-        get: operations["list_extractions_api_cases__case_id__extractions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/extractions/structured": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Structured Extractions
-         * @description Return extractions grouped into ontology regions for a document type.
-         *
-         *     Loads the ontology (DB-first, disk fallback) and assembles per-document
-         *     structured views that organise field/row extractions by region.
-         *
-         *     Filters:
-         *       ?doc_type=<str>         — required; selects all docs of this type
-         *       &doc_id=<uuid>          — optional; narrows to a single document
-         */
-        get: operations["list_structured_extractions_api_cases__case_id__extractions_structured_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/banking": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Banking
-         * @description Return per-account + per-borrower banking rollups for a case.
-         */
-        get: operations["get_banking_api_cases__case_id__banking_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/banking/transactions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Banking Transactions
-         * @description Return all classified transactions for a case.
-         *
-         *     Reads from the parquet written after Phase 4 (classification + transfer
-         *     detection). Returns empty if banking has not completed or the case has
-         *     not been (re)processed since classified-transaction persistence was added.
-         */
-        get: operations["get_banking_transactions_api_cases__case_id__banking_transactions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/quarantine/{quarantine_id}/rerun": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Rerun Quarantined Item
-         * @description Operator action: re-run the resolver on this case.
-         *
-         *     Transitions the quarantine item back to 'proposed' so the resolver
-         *     evaluates it fresh. Does not accept user edits — if direct editing is
-         *     needed, a support_admin uses the /decide endpoint.
-         */
-        post: operations["rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/quarantine/{quarantine_id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm Quarantined Item
-         * @description Operator action: accept the resolver's output as correct.
-         *
-         *     Transitions the quarantine item to 'confirmed'. No re-resolution; the
-         *     operator is explicitly approving the existing result.
-         */
-        post: operations["confirm_quarantined_item_api_quarantine__quarantine_id__confirm_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cases/{case_id}/documents/{doc_id}/transactions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Transactions
-         * @description Return all parquet-backed transaction rows for a document,
-         *     grouped by the region/page that produced them.
-         */
-        get: operations["list_transactions_api_cases__case_id__documents__doc_id__transactions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Specs */
-        get: operations["list_specs_api_specs_get"];
-        put?: never;
-        /** Create Spec */
-        post: operations["create_spec_api_specs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/{spec_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Spec */
-        get: operations["get_spec_api_specs__spec_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/{spec_id}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Submit For Review */
-        put: operations["submit_for_review_api_specs__spec_id__submit_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/{spec_id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Approve Spec */
-        put: operations["approve_spec_api_specs__spec_id__approve_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/{spec_id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Reject Spec */
-        put: operations["reject_spec_api_specs__spec_id__reject_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/{spec_id}/retire": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Retire Spec */
-        put: operations["retire_spec_api_specs__spec_id__retire_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Products
-         * @description List the caller's tenant-scoped loan products.
-         *
-         *     Returns the full ``TenantProductView`` for each row in
-         *     ``tenant_products`` (or the YAML fallback when the tenant hasn't been
-         *     seeded yet — see ``policy.product_registry.list_tenant_products``).
-         *     The shape is rich enough for Lux to render the approach + product
-         *     pickers without a separate config endpoint.
-         *
-         *     ``initial_required_inputs`` is folded in per row so the Create Case
-         *     modal can render its dynamic form straight from this fetch (no
-         *     second round-trip). Each row's schema comes from
-         *     ``initial_required_inputs_schema`` which is DB-first
-         *     (``spec_versions`` + ``product_specs`` join, with a YAML fallback
-         *     for unseeded dev DBs). The wire shape is a flat
-         *     ``list[UserInputFieldResponse]`` — every entry on this list is
-         *     already scoped to a single product, so the groups+products wrapper
-         *     used by the refine endpoint would degenerate to a single mirror
-         *     entry. Products without any ``required_at_create`` inputs return
-         *     ``[]`` so the frontend can do a uniform ``fields.length === 0``
-         *     check.
-         */
-        get: operations["list_products_api_products_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/coverage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Coverage Report
-         * @description Get coverage report, optionally filtered by product.
-         */
-        get: operations["coverage_report_api_specs_coverage_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/coverage/{product_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Coverage By Product
-         * @description Get coverage report for one product.
-         */
-        get: operations["coverage_by_product_api_specs_coverage__product_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/specs/{spec_id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test Spec
-         * @description Run test for a single spec by name pattern.
-         */
-        post: operations["test_spec_api_specs__spec_id__test_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/products/{product_id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test Product
-         * @description Run full regression test suite for a product.
-         */
-        post: operations["test_product_api_products__product_id__test_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/specs/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate Spec
-         * @description Generate a Veritas spec YAML from a plain-text product description.
-         *
-         *     Restricted to tenant/operator scope — the same gate every spec-lifecycle
-         *     endpoint in ``api/specs.py`` (create / submit / approve / reject / retire)
-         *     uses. AI-assisted generation is part of the same authoring surface.
-         */
-        post: operations["generate_spec_api_ai_specs_generate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/specs/generate/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate Spec Stream
-         * @description Stream spec YAML token-by-token as SSE. Each chunk is a raw text delta.
-         *     Final event is a line starting with META: followed by JSON {name, domain, version}.
-         *
-         *     Tenant/operator only — see ``generate_spec`` for the trust-boundary rationale.
-         */
-        post: operations["generate_spec_stream_api_ai_specs_generate_stream_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2437,6 +1447,989 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reprocess Case
+         * @description Re-run the full pipeline (classify → extract → identify → qualify) on an already-uploaded case.
+         *
+         *     Skips intake — uses files and pages already in the DB and FileStore.
+         *     Inputs come from ``CaseInput.from_case`` so a reprocess carries exactly
+         *     what the original launch carried: spec_filter-scoped products, the
+         *     case-anchored submission date (a reprocess months later must not re-cut
+         *     the analysis years), and the operator's ``initial_context``.
+         */
+        post: operations["reprocess_case_api_cases__case_id__reprocess_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/stages/{stage}/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Stage Excel
+         * @description Return an ``.xlsx`` for ``extraction``, ``income``, ``unified_bank_statement``, or ``credit``.
+         *
+         *     Query params mirror the legacy Gunnr ``excel-url`` contract (refinement-aware income export TBD).
+         */
+        get: operations["download_stage_excel_api_cases__case_id__stages__stage__excel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Status
+         * @description Return current case status. Will try Redis first when wired in; Postgres is the fallback.
+         */
+        get: operations["get_status_api_cases__case_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/suggested_products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Suggested Products
+         * @description Return the document-driven product suggestion persisted on the case.
+         *
+         *     Populated by the post-stitch hook (see
+         *     ``temporal.activities.stitch.stitch_activity``). Returns an empty list
+         *     when stitch hasn't run yet — the UI should fall back to showing the
+         *     full product list from ``GET /products`` in that case.
+         *
+         *     Lux subscribes to the ``case.products.suggested`` SSE event to
+         *     live-update when the suggestion arrives during the upload flow.
+         */
+        get: operations["get_suggested_products_api_cases__case_id__suggested_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Scenarios
+         * @description List all scenarios with their latest manifests and spec results for comparison.
+         */
+        get: operations["list_scenarios_api_cases__id__scenarios_get"];
+        put?: never;
+        /**
+         * Create Scenario
+         * @description Create a scenario for a case. Tenant/operator only — scenarios are an
+         *     underwriting-side concept; portal callers should not author them.
+         */
+        post: operations["create_scenario_api_cases__id__scenarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario
+         * @description Get detail for one scenario, including server-side rendering hints.
+         */
+        get: operations["get_scenario_api_cases__id__scenarios__sid__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Scenario
+         * @description Delete one scenario.
+         */
+        delete: operations["delete_scenario_api_cases__id__scenarios__sid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/advice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario Advice
+         * @description Rule-based advice items + LLM narrative. Falls back to items-only if AI unavailable.
+         */
+        get: operations["get_scenario_advice_api_cases__id__scenarios__sid__advice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Refinements
+         * @description List refinements for a scenario.
+         *
+         *     By default, refinements replaced by an AI correction are hidden; pass
+         *     ``?include_superseded=true`` for the full history.
+         */
+        get: operations["list_refinements_api_cases__id__scenarios__sid__refinements_get"];
+        put?: never;
+        /**
+         * Create Refinement
+         * @description Create a refinement (selection manifest) for a scenario.
+         */
+        post: operations["create_refinement_api_cases__id__scenarios__sid__refinements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Refinement
+         * @description Get refinement detail.
+         */
+        get: operations["get_refinement_api_cases__id__scenarios__sid__refinements__rid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Refinement
+         * @description Kick off a Temporal qualify workflow against an existing manifest.
+         *
+         *     The refinement (= ``SelectionManifest``) was created by ``POST
+         *     /scenarios/{sid}/refinements`` with the operator's selections +
+         *     overrides. This endpoint hands ``manifest_id`` to ``QualifyWorkflow``
+         *     so the activity re-evaluates that manifest in place, writing fresh
+         *     ``spec_results`` rows and flipping the parent scenario from
+         *     ``running`` → ``completed`` / ``failed`` when it's done.
+         *
+         *     The workflow id is unique per run (``refinement-{rid}-run-{epoch}``)
+         *     so re-running a refinement (e.g. after an extraction edit) doesn't
+         *     collide with the prior Temporal execution.
+         */
+        post: operations["start_refinement_api_cases__id__scenarios__sid__refinements__rid__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/refinements/{rid}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Refinement Summary
+         * @description Return cached or freshly generated LLM narrative summary + name for a refinement.
+         *
+         *     Mirrors ``get_scenario_summary`` but scoped to a single refinement
+         *     manifest's selections. Persists to ``selection_manifests.{name, summary,
+         *     summary_eval, summary_sections}``.
+         */
+        get: operations["get_refinement_summary_api_cases__id__scenarios__sid__refinements__rid__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Scenario
+         * @description Re-run qualify against the scenario's latest manifest.
+         *
+         *     Equivalent to ``start_refinement`` but resolves the manifest by
+         *     ``get_latest_manifest(sid)`` so callers don't need to know the
+         *     refinement id. Useful for "rerun the last attempt" UX (e.g. after
+         *     a transient worker outage); for "rerun with new operator inputs"
+         *     use ``POST .../refinements`` then ``.../refinements/{rid}/start``.
+         */
+        post: operations["start_scenario_api_cases__id__scenarios__sid__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{id}/scenarios/{sid}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario Summary
+         * @description Return cached or freshly generated LLM narrative summary + name for a scenario.
+         *
+         *     Thin wrapper around ``ensure_scenario_summary`` — see that helper for
+         *     the actual generation + persistence logic. Pass ``?refresh=true`` to
+         *     bust the DB cache and force regeneration.
+         */
+        get: operations["get_scenario_summary_api_cases__id__scenarios__sid__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Callback
+         * @description Exchange the code, register the tenant, and wire both directions.
+         */
+        get: operations["callback_api_integrations__provider__callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/{provider}/landing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Landing Page */
+        get: operations["landing_page_api_integrations__provider__landing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/{provider}/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Login
+         * @description Redirect the lender to the provider's OAuth consent screen.
+         */
+        get: operations["login_api_integrations__provider__login_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/{provider}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Integration
+         * @description Self-serve registration for a push provider (e.g. brook). Creates the
+         *     tenant + credential and stores the provider's callback creds. Returns the
+         *     tenant API credential — the secret is shown once.
+         */
+        post: operations["register_integration_api_integrations__provider__register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/{provider}/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signup */
+        post: operations["signup_api_integrations__provider__signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/{provider}/viewer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Viewer Page */
+        get: operations["viewer_page_api_integrations__provider__viewer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/operators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Operators
+         * @description List all operators for the authenticated tenant.
+         *
+         *     Requires tenant/operator scope: portal callers must not enumerate the
+         *     operator directory (names + emails) for their tenant.
+         */
+        get: operations["list_operators_api_operators_get"];
+        put?: never;
+        /**
+         * Create Operator
+         * @description Create a new operator for the authenticated tenant.
+         */
+        post: operations["create_operator_api_operators_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/operators/{operator_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Operator
+         * @description Revoke an operator. Verifies the operator belongs to the requesting tenant.
+         */
+        delete: operations["revoke_operator_api_operators__operator_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/account/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Borrower Account
+         * @description Bind every party this verified address is trusted for to the caller's uid.
+         *
+         *     Idempotent by construction rather than by a guard: a party bound by an
+         *     earlier call no longer satisfies rule 1, so a repeat call answers
+         *     ``linked=0``. That is a success, not an error.
+         *
+         *     A REQUIREMENT ON THE CLIENT, not a description of one: this must be called
+         *     on every sign-in, because a party can become linkable after an earlier call
+         *     refused it. Rule 4 in the module docstring is exactly that case — a POS
+         *     borrower whose case was still awaiting verification is linked by the next
+         *     call and by no other means.
+         *
+         *     An OPERATOR uid links nothing and is told so with 200 rather than refused,
+         *     because the client needs to distinguish "you are a loan officer, here is the
+         *     operator app" from "something went wrong". It is also the conservative
+         *     answer: an operator's address sitting on a party is an operator who emailed
+         *     a borrower, not a loan of their own.
+         *
+         *     DISCLOSED, NOT FIXED: the read that proves a party unbound and the write
+         *     that binds it are not one atomic reservation. ``session.claim_account``
+         *     binds the same column from the portal-token side, so a call overlapping one
+         *     in time can read NULL after the other has already written, and the later
+         *     write wins. Both writers had a rule entitling them to the party — a
+         *     verified address here, possession of the link there — so the outcome is one
+         *     of two legitimate owners rather than a stranger, but ``linked`` can then
+         *     overstate by one and the event records a binding that was superseded. The
+         *     fix is a conditional ``UPDATE ... WHERE account_user_id IS NULL`` keyed on
+         *     rowcount, which belongs in ``PortalPartyRepo.link_account`` and would
+         *     change behaviour for ``claim_account`` too; out of scope here.
+         */
+        post: operations["link_borrower_account_api_portal_account_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/claim-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Account
+         * @description Attach a Firebase account to the borrower's portal — token-gated.
+         *
+         *     Auth is the borrower's CURRENT portal token (proves they're the borrower for
+         *     this party); the Firebase id token is verified only to capture a trusted uid.
+         *     Upserts a ``users`` row with role=borrower and links the party's
+         *     account_user_id, so future magic-link logins resolve to this account. NOT a
+         *     JWT-authed endpoint, so it never hits the operator auto-provision path.
+         */
+        post: operations["claim_account_api_portal_claim_account_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/my-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Cases
+         * @description Cases the signed-in borrower (magic-link account) can access, each with a
+         *     fresh/reused portal token so the existing token-based portal still drives it.
+         */
+        get: operations["my_cases_api_portal_my_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/my-loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Loans
+         * @description Every loan bound to the caller's account, newest-updated first.
+         *
+         *     Reachable only by a uid that already holds a borrower ``users`` row, which
+         *     is what ``POST /portal/account/link`` writes. An operator uid and a uid with
+         *     no row at all are both 403: this is the borrower's dashboard, and the
+         *     operator app reads the case queue instead.
+         *
+         *     Batched: one ``BorrowerView.for_parties`` call assembles every card (see its
+         *     docstring for what that costs), one query reads the cases for their
+         *     timestamps and one reads the tenants behind ``officer_name``. The per-party
+         *     work left is ``generate_token``, which has to be per party because the token
+         *     IS the party's link.
+         */
+        get: operations["my_loans_api_portal_my_loans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Session
+         * @description Validate a portal token and return the composed session.
+         *
+         *     This is the primary entry point for entity-facing UIs. One call
+         *     returns everything the portal needs: entity info, checklist,
+         *     consent state, verification level, and upload config.
+         *
+         *     The token is read from the ``X-Portal-Token`` header (preferred — keeps it
+         *     out of access logs and browser history). The ``?token=`` query param is
+         *     accepted as a legacy fallback for SSE / iframe surfaces that can't set
+         *     headers.
+         */
+        get: operations["get_session_api_portal_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/session/{session_id}/form-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Form
+         * @description Resolve the application form against answers the borrower has not saved.
+         *
+         *     Send the answers the form currently holds as ``inputs``; the response is the
+         *     fields still to answer and the documents to ask for if those were the
+         *     answers. Nothing is stored, so a client may call it as often as a deciding
+         *     field changes — ``PortalInputField.decides`` marks which ones those are.
+         *
+         *     A field answered in ``inputs`` alone stays in ``pending_inputs`` for as long
+         *     as its own condition holds on the draft merged over the saved answers: it is
+         *     the control being typed into, and answering it must not delete it. It drops
+         *     out when the answer is SAVED, and also when the draft stops asking for it —
+         *     a purchase price sent alongside a refinance is not a field this product
+         *     asks, so it is not returned.
+         *
+         *     Values are not validated here. A half-typed number previews rather than
+         *     422-ing, and ``set_inputs`` applies the spec's bounds on submit.
+         *
+         *     Auth is the portal token (``X-Portal-Token`` header preferred) plus the
+         *     access-code gate ``set_inputs`` applies — a claimed account or a valid
+         *     token-bound verify proof. It reads the case's stored answers, so it sits
+         *     behind the same gate as the intent that writes them.
+         */
+        post: operations["preview_form_api_portal_session__session_id__form_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/session/{session_id}/intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Intents
+         * @description Execute a batch of typed intents and return the refreshed session.
+         *
+         *     Intents execute in array order. If one fails, remaining intents
+         *     are skipped and partial results are returned with the error. Auth is the
+         *     portal token (X-Portal-Token header preferred) — the same direct-validation
+         *     path as GET /session, so the public no-login portal works without tenant
+         *     context (resolve_caller's within-tenant path 401s for borrower callers).
+         */
+        post: operations["submit_intents_api_portal_session__session_id__intents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/session/{session_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Messages
+         * @description Older page of the borrower's own portal thread.
+         *
+         *     The cursor is ``(before, before_seq)`` — the timestamp and ``seq`` of the
+         *     first visible item of the page the client already holds. ``before_seq`` is
+         *     ADDITIVE: a client sending ``before`` alone keeps working exactly as before,
+         *     it just cannot page cleanly through messages that share a timestamp
+         *     (everything one request wrote), which is the bug ``seq`` exists to close.
+         *     Send both.
+         */
+        get: operations["portal_messages_api_portal_session__session_id__messages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Portal Stream
+         * @description Real-time portal stream for the borrower (token-authed). Emits MINIMAL
+         *     pings only (event type + typing actor) — never event_data — so nothing
+         *     internal/PII leaks; the client refetches the gated session for content.
+         */
+        get: operations["portal_stream_api_portal_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/typing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Portal Typing
+         * @description Borrower typing signal — transient, broadcast to the operator stream.
+         */
+        post: operations["portal_typing_api_portal_typing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pos-portals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pos Portals
+         * @description This tenant's portals, newest first. Includes deactivated ones.
+         */
+        get: operations["list_pos_portals_api_pos_portals_get"];
+        put?: never;
+        /**
+         * Create Pos Portal
+         * @description Publish a reusable, product-scoped intake link for this tenant.
+         */
+        post: operations["create_pos_portal_api_pos_portals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pos-portals/{pos_portal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Pos Portal
+         * @description Soft-disable (or re-enable) a portal.
+         *
+         *     There is no DELETE. Cases already created through the link keep their
+         *     ``cases.origin = 'pos:<slug>'`` provenance and keep running; only new
+         *     applications are refused. 404 — not 403 — for another tenant's portal id,
+         *     so this route cannot be used to probe which ids exist.
+         */
+        patch: operations["update_pos_portal_api_pos_portals__pos_portal_id__patch"];
+        trace?: never;
+    };
+    "/api/pos-portals/{pos_portal_id}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pos Portal Cases
+         * @description The applications one published link produced, newest first.
+         *
+         *     **Why this route exists rather than a flag on the operator queue.** A POS
+         *     case is born ``awaiting_verification``, which ``CaseRepo.list_cases``
+         *     excludes by default (``HIDDEN_FROM_QUEUE_STATES``) because an applicant who
+         *     has not proved control of their address is not queue work. That default is
+         *     left exactly as it is: this route reads ``CaseRepo.list_by_origin``, a
+         *     separate query whose whole purpose is those rows. Widening ``GET /api/cases``
+         *     with an ``exclude_states`` parameter would have moved the hidden-state
+         *     decision into a client argument and changed the queue's contract for every
+         *     caller; the counting reads (``count_in_flight`` for billing,
+         *     ``count_for_admission`` for the door) are untouched either way — neither
+         *     reads this route or its repo method.
+         *
+         *     Scoped twice, deliberately: ``get_for_tenant`` proves the portal is the
+         *     caller's (404 rather than 403 for another tenant's id, matching
+         *     ``update_pos_portal`` so this route cannot be used to probe which ids
+         *     exist), and ``list_by_origin`` puts ``tenant_id`` in the WHERE clause as
+         *     well. Isolation does not rest on one check.
+         *
+         *     Parties come back with the case because that is what the resend action is
+         *     addressed by — ``POST /api/cases/{case_id}/portal/parties/{party_id}/
+         *     resend-code``. The access code is NOT here and is not derivable from
+         *     anything here; the operator can command a re-send to the address on file and
+         *     nothing more.
+         */
+        get: operations["list_pos_portal_cases_api_pos_portals__pos_portal_id__cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Products
+         * @description List the caller's tenant-scoped loan products.
+         *
+         *     Returns the full ``TenantProductView`` for each row in
+         *     ``tenant_products`` (or the YAML fallback when the tenant hasn't been
+         *     seeded yet — see ``policy.product_registry.list_tenant_products``).
+         *     The shape is rich enough for Lux to render the approach + product
+         *     pickers without a separate config endpoint.
+         *
+         *     ``initial_required_inputs`` is folded in per row so the Create Case
+         *     modal can render its dynamic form straight from this fetch (no
+         *     second round-trip). Each row's schema comes from
+         *     ``initial_required_inputs_schema`` which is DB-first
+         *     (``spec_versions`` + ``product_specs`` join, with a YAML fallback
+         *     for unseeded dev DBs). The wire shape is a flat
+         *     ``list[UserInputFieldResponse]`` — every entry on this list is
+         *     already scoped to a single product, so the groups+products wrapper
+         *     used by the refine endpoint would degenerate to a single mirror
+         *     entry. Products without any ``required_at_create`` inputs return
+         *     ``[]`` so the frontend can do a uniform ``fields.length === 0``
+         *     check.
+         */
+        get: operations["list_products_api_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{product_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Product
+         * @description Run full regression test suite for a product.
+         */
+        post: operations["test_product_api_products__product_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quarantine/{quarantine_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Quarantined Item
+         * @description Operator action: accept the resolver's output as correct.
+         *
+         *     Transitions the quarantine item to 'confirmed'. No re-resolution; the
+         *     operator is explicitly approving the existing result.
+         */
+        post: operations["confirm_quarantined_item_api_quarantine__quarantine_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quarantine/{quarantine_id}/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rerun Quarantined Item
+         * @description Operator action: re-run the resolver on this case.
+         *
+         *     Transitions the quarantine item back to 'proposed' so the resolver
+         *     evaluates it fresh. Does not accept user edits — if direct editing is
+         *     needed, a support_admin uses the /decide endpoint.
+         */
+        post: operations["rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/samples": {
         parameters: {
             query?: never;
@@ -2526,25 +2519,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/signup": {
+    "/api/specs": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Signup Form */
-        get: operations["signup_form_integrations_brook_signup_get"];
+        /** List Specs */
+        get: operations["list_specs_api_specs_get"];
         put?: never;
-        /** Signup */
-        post: operations["signup_integrations_brook_signup_post"];
+        /** Create Spec */
+        post: operations["create_spec_api_specs_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/signup/complete": {
+    "/api/specs/coverage": {
         parameters: {
             query?: never;
             header?: never;
@@ -2552,11 +2545,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Signup Complete
-         * @description Post-payment return. Verify the Checkout session completed, provision
-         *     keys (mint-if-absent, card_status=active), and reveal the secret ONCE.
+         * Coverage Report
+         * @description Get coverage report, optionally filtered by product.
          */
-        get: operations["signup_complete_integrations_brook_signup_complete_get"];
+        get: operations["coverage_report_api_specs_coverage_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2565,38 +2557,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/portal/login": {
+    "/api/specs/coverage/{product_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Portal Login Form */
-        get: operations["portal_login_form_integrations_brook_portal_login_get"];
-        put?: never;
         /**
-         * Portal Login
-         * @description Email one named sign-in link per tenant on this email via Resend.
-         *     Always answers the same (no user enumeration). If email isn't
-         *     configured/fails, dev surfaces the links inline.
+         * Coverage By Product
+         * @description Get coverage report for one product.
          */
-        post: operations["portal_login_integrations_brook_portal_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook/portal/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Portal Session */
-        get: operations["portal_session_integrations_brook_portal_session_get"];
+        get: operations["coverage_by_product_api_specs_coverage__product_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2605,7 +2577,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/portal/logout": {
+    "/api/specs/{spec_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Spec */
+        get: operations["get_spec_api_specs__spec_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/specs/{spec_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Approve Spec */
+        put: operations["approve_spec_api_specs__spec_id__approve_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/specs/{spec_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reject Spec */
+        put: operations["reject_spec_api_specs__spec_id__reject_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/specs/{spec_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Retire Spec */
+        put: operations["retire_spec_api_specs__spec_id__retire_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/specs/{spec_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Submit For Review */
+        put: operations["submit_for_review_api_specs__spec_id__submit_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/specs/{spec_id}/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -2614,8 +2671,198 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Portal Logout */
-        post: operations["portal_logout_integrations_brook_portal_logout_post"];
+        /**
+         * Test Spec
+         * @description Run test for a single spec by name pattern.
+         */
+        post: operations["test_spec_api_specs__spec_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tenants/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Credential
+         * @description Create an additional API credential for the authenticated tenant.
+         *
+         *     Restricted to tenant/operator callers — portal/entity tokens cannot mint
+         *     tenant credentials (would be a privilege escalation from PORTAL_PERMS).
+         */
+        post: operations["create_credential_api_tenants_credentials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tenants/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Tenant
+         * @description Register a new tenant. Returns API credentials — save the client_secret, it is shown once.
+         */
+        post: operations["register_tenant_api_tenants_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_v1_health_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version */
+        get: operations["version_api_v1_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/apply/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Apply Landing */
+        get: operations["apply_landing_apply__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/apply/{slug}/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Apply Portal
+         * @description Serve the borrower application page.
+         *
+         *     The page authenticates itself with the portal token from the URL fragment;
+         *     this route reads neither the token nor the slug.
+         */
+        get: operations["apply_portal_apply__slug__portal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/apply/{slug}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Start
+         * @description Create the borrower's party-hub session and redirect into it.
+         *
+         *     Accepts only a form submitted from this site's own page, and is bounded per
+         *     caller and per recipient address.
+         *
+         *     The token travels in the URL FRAGMENT, not the query string: a fragment is
+         *     never sent to a server and never lands in an access log or a Referer header.
+         */
+        post: operations["apply_start_apply__slug__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook/billing-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Billing Status
+         * @description Poll target for the brookConnect LWC: is this org paid (connected) or does
+         *     it still need billing? Tenant is identified by the SF org's instance_url — the
+         *     same key the OAuth callback and register flows use, so the LWC needs no cookie
+         *     or bearer. Returns only non-secret status plus a signup/checkout link.
+         *
+         *     - ``card_status``: "active" (connected/paid), "pending" (needs billing), or
+         *       null (org not connected yet).
+         *     - ``portal_url``: where to send the admin to complete billing.
+         */
+        get: operations["billing_status_integrations_brook_billing_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2639,7 +2886,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/portal/rotate": {
+    "/integrations/brook/portal/billing": {
         parameters: {
             query?: never;
             header?: never;
@@ -2648,8 +2895,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Portal Rotate */
-        post: operations["portal_rotate_integrations_brook_portal_rotate_post"];
+        /** Portal Billing */
+        post: operations["portal_billing_integrations_brook_portal_billing_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2690,7 +2937,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/portal/billing": {
+    "/integrations/brook/portal/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Login Form */
+        get: operations["portal_login_form_integrations_brook_portal_login_get"];
+        put?: never;
+        /**
+         * Portal Login
+         * @description Email one named sign-in link per tenant on this email via Resend.
+         *     Always answers the same (no user enumeration). If email isn't
+         *     configured/fails, dev surfaces the links inline.
+         */
+        post: operations["portal_login_integrations_brook_portal_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook/portal/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -2699,15 +2969,67 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Portal Billing */
-        post: operations["portal_billing_integrations_brook_portal_billing_post"];
+        /** Portal Logout */
+        post: operations["portal_logout_integrations_brook_portal_logout_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook/billing-status": {
+    "/integrations/brook/portal/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Rotate */
+        post: operations["portal_rotate_integrations_brook_portal_rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook/portal/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Session */
+        get: operations["portal_session_integrations_brook_portal_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signup Form */
+        get: operations["signup_form_integrations_brook_signup_get"];
+        put?: never;
+        /** Signup */
+        post: operations["signup_integrations_brook_signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook/signup/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -2715,17 +3037,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Billing Status
-         * @description Poll target for the brookConnect LWC: is this org paid (connected) or does
-         *     it still need billing? Tenant is identified by the SF org's instance_url — the
-         *     same key the OAuth callback and register flows use, so the LWC needs no cookie
-         *     or bearer. Returns only non-secret status plus a signup/checkout link.
-         *
-         *     - ``card_status``: "active" (connected/paid), "pending" (needs billing), or
-         *       null (org not connected yet).
-         *     - ``portal_url``: where to send the admin to complete billing.
+         * Signup Complete
+         * @description Post-payment return. Verify the Checkout session completed, provision
+         *     keys (mint-if-absent, card_status=active), and reveal the secret ONCE.
          */
-        get: operations["billing_status_integrations_brook_billing_status_get"];
+        get: operations["signup_complete_integrations_brook_signup_complete_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2754,71 +3070,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/u/{session_token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Upload Page View
-         * @description Serve the borrower's hosted upload page (or an expired notice).
-         */
-        get: operations["upload_page_view_integrations_brook_plaid_sdk_u__session_token__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/u/{session_token}/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload
-         * @description Stage the borrower's uploaded statements and trigger collection.
-         */
-        post: operations["upload_integrations_brook_plaid_sdk_u__session_token__upload_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/u/{session_token}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Upload Status
-         * @description Borrower-side live status for the upload page (token-gated, read-only).
-         *
-         *     Drives the popup's progress mirror — e.g. a desktop that handed off to a
-         *     phone via QR flips to ``done`` here once the phone's upload completes. Never
-         *     writes; an unknown/expired token returns ``awaiting_borrower`` (not 404) so
-         *     the poll can't be used to probe token validity.
-         */
-        get: operations["upload_status_integrations_brook_plaid_sdk_u__session_token__status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/integrations/brook_plaid_sdk/exchange": {
         parameters: {
             query?: never;
@@ -2839,27 +3090,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/resume": {
+    "/integrations/brook_plaid_sdk/llm.txt": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Llm Txt */
+        get: operations["llm_txt_integrations_brook_plaid_sdk_llm_txt_get"];
         put?: never;
-        /**
-         * Resume
-         * @description Resume a prior session by its reference — same contract as ``/exchange``.
-         */
-        post: operations["resume_integrations_brook_plaid_sdk_resume_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/sync": {
+    "/integrations/brook_plaid_sdk/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Home */
+        get: operations["portal_home_integrations_brook_plaid_sdk_portal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/billing": {
         parameters: {
             query?: never;
             header?: never;
@@ -2868,16 +3133,116 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Portal Billing */
+        post: operations["portal_billing_integrations_brook_plaid_sdk_portal_billing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/cors/add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Cors Add */
+        post: operations["portal_cors_add_integrations_brook_plaid_sdk_portal_cors_add_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/cors/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Cors Remove */
+        post: operations["portal_cors_remove_integrations_brook_plaid_sdk_portal_cors_remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Login Form */
+        get: operations["portal_login_form_integrations_brook_plaid_sdk_portal_login_get"];
+        put?: never;
         /**
-         * Sync
-         * @description Plaid ``/transactions/sync``-style paging over the collected result.
-         *
-         *     The full wire is already stored (one ``result.json`` per case); this pages
-         *     over it with an opaque cursor — no extra storage. Returns ``{pending}`` /
-         *     ``{error}`` until the collection completes, then sync pages
-         *     (``added``/``modified``/``removed``/``next_cursor``/``has_more``).
+         * Portal Login
+         * @description Email one named sign-in link per tenant on this email via Resend.
+         *     Always answers the same (no user enumeration). If email isn't
+         *     configured/fails, dev surfaces the links inline.
          */
-        post: operations["sync_integrations_brook_plaid_sdk_sync_post"];
+        post: operations["portal_login_integrations_brook_plaid_sdk_portal_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Logout */
+        post: operations["portal_logout_integrations_brook_plaid_sdk_portal_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Portal Rotate */
+        post: operations["portal_rotate_integrations_brook_plaid_sdk_portal_rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/portal/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal Session */
+        get: operations["portal_session_integrations_brook_plaid_sdk_portal_session_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2898,6 +3263,26 @@ export interface paths {
          * @description Register the calling tenant for Brook. Returns pk/sk/webhook_secret ONCE.
          */
         post: operations["register_integrations_brook_plaid_sdk_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/brook_plaid_sdk/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume
+         * @description Resume a prior session by its reference — same contract as ``/exchange``.
+         */
+        post: operations["resume_integrations_brook_plaid_sdk_resume_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2943,38 +3328,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/portal/login": {
+    "/integrations/brook_plaid_sdk/sync": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Portal Login Form */
-        get: operations["portal_login_form_integrations_brook_plaid_sdk_portal_login_get"];
+        get?: never;
         put?: never;
         /**
-         * Portal Login
-         * @description Email one named sign-in link per tenant on this email via Resend.
-         *     Always answers the same (no user enumeration). If email isn't
-         *     configured/fails, dev surfaces the links inline.
+         * Sync
+         * @description Plaid ``/transactions/sync``-style paging over the collected result.
+         *
+         *     The full wire is already stored (one ``result.json`` per case); this pages
+         *     over it with an opaque cursor — no extra storage. Returns ``{pending}`` /
+         *     ``{error}`` until the collection completes, then sync pages
+         *     (``added``/``modified``/``removed``/``next_cursor``/``has_more``).
          */
-        post: operations["portal_login_integrations_brook_plaid_sdk_portal_login_post"];
+        post: operations["sync_integrations_brook_plaid_sdk_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/portal/session": {
+    "/integrations/brook_plaid_sdk/u/{session_token}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Portal Session */
-        get: operations["portal_session_integrations_brook_plaid_sdk_portal_session_get"];
+        /**
+         * Upload Page View
+         * @description Serve the borrower's hosted upload page (or an expired notice).
+         */
+        get: operations["upload_page_view_integrations_brook_plaid_sdk_u__session_token__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2983,32 +3373,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/portal/logout": {
+    "/integrations/brook_plaid_sdk/u/{session_token}/status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Portal Logout */
-        post: operations["portal_logout_integrations_brook_plaid_sdk_portal_logout_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Portal Home */
-        get: operations["portal_home_integrations_brook_plaid_sdk_portal_get"];
+        /**
+         * Upload Status
+         * @description Borrower-side live status for the upload page (token-gated, read-only).
+         *
+         *     Drives the popup's progress mirror — e.g. a desktop that handed off to a
+         *     phone via QR flips to ``done`` here once the phone's upload completes. Never
+         *     writes; an unknown/expired token returns ``awaiting_borrower`` (not 404) so
+         *     the poll can't be used to probe token validity.
+         */
+        get: operations["upload_status_integrations_brook_plaid_sdk_u__session_token__status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3017,7 +3398,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/brook_plaid_sdk/portal/rotate": {
+    "/integrations/brook_plaid_sdk/u/{session_token}/upload": {
         parameters: {
             query?: never;
             header?: never;
@@ -3026,76 +3407,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Portal Rotate */
-        post: operations["portal_rotate_integrations_brook_plaid_sdk_portal_rotate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/portal/cors/add": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Portal Cors Add */
-        post: operations["portal_cors_add_integrations_brook_plaid_sdk_portal_cors_add_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/portal/cors/remove": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Portal Cors Remove */
-        post: operations["portal_cors_remove_integrations_brook_plaid_sdk_portal_cors_remove_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/portal/billing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Portal Billing */
-        post: operations["portal_billing_integrations_brook_plaid_sdk_portal_billing_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integrations/brook_plaid_sdk/llm.txt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Llm Txt */
-        get: operations["llm_txt_integrations_brook_plaid_sdk_llm_txt_get"];
-        put?: never;
-        post?: never;
+        /**
+         * Upload
+         * @description Stage the borrower's uploaded statements and trigger collection.
+         */
+        post: operations["upload_integrations_brook_plaid_sdk_u__session_token__upload_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3113,72 +3429,6 @@ export interface paths {
         put?: never;
         /** Lendingpad Webhook */
         post: operations["lendingpad_webhook_integrations_lendingpad_webhook_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/apply/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Apply Landing */
-        get: operations["apply_landing_apply__slug__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/apply/{slug}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Apply Start
-         * @description Create the borrower's party-hub session and redirect into it.
-         *
-         *     Accepts only a form submitted from this site's own page, and is bounded per
-         *     caller and per recipient address.
-         *
-         *     The token travels in the URL FRAGMENT, not the query string: a fragment is
-         *     never sent to a server and never lands in an access log or a Referer header.
-         */
-        post: operations["apply_start_apply__slug__start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/apply/{slug}/portal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Apply Portal
-         * @description Serve the borrower application page.
-         *
-         *     The page authenticates itself with the portal token from the URL fragment;
-         *     this route reads neither the token nor the slug.
-         */
-        get: operations["apply_portal_apply__slug__portal_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3222,23 +3472,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/integrations/stripe/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Usage */
-        post: operations["usage_integrations_stripe_usage_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/integrations/stripe/status": {
         parameters: {
             query?: never;
@@ -3250,6 +3483,23 @@ export interface paths {
         get: operations["status_integrations_stripe_status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/stripe/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Usage */
+        post: operations["usage_integrations_stripe_usage_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3273,66 +3523,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/health/live": {
+    "/portal/upload": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Health */
-        get: operations["health_api_v1_health_live_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Health */
-        get: operations["health_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Health */
-        get: operations["health_api_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/version": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Version */
-        get: operations["version_api_v1_version_get"];
+        /** Upload Page */
+        get: operations["upload_page_portal_upload_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3347,18 +3546,18 @@ export interface components {
     schemas: {
         /** AddPartyBody */
         AddPartyBody: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
             /** Party Type */
             party_type: string;
             /** Role */
             role?: string | null;
-            /** Display Name */
-            display_name?: string | null;
-            /** Linked Identity Id */
-            linked_identity_id?: string | null;
             /** Signer Party Id */
             signer_party_id?: string | null;
-            /** Email */
-            email?: string | null;
         };
         /**
          * AgentEventMeta
@@ -3371,10 +3570,10 @@ export interface components {
          *     decision (``fast``/``balanced``/``powerful``).
          */
         AgentEventMeta: {
+            /** Approved Correction Id */
+            approved_correction_id?: string | null;
             /** Domain */
             domain?: string | null;
-            /** Tier */
-            tier?: string | null;
             /** Model */
             model?: string | null;
             /** Prompt Version */
@@ -3383,8 +3582,8 @@ export interface components {
             reasoning?: string | null;
             /** Reasoning Preview */
             reasoning_preview?: string | null;
-            /** Approved Correction Id */
-            approved_correction_id?: string | null;
+            /** Tier */
+            tier?: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -3478,25 +3677,13 @@ export interface components {
          *     }
          */
         AttestationArtifactResponse: {
-            /** @description The in-toto Statement carrying the STH. */
-            attestation: components["schemas"]["AttestationStatement"];
-            /**
-             * Signature
-             * @description Base64url detached signature over the canonical STH payload.
-             */
-            signature: string;
             /**
              * Algo
              * @description Signature algorithm, e.g. ed25519.
              */
             algo: string;
-            /**
-             * Schema Catalog
-             * @description Catalog of event schemas covered by the tree, keyed by schema id.
-             */
-            schema_catalog?: {
-                [key: string]: unknown;
-            };
+            /** @description The in-toto Statement carrying the STH. */
+            attestation: components["schemas"]["AttestationStatement"];
             /**
              * Jws
              * @description Compact JWS (EdDSA) embedding the statement for offline verify.
@@ -3509,6 +3696,18 @@ export interface components {
             public_key?: {
                 [key: string]: unknown;
             };
+            /**
+             * Schema Catalog
+             * @description Catalog of event schemas covered by the tree, keyed by schema id.
+             */
+            schema_catalog?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Signature
+             * @description Base64url detached signature over the canonical STH payload.
+             */
+            signature: string;
         };
         /**
          * AttestationStatement
@@ -3568,6 +3767,13 @@ export interface components {
              * @description in-toto Statement type URI, e.g. https://in-toto.io/Statement/v1.
              */
             _type: string;
+            /** @description The Signed Tree Head predicate body. */
+            predicate: components["schemas"]["SignedTreeHeadPredicate"];
+            /**
+             * Predicatetype
+             * @description Predicate type URI for the audit-merkle attestation.
+             */
+            predicateType: string;
             /**
              * Subject
              * @description Subject list: each entry names a source document and its digest.
@@ -3575,23 +3781,25 @@ export interface components {
             subject?: {
                 [key: string]: unknown;
             }[];
-            /**
-             * Predicatetype
-             * @description Predicate type URI for the audit-merkle attestation.
-             */
-            predicateType: string;
-            /** @description The Signed Tree Head predicate body. */
-            predicate: components["schemas"]["SignedTreeHeadPredicate"];
         };
         /**
          * BankingAccount
          * @description One per-account row pivoted from banking aggregation extractions.
          */
         BankingAccount: {
-            /** Account Id */
-            account_id?: string | null;
             /** Account Holder Name */
             account_holder_name?: string | null;
+            /** Account Id */
+            account_id?: string | null;
+            /**
+             * Average Monthly Deposits
+             * @default 0
+             */
+            average_monthly_deposits: number;
+            /** Balance Reconciled */
+            balance_reconciled?: boolean | null;
+            /** Coverage Passed */
+            coverage_passed?: boolean | null;
             /** Currency */
             currency?: string | null;
             /**
@@ -3604,53 +3812,44 @@ export interface components {
              * @default 0
              */
             gross_deposits_conservative: number;
-            /**
-             * Average Monthly Deposits
-             * @default 0
-             */
-            average_monthly_deposits: number;
-            /** Months Covered */
-            months_covered?: number | null;
-            /**
-             * Stream Count
-             * @default 0
-             */
-            stream_count: number;
-            /** Payroll Stream Confidence */
-            payroll_stream_confidence?: number | null;
-            /** Balance Reconciled */
-            balance_reconciled?: boolean | null;
-            /** Coverage Passed */
-            coverage_passed?: boolean | null;
-            /** Summary Matched */
-            summary_matched?: boolean | null;
             /** Header Fallback */
             header_fallback?: boolean | null;
+            /** Months Covered */
+            months_covered?: number | null;
+            /** Payroll Stream Confidence */
+            payroll_stream_confidence?: number | null;
             /**
              * Source Doc Ids
              * @default []
              */
             source_doc_ids: string[];
+            /**
+             * Stream Count
+             * @default 0
+             */
+            stream_count: number;
+            /** Summary Matched */
+            summary_matched?: boolean | null;
         };
         /**
          * BankingBorrowerRollup
          * @description Cross-account rollup emitted by unify_borrower_statements.
          */
         BankingBorrowerRollup: {
-            /** Borrower Id */
-            borrower_id?: string | null;
-            /** Borrower Name */
-            borrower_name?: string | null;
             /**
              * Account Count
              * @default 0
              */
             account_count: number;
             /**
-             * Source Account Ids
-             * @default []
+             * Average Monthly Deposits
+             * @default 0
              */
-            source_account_ids: string[];
+            average_monthly_deposits: number;
+            /** Borrower Id */
+            borrower_id?: string | null;
+            /** Borrower Name */
+            borrower_name?: string | null;
             /**
              * Gross Deposits Aggressive
              * @default 0
@@ -3661,20 +3860,20 @@ export interface components {
              * @default 0
              */
             gross_deposits_conservative: number;
-            /**
-             * Average Monthly Deposits
-             * @default 0
-             */
-            average_monthly_deposits: number;
             /** Months Covered */
             months_covered?: number | null;
+            /** Payroll Stream Confidence */
+            payroll_stream_confidence?: number | null;
+            /**
+             * Source Account Ids
+             * @default []
+             */
+            source_account_ids: string[];
             /**
              * Stream Count
              * @default 0
              */
             stream_count: number;
-            /** Payroll Stream Confidence */
-            payroll_stream_confidence?: number | null;
         };
         /** BankingResponse */
         BankingResponse: {
@@ -3689,26 +3888,26 @@ export interface components {
              */
             borrowers: components["schemas"]["BankingBorrowerRollup"][];
             /**
-             * Total Gross Deposits
-             * @default 0
-             */
-            total_gross_deposits: number;
-            /**
              * Total Average Monthly
              * @default 0
              */
             total_average_monthly: number;
+            /**
+             * Total Gross Deposits
+             * @default 0
+             */
+            total_gross_deposits: number;
         };
         /** BboxResponse */
         BboxResponse: {
+            /** Height */
+            height: number;
+            /** Width */
+            width: number;
             /** X */
             x: number;
             /** Y */
             y: number;
-            /** Width */
-            width: number;
-            /** Height */
-            height: number;
         };
         /** Body_apply_start_apply__slug__start_post */
         Body_apply_start_apply__slug__start_post: {
@@ -3727,27 +3926,27 @@ export interface components {
         };
         /** Body_signup_integrations_brook_plaid_sdk_signup_post */
         Body_signup_integrations_brook_plaid_sdk_signup_post: {
-            /** Org */
-            org: string;
-            /** Email */
-            email: string;
             /**
              * Cf-Turnstile-Response
              * @default
              */
             "cf-turnstile-response": string;
+            /** Email */
+            email: string;
+            /** Org */
+            org: string;
         };
         /** Body_signup_integrations_brook_signup_post */
         Body_signup_integrations_brook_signup_post: {
-            /** Org */
-            org: string;
-            /** Email */
-            email: string;
             /**
              * Cf-Turnstile-Response
              * @default
              */
             "cf-turnstile-response": string;
+            /** Email */
+            email: string;
+            /** Org */
+            org: string;
         };
         /** Body_upload_files_api_cases__case_id__files_post */
         Body_upload_files_api_cases__case_id__files_post: {
@@ -3759,27 +3958,89 @@ export interface components {
             /** Files */
             files: string[];
         };
+        /**
+         * BorrowerLoanRow
+         * @description One loan in the borrower's own dashboard.
+         *
+         *     Two of the three blocks a verified portal session carries — the status and
+         *     the summary — flattened one level and keyed by case, plus the portal token
+         *     that drives into that loan's existing portal. There is deliberately NO
+         *     decision block: a published decision already determines ``status.key``
+         *     (``BorrowerStatus.derive`` keys off the decision kind when there is one), and
+         *     its terms, conditions and message are what the card links INTO rather than
+         *     what it summarises. ``action_count`` rides on ``status`` — it is part of what
+         *     the borrower is told, not a second axis — so there is no field for it here.
+         *
+         *     ``created_at`` and ``updated_at`` are the CASE's, and both are optional
+         *     because ``cases.created_at`` and ``cases.updated_at`` are nullable columns.
+         *     ``CaseRepo.create_case`` fills both, so a null is a row some other writer
+         *     made; the dashboard still lists that loan (sorted last) rather than
+         *     answering 500 for the whole set.
+         */
+        BorrowerLoanRow: {
+            /**
+             * Case Id
+             * Format: uuid
+             */
+            case_id: string;
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
+            /** Product Label */
+            product_label?: string | null;
+            /** Property Label */
+            property_label?: string | null;
+            status: components["schemas"]["LoanStatusInfo"];
+            /**
+             * Summary
+             * @default []
+             */
+            summary: components["schemas"]["LoanSummaryField"][];
+            /** Token */
+            token: string;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * BorrowerStatusInfo
+         * @description What the borrower is told right now.
+         *
+         *     ``action_count`` is items across the party's open request messages, shown
+         *     as an "action needed" pill WHATEVER the status — a conditional approval
+         *     with outstanding conditions is the case that matters.
+         */
+        BorrowerStatusInfo: {
+            /**
+             * Action Count
+             * @default 0
+             */
+            action_count: number;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Tone */
+            tone: string;
+        };
         /** CalculationStepResponse */
         CalculationStepResponse: {
-            /** Step Number */
-            step_number: number;
             /** Derivation Name */
             derivation_name: string;
             /** Formula */
             formula: string;
-            /** Formula Display */
-            formula_display?: string | null;
             /** Formula Description */
             formula_description?: string | null;
-            /** Result */
-            result?: number | null;
-            /** Result Type */
-            result_type?: string | null;
-            /**
-             * Is Final
-             * @default false
-             */
-            is_final: boolean;
+            /** Formula Display */
+            formula_display?: string | null;
             /**
              * Function Calls
              * @default []
@@ -3790,6 +4051,17 @@ export interface components {
              * @default []
              */
             input_values: components["schemas"]["InputValueResponse"][];
+            /**
+             * Is Final
+             * @default false
+             */
+            is_final: boolean;
+            /** Result */
+            result?: number | null;
+            /** Result Type */
+            result_type?: string | null;
+            /** Step Number */
+            step_number: number;
         };
         /**
          * CaseDocument
@@ -3820,20 +4092,20 @@ export interface components {
             _display?: components["schemas"]["EventDisplay"] | null;
             /** Field */
             field?: string | null;
-            /** Old Value */
-            old_value?: unknown;
-            /** New Value */
-            new_value?: unknown;
-            /** Reason */
-            reason?: string | null;
-            /** Score Basis */
-            score_basis?: string | null;
-            /** Reasoning */
-            reasoning?: string | null;
-            /** Severity */
-            severity?: string | null;
             /** Message */
             message?: string | null;
+            /** New Value */
+            new_value?: unknown;
+            /** Old Value */
+            old_value?: unknown;
+            /** Reason */
+            reason?: string | null;
+            /** Reasoning */
+            reasoning?: string | null;
+            /** Score Basis */
+            score_basis?: string | null;
+            /** Severity */
+            severity?: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -3842,13 +4114,13 @@ export interface components {
          * @description One audit/case event — history row and SSE stream payload share it.
          */
         CaseEventResponse: {
+            /** Created At */
+            created_at?: string | null;
+            event_data?: components["schemas"]["CaseEventData"] | null;
             /** Event Id */
             event_id: number;
             /** Event Type */
             event_type: string;
-            event_data?: components["schemas"]["CaseEventData"] | null;
-            /** Created At */
-            created_at?: string | null;
         };
         /** CaseResponse */
         CaseResponse: {
@@ -3857,19 +4129,7 @@ export interface components {
              * Format: uuid
              */
             case_id: string;
-            /**
-             * Tenant Id
-             * Format: uuid
-             */
-            tenant_id: string;
-            /** Spec Id */
-            spec_id?: string | null;
-            /** Name */
-            name?: string | null;
-            /** Pool Version */
-            pool_version: number;
-            /** State */
-            state: string;
+            certificate?: components["schemas"]["CertificateStatus"] | null;
             /** Created At */
             created_at?: string | null;
             /**
@@ -3877,9 +4137,21 @@ export interface components {
              * @default 0
              */
             file_count: number;
+            /** Name */
+            name?: string | null;
+            /** Pool Version */
+            pool_version: number;
             /** Primary Borrower */
             primary_borrower?: string | null;
-            certificate?: components["schemas"]["CertificateStatus"] | null;
+            /** Spec Id */
+            spec_id?: string | null;
+            /** State */
+            state: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
         };
         /**
          * CertificateStatus
@@ -3894,6 +4166,11 @@ export interface components {
          */
         CertificateStatus: {
             /**
+             * Merkle Root
+             * @description Hex Merkle root, when signed.
+             */
+            merkle_root?: string | null;
+            /**
              * Ready
              * @description True when the case is finalized and has a non-empty audit log.
              */
@@ -3904,60 +4181,55 @@ export interface components {
              */
             signed: boolean;
             /**
-             * Tree Size
-             * @description Number of audit events covered, when signed.
-             */
-            tree_size?: number | null;
-            /**
-             * Merkle Root
-             * @description Hex Merkle root, when signed.
-             */
-            merkle_root?: string | null;
-            /**
              * Signed At
              * @description ISO-8601 timestamp the tree head was signed, when signed.
              */
             signed_at?: string | null;
+            /**
+             * Tree Size
+             * @description Number of audit events covered, when signed.
+             */
+            tree_size?: number | null;
         };
         /** ChecklistItem */
         ChecklistItem: {
-            /** Id */
-            id: string;
-            /** Status */
-            status: string;
-            /** Title */
-            title: string;
-            /**
-             * Detail
-             * @default
-             */
-            detail: string;
             /**
              * Action
              * @default
              */
             action: string;
             /**
-             * Priority
-             * @default medium
-             */
-            priority: string;
-            /**
-             * Finding Code
+             * Detail
              * @default
              */
-            finding_code: string;
-            /**
-             * Optional
-             * @default false
-             */
-            optional: boolean;
+            detail: string;
             /**
              * @default {
              *       "component": "StatusCard"
              *     }
              */
             display_hints: components["schemas"]["DisplayHints"];
+            /**
+             * Finding Code
+             * @default
+             */
+            finding_code: string;
+            /** Id */
+            id: string;
+            /**
+             * Optional
+             * @default false
+             */
+            optional: boolean;
+            /**
+             * Priority
+             * @default medium
+             */
+            priority: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
         };
         /** CheckoutRequest */
         CheckoutRequest: {
@@ -3968,7 +4240,15 @@ export interface components {
         };
         /**
          * ClaimAccountRequest
-         * @description Borrower attaches a Firebase account to their portal (token-gated).
+         * @description A Firebase ID token the server verifies for itself.
+         *
+         *     Shared by routes that are gated DIFFERENTLY, which is the thing to know
+         *     before reusing it. ``POST /portal/claim-account`` (``session.py``) is gated
+         *     on the borrower's CURRENT PORTAL TOKEN and attaches the account to that one
+         *     party. ``POST /portal/account/link`` (``accounts.py``) has no portal token
+         *     at all — the verified ``email`` claim in this token is its whole authority —
+         *     and binds every party that claim is trusted for. The body is the same one
+         *     field; what the server does with it is not.
          */
         ClaimAccountRequest: {
             /** Firebase Id Token */
@@ -3984,51 +4264,51 @@ export interface components {
          * @description One classified transaction row from the banking pipeline.
          */
         ClassifiedTransaction: {
-            /** Transaction Id */
-            transaction_id: string;
             /** Account Id */
             account_id: string;
-            /** Transaction Date */
-            transaction_date: string;
-            /** Description */
-            description: string;
-            /** Credit Debit */
-            credit_debit: string;
             /** Amount */
             amount: number;
             /** Classification */
             classification?: string | null;
-            /**
-             * Is Transfer
-             * @default false
-             */
-            is_transfer: boolean;
+            /** Credit Debit */
+            credit_debit: string;
+            /** Description */
+            description: string;
             /**
              * Is Large Deposit
              * @default false
              */
             is_large_deposit: boolean;
+            /**
+             * Is Transfer
+             * @default false
+             */
+            is_transfer: boolean;
+            /** Running Balance */
+            running_balance?: number | null;
             /** Source File Id */
             source_file_id?: string | null;
             /** Source Page Number */
             source_page_number?: number | null;
-            /** Running Balance */
-            running_balance?: number | null;
+            /** Transaction Date */
+            transaction_date: string;
+            /** Transaction Id */
+            transaction_id: string;
         };
         /** ClassifiedTransactionsResponse */
         ClassifiedTransactionsResponse: {
             /** Case Id */
             case_id: string;
             /**
-             * Transactions
-             * @default []
-             */
-            transactions: components["schemas"]["ClassifiedTransaction"][];
-            /**
              * Total Count
              * @default 0
              */
             total_count: number;
+            /**
+             * Transactions
+             * @default []
+             */
+            transactions: components["schemas"]["ClassifiedTransaction"][];
         };
         /** CollectRequest */
         CollectRequest: {
@@ -4038,26 +4318,21 @@ export interface components {
             borrower?: {
                 [key: string]: unknown;
             } | null;
-            /** Idempotencykey */
-            idempotencyKey?: string | null;
             /**
              * Certified
              * @default false
              */
             certified: boolean;
+            /** Idempotencykey */
+            idempotencyKey?: string | null;
         };
         /** ConsentState */
         ConsentState: {
             /**
-             * Sms Opt In
+             * Credit Pull
              * @default false
              */
-            sms_opt_in: boolean;
-            /**
-             * Email Opt In
-             * @default false
-             */
-            email_opt_in: boolean;
+            credit_pull: boolean;
             /**
              * Doc Sharing
              * @default false
@@ -4069,10 +4344,15 @@ export interface components {
              */
             electronic_records: boolean;
             /**
-             * Credit Pull
+             * Email Opt In
              * @default false
              */
-            credit_pull: boolean;
+            email_opt_in: boolean;
+            /**
+             * Sms Opt In
+             * @default false
+             */
+            sms_opt_in: boolean;
         };
         /**
          * ConsistencyProofResponse
@@ -4090,80 +4370,80 @@ export interface components {
          */
         ConsistencyProofResponse: {
             /**
-             * First Size
-             * @description Earlier (smaller) tree size.
+             * Consistency Path
+             * @description Hashes (hex) proving the first tree is a prefix of the second.
              */
-            first_size: number;
-            /**
-             * Second Size
-             * @description Later (larger or equal) tree size.
-             */
-            second_size: number;
+            consistency_path?: string[];
             /**
              * First Root
              * @description Hex-encoded Merkle root at first_size.
              */
             first_root: string;
             /**
+             * First Size
+             * @description Earlier (smaller) tree size.
+             */
+            first_size: number;
+            /**
              * Second Root
              * @description Hex-encoded Merkle root at second_size.
              */
             second_root: string;
             /**
-             * Consistency Path
-             * @description Hashes (hex) proving the first tree is a prefix of the second.
+             * Second Size
+             * @description Later (larger or equal) tree size.
              */
-            consistency_path?: string[];
+            second_size: number;
         };
         /** CoverageEntryResponse */
         CoverageEntryResponse: {
-            /** Product Id */
-            product_id: string;
+            /** Covered Rules */
+            covered_rules: number;
             /** Domain */
             domain: string;
+            /** Passing Baselines */
+            passing_baselines: number;
+            /** Product Id */
+            product_id: string;
+            /** Rule Coverage */
+            rule_coverage: number;
             /** Spec Name */
             spec_name: string;
             /** Total Baselines */
             total_baselines: number;
-            /** Passing Baselines */
-            passing_baselines: number;
             /** Total Rules */
             total_rules: number;
-            /** Covered Rules */
-            covered_rules: number;
-            /** Rule Coverage */
-            rule_coverage: number;
         };
         /** CoverageReportResponse */
         CoverageReportResponse: {
             /** Entries */
             entries: components["schemas"]["CoverageEntryResponse"][];
+            /** Overall Rule Coverage */
+            overall_rule_coverage: number;
             /** Total Baselines */
             total_baselines: number;
             /** Total Rules */
             total_rules: number;
-            /** Overall Rule Coverage */
-            overall_rule_coverage: number;
         };
         /** CreateCaseRequest */
         CreateCaseRequest: {
-            /** Spec Id */
-            spec_id?: string | null;
-            /** Name */
-            name?: string | null;
-            /**
-             * Spec Filter
-             * @default []
-             */
-            spec_filter: string[];
             /** Initial Context */
             initial_context?: {
                 [key: string]: {
                     [key: string]: unknown;
                 };
             } | null;
+            /** Name */
+            name?: string | null;
             /** Origin */
             origin?: string | null;
+            /**
+             * Spec Filter
+             * @default []
+             */
+            spec_filter: string[];
+            /** Spec Id */
+            spec_id?: string | null;
         };
         /** CreateCaseResponse */
         CreateCaseResponse: {
@@ -4177,10 +4457,10 @@ export interface components {
         };
         /** CreateOperatorRequest */
         CreateOperatorRequest: {
-            /** Operator Name */
-            operator_name: string;
             /** Operator Email */
             operator_email: string;
+            /** Operator Name */
+            operator_name: string;
         };
         /**
          * CreatePosPortalRequest
@@ -4190,31 +4470,31 @@ export interface components {
          *     second place for URL-safety to go wrong; the server mints it.
          */
         CreatePosPortalRequest: {
-            /** Product Id */
-            product_id: string;
-            /** Label */
-            label: string;
             /** Expires At */
             expires_at?: string | null;
+            /** Label */
+            label: string;
+            /** Product Id */
+            product_id: string;
         };
         /** CreateRefinementRequest */
         CreateRefinementRequest: {
             /** Borrower Ids */
             borrower_ids?: (string | null)[] | null;
-            /** Document Ids */
-            document_ids?: (string | null)[] | null;
-            /** Product Ids */
-            product_ids?: (string | null)[] | null;
-            /** Spec Ids */
-            spec_ids?: (string | null)[] | null;
-            /** Note */
-            note?: string | null;
             /** Context */
             context?: {
                 [key: string]: {
                     [key: string]: unknown;
                 };
             } | null;
+            /** Document Ids */
+            document_ids?: (string | null)[] | null;
+            /** Note */
+            note?: string | null;
+            /** Product Ids */
+            product_ids?: (string | null)[] | null;
+            /** Spec Ids */
+            spec_ids?: (string | null)[] | null;
         };
         /** CreateRefinementResponse */
         CreateRefinementResponse: {
@@ -4237,12 +4517,12 @@ export interface components {
         CreateSampleCaseResponse: {
             /** Case Id */
             case_id: string;
-            /** State */
-            state: string;
             /** File Count */
             file_count: number;
             /** Sample Id */
             sample_id: string;
+            /** State */
+            state: string;
         };
         /** CreateScenarioRequest */
         CreateScenarioRequest: {
@@ -4261,16 +4541,16 @@ export interface components {
         };
         /** CreateSpecRequest */
         CreateSpecRequest: {
-            /** Name */
-            name: string;
+            /** Description */
+            description?: string | null;
             /** Domain */
             domain: string;
+            /** Name */
+            name: string;
             /** Version */
             version: string;
             /** Yaml Content */
             yaml_content: string;
-            /** Description */
-            description?: string | null;
         };
         /** CreateSpecResponse */
         CreateSpecResponse: {
@@ -4300,25 +4580,22 @@ export interface components {
         };
         /** CreateTenantResponse */
         CreateTenantResponse: {
-            /** Tenant Id */
-            tenant_id: string;
-            /** Tenant Name */
-            tenant_name: string;
-            /** Role */
-            role: string;
             /**
              * Has Tenant
              * @default true
              */
             has_tenant: boolean;
+            /** Role */
+            role: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Tenant Name */
+            tenant_name: string;
         };
         /** CredentialResponse */
         CredentialResponse: {
-            /**
-             * Credential Id
-             * Format: uuid
-             */
-            credential_id: string;
+            /** Bearer Token */
+            bearer_token: string;
             /**
              * Client Id
              * Format: uuid
@@ -4326,8 +4603,11 @@ export interface components {
             client_id: string;
             /** Client Secret */
             client_secret: string;
-            /** Bearer Token */
-            bearer_token: string;
+            /**
+             * Credential Id
+             * Format: uuid
+             */
+            credential_id: string;
         };
         /**
          * CurePlanItem
@@ -4354,69 +4634,203 @@ export interface components {
          *     without forcing a types.py change.
          */
         CurePlanItem: {
-            /** Lever */
-            lever: string;
-            /** Target Dscr */
-            target_dscr?: number | null;
-            /** Resulting Dscr */
-            resulting_dscr?: number | null;
             /** Additional Down */
             additional_down?: number | null;
             /** Cured Ltv */
             cured_ltv?: number | null;
             /** Io Dscr */
             io_dscr?: number | null;
-            /** Market Rent */
-            market_rent?: number | null;
+            /** Lever */
+            lever: string;
             /** Market Dscr */
             market_dscr?: number | null;
+            /** Market Rent */
+            market_rent?: number | null;
+            /** Resulting Dscr */
+            resulting_dscr?: number | null;
+            /** Target Dscr */
+            target_dscr?: number | null;
         } & {
             [key: string]: unknown;
         };
+        /**
+         * DecisionBasisInfo
+         * @description The single calculation a draft's numbers were read from.
+         */
+        DecisionBasisInfo: {
+            /** Computed At */
+            computed_at?: string | null;
+            /**
+             * Manifest Id
+             * Format: uuid
+             */
+            manifest_id: string;
+            /**
+             * Manifest Name
+             * @default
+             */
+            manifest_name: string;
+            /**
+             * Result Id
+             * Format: uuid
+             */
+            result_id: string;
+        };
+        /**
+         * DecisionDraftResponse
+         * @description What to prefill the officer's decision form with.
+         *
+         *     ``basis is None`` means no analysis has run for this case's product yet;
+         *     ``terms`` is then empty and no outcome is suggested, but ``kinds`` and
+         *     ``conditions`` still populate so the form remains usable.
+         */
+        DecisionDraftResponse: {
+            basis?: components["schemas"]["DecisionBasisInfo"] | null;
+            /**
+             * Conditions
+             * @default []
+             */
+            conditions: components["schemas"]["PortalRequestItem"][];
+            current_status?: components["schemas"]["BorrowerStatusInfo"] | null;
+            /**
+             * Kinds
+             * @default []
+             */
+            kinds: components["schemas"]["DecisionKindOption"][];
+            /** Suggested Kind */
+            suggested_kind?: string | null;
+            /**
+             * Terms
+             * @default []
+             */
+            terms: components["schemas"]["DecisionTerm"][];
+        };
+        /**
+         * DecisionHistoryResponse
+         * @description Every decision on the case, newest first, plus the current status.
+         */
+        DecisionHistoryResponse: {
+            current_status?: components["schemas"]["BorrowerStatusInfo"] | null;
+            /**
+             * Decisions
+             * @default []
+             */
+            decisions: components["schemas"]["DecisionResponse"][];
+        };
+        /**
+         * DecisionKindOption
+         * @description One outcome the officer may publish, with the copy the borrower will see.
+         */
+        DecisionKindOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Tone */
+            tone: string;
+        };
+        /**
+         * DecisionResponse
+         * @description One published decision, as the borrower was told it.
+         */
+        DecisionResponse: {
+            /**
+             * Conditions
+             * @default []
+             */
+            conditions: components["schemas"]["PortalRequestItem"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Decided By Name
+             * @default
+             */
+            decided_by_name: string;
+            /**
+             * Decision Id
+             * Format: uuid
+             */
+            decision_id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Message */
+            message?: string | null;
+            /**
+             * Terms
+             * @default []
+             */
+            terms: components["schemas"]["DecisionTerm"][];
+            /** Tone */
+            tone: string;
+        };
+        /**
+         * DecisionTerm
+         * @description One line of what the borrower is told their loan's terms are.
+         *
+         *     ``display`` is what a human reads; ``field`` and ``source`` are what makes
+         *     it auditable back to the input the applicant answered or the derivation the
+         *     spec computed. The raw ``value`` is deliberately absent: the client renders
+         *     the string, and the number is already in the decision row's snapshot.
+         */
+        DecisionTerm: {
+            /** Display */
+            display: string;
+            /** Field */
+            field: string;
+            /** Label */
+            label: string;
+            /** Source */
+            source: string;
+        };
         /** DeleteScenarioResponse */
         DeleteScenarioResponse: {
-            /** Status */
-            status: string;
+            /** Message */
+            message: string;
             /**
              * Scenario Id
              * Format: uuid
              */
             scenario_id: string;
-            /** Message */
-            message: string;
+            /** Status */
+            status: string;
         };
         /** DisplayHints */
         DisplayHints: {
+            /** Accept */
+            accept?: string | null;
             /**
              * Component
              * @default StatusCard
              */
             component: string;
-            /** Accept */
-            accept?: string | null;
             /** Label */
             label?: string | null;
         };
         /** DocumentInfo */
         DocumentInfo: {
+            /** Display Type */
+            display_type: string | null;
+            /** Doc Type */
+            doc_type: string | null;
+            /** Filename */
+            filename: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Doc Type */
-            doc_type: string | null;
-            /** Display Type */
-            display_type: string | null;
-            /** Filename */
-            filename: string | null;
-            /** Tax Year */
-            tax_year?: number | null;
             /**
              * Status
              * @default Included
              */
             status: string;
+            /** Tax Year */
+            tax_year?: number | null;
         };
         /** DocumentResponse */
         DocumentResponse: {
@@ -4427,19 +4841,19 @@ export interface components {
             doc_id: string;
             /** Doc Type */
             doc_type?: string | null;
-            /** Original Filename */
-            original_filename?: string | null;
+            /** Effective Period End */
+            effective_period_end?: string | null;
+            /** Effective Period Start */
+            effective_period_start?: string | null;
             /**
              * File Id
              * Format: uuid
              */
             file_id: string;
+            /** Original Filename */
+            original_filename?: string | null;
             /** Page Numbers */
             page_numbers?: number[] | null;
-            /** Effective Period Start */
-            effective_period_start?: string | null;
-            /** Effective Period End */
-            effective_period_end?: string | null;
             /** Tax Year */
             tax_year?: number | null;
         };
@@ -4449,15 +4863,15 @@ export interface components {
          */
         DraftRequestBody: {
             /**
-             * Items
-             * @default []
-             */
-            items: components["schemas"]["PortalRequestItem"][];
-            /**
              * Context
              * @default
              */
             context: string;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["PortalRequestItem"][];
         };
         /** DraftResponse */
         DraftResponse: {
@@ -4475,15 +4889,20 @@ export interface components {
         /** EntityGroupResponse */
         EntityGroupResponse: {
             /**
-             * Entity Id
-             * Format: uuid
-             */
-            entity_id: string;
-            /**
              * Case Id
              * Format: uuid
              */
             case_id: string;
+            /**
+             * Doc Ids
+             * @default []
+             */
+            doc_ids: string[];
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
             /** Entity Type */
             entity_type: string;
             /** Identifier Type */
@@ -4492,17 +4911,12 @@ export interface components {
             identifier_value: string;
             /** Label */
             label: string;
+            /** Parent Entity Id */
+            parent_entity_id?: string | null;
             /** Resolution Method */
             resolution_method: string;
             /** Status */
             status: string;
-            /**
-             * Doc Ids
-             * @default []
-             */
-            doc_ids: string[];
-            /** Parent Entity Id */
-            parent_entity_id?: string | null;
         };
         /** EntityInfo */
         EntityInfo: {
@@ -4531,9 +4945,12 @@ export interface components {
          *     or domain vocabulary required.
          */
         EventDisplay: {
-            /** Summary */
-            summary?: string | null;
             change?: components["schemas"]["EventDisplayOpChange"] | null;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["EventDisplayDoc"][];
             /**
              * Fields
              * @default []
@@ -4544,11 +4961,8 @@ export interface components {
              * @default []
              */
             ops: components["schemas"]["EventDisplayOp"][];
-            /**
-             * Documents
-             * @default []
-             */
-            documents: components["schemas"]["EventDisplayDoc"][];
+            /** Summary */
+            summary?: string | null;
         };
         /**
          * EventDisplayDoc
@@ -4561,14 +4975,14 @@ export interface components {
         EventDisplayDoc: {
             /** Doc Id */
             doc_id?: string | null;
-            /** Label */
-            label: string;
-            /** File Id */
-            file_id?: string | null;
-            /** Page */
-            page?: number | null;
             /** Doc Type */
             doc_type?: string | null;
+            /** File Id */
+            file_id?: string | null;
+            /** Label */
+            label: string;
+            /** Page */
+            page?: number | null;
         };
         /**
          * EventDisplayField
@@ -4589,26 +5003,26 @@ export interface components {
          * @description One gated correction op, rendered as a card.
          */
         EventDisplayOp: {
-            /** Title */
-            title: string;
-            /**
-             * Route
-             * @default
-             */
-            route: string;
+            change?: components["schemas"]["EventDisplayOpChange"] | null;
             /** Confidence */
             confidence?: number | null;
-            /**
-             * Summary
-             * @default
-             */
-            summary: string;
-            change?: components["schemas"]["EventDisplayOpChange"] | null;
             /**
              * Extra
              * @default []
              */
             extra: components["schemas"]["EventDisplayField"][];
+            /**
+             * Route
+             * @default
+             */
+            route: string;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Title */
+            title: string;
         };
         /**
          * EventDisplayOpChange
@@ -4629,11 +5043,10 @@ export interface components {
         };
         /** ExtractionResponse */
         ExtractionResponse: {
-            /**
-             * Extraction Id
-             * Format: uuid
-             */
-            extraction_id: string;
+            /** Canonical Key */
+            canonical_key?: string | null;
+            /** Confidence */
+            confidence?: number | null;
             /**
              * Doc Id
              * Format: uuid
@@ -4641,19 +5054,20 @@ export interface components {
             doc_id: string;
             /** Doc Type */
             doc_type?: string | null;
+            /**
+             * Extraction Id
+             * Format: uuid
+             */
+            extraction_id: string;
             /** Field Name */
             field_name?: string | null;
-            /** Canonical Key */
-            canonical_key?: string | null;
-            /** Value */
-            value?: string | null;
-            /** Confidence */
-            confidence?: number | null;
             /**
              * Sources
              * @default []
              */
             sources: components["schemas"]["ExtractionSourceResponse"][];
+            /** Value */
+            value?: string | null;
         };
         /**
          * ExtractionSourceRef
@@ -4664,29 +5078,29 @@ export interface components {
          *     1-based, matching ``pages.page_number``).
          */
         ExtractionSourceRef: {
-            /** File Id */
-            file_id?: string | null;
-            /** Page Number */
-            page_number?: number | null;
             /** Bbox */
             bbox?: {
                 [key: string]: unknown;
             } | null;
+            /** File Id */
+            file_id?: string | null;
             /** Ocr Text Snippet */
             ocr_text_snippet?: string | null;
+            /** Page Number */
+            page_number?: number | null;
         };
         /** ExtractionSourceResponse */
         ExtractionSourceResponse: {
-            /** Page Number */
-            page_number?: number | null;
             bbox?: components["schemas"]["BboxResponse"] | null;
             context_bbox?: components["schemas"]["BboxResponse"] | null;
+            /** File Id */
+            file_id?: string | null;
             /** Merge Method */
             merge_method?: string | null;
             /** Ocr Text Snippet */
             ocr_text_snippet?: string | null;
-            /** File Id */
-            file_id?: string | null;
+            /** Page Number */
+            page_number?: number | null;
             /** Source Type */
             source_type?: string | null;
         };
@@ -4699,30 +5113,70 @@ export interface components {
             file_id: string;
             /** Original Filename */
             original_filename?: string | null;
-            /** Uploaded At */
-            uploaded_at?: string | null;
             /**
              * Total Pages
              * @default 0
              */
             total_pages: number;
+            /** Uploaded At */
+            uploaded_at?: string | null;
+        };
+        /**
+         * FormPreviewRequest
+         * @description What the borrower has typed into the application form but not submitted.
+         *
+         *     Keyed by the input ``name`` from ``pending_inputs``, same as a ``set_inputs``
+         *     intent's ``inputs``. Values are NOT validated on this route — it stores
+         *     nothing, and ``set_inputs`` validates on submit — so a half-typed number is
+         *     a legal draft rather than a 422 that would blank the preview mid-keystroke.
+         */
+        FormPreviewRequest: {
+            /** Inputs */
+            inputs?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * FormPreviewResponse
+         * @description The form as it would be if the draft were the borrower's answers.
+         *
+         *     The same two lists the borrower's session carries, resolved against the
+         *     stored answers with the draft merged over them — so a client renders the
+         *     preview with the components it already has, and never evaluates
+         *     ``required_when`` itself.
+         *
+         *     Both lists are empty when the case is not scoped to exactly one product:
+         *     there is then no single form to preview. See
+         *     ``PortalSessionResponse.product_id``.
+         */
+        FormPreviewResponse: {
+            /**
+             * Pending Inputs
+             * @default []
+             */
+            pending_inputs: components["schemas"]["PortalInputField"][];
+            /**
+             * Required Documents
+             * @default []
+             */
+            required_documents: components["schemas"]["PortalDocumentRequirement"][];
         };
         /** FunctionCallResponse */
         FunctionCallResponse: {
-            /** Function Name */
-            function_name: string;
             /** Args */
             args: {
                 [key: string]: unknown;
             } | unknown[];
-            /** Result */
-            result: number;
             /** Formula */
             formula: string;
-            /** Version */
-            version: string;
+            /** Function Name */
+            function_name: string;
+            /** Result */
+            result: number;
             /** Source Hash */
             source_hash: string;
+            /** Version */
+            version: string;
         };
         /** GenerateSpecRequest */
         GenerateSpecRequest: {
@@ -4731,14 +5185,14 @@ export interface components {
         };
         /** GenerateSpecResponse */
         GenerateSpecResponse: {
-            /** Yaml */
-            yaml: string;
-            /** Name */
-            name: string;
             /** Domain */
             domain: string;
+            /** Name */
+            name: string;
             /** Version */
             version: string;
+            /** Yaml */
+            yaml: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -4769,6 +5223,19 @@ export interface components {
          */
         IdentityInfo: {
             /**
+             * Borrower Class
+             * @default other
+             * @enum {string}
+             */
+            borrower_class: "borrower" | "business_entity" | "employer" | "property" | "financial_institution" | "other";
+            /**
+             * Doc Count
+             * @default 0
+             */
+            doc_count: number;
+            /** Entity Type */
+            entity_type: string | null;
+            /**
              * Id
              * Format: uuid
              */
@@ -4778,42 +5245,29 @@ export interface components {
              * @enum {string}
              */
             kind: "person" | "entity";
-            /** Name */
-            name: string | null;
-            /** Role */
-            role: string | null;
-            /** Role Hint */
-            role_hint?: string | null;
-            /** Entity Type */
-            entity_type: string | null;
-            /**
-             * Borrower Class
-             * @default other
-             * @enum {string}
-             */
-            borrower_class: "borrower" | "business_entity" | "employer" | "property" | "financial_institution" | "other";
-            /**
-             * Status
-             * @default Included
-             */
-            status: string;
-            /**
-             * Needs Review
-             * @default false
-             */
-            needs_review: boolean;
             /**
              * Mention Count
              * @default 0
              */
             mention_count: number;
+            /** Name */
+            name: string | null;
             /**
-             * Doc Count
-             * @default 0
+             * Needs Review
+             * @default false
              */
-            doc_count: number;
+            needs_review: boolean;
             /** Relationships */
             relationships?: components["schemas"]["IdentityInfo"][] | null;
+            /** Role */
+            role: string | null;
+            /** Role Hint */
+            role_hint?: string | null;
+            /**
+             * Status
+             * @default Included
+             */
+            status: string;
         };
         /**
          * IdentityRef
@@ -4851,20 +5305,15 @@ export interface components {
          */
         InclusionProofResponse: {
             /**
-             * Leaf Index
-             * @description Zero-based position of the event's leaf in the tree.
+             * Attestation Ref
+             * @description Id of the Signed Tree Head this proof references.
              */
-            leaf_index: number;
+            attestation_ref: string;
             /**
-             * Tree Size
-             * @description Total number of leaves in the tree this proof is against.
+             * Audit Path
+             * @description Sibling hashes (hex) from leaf to root, bottom-up.
              */
-            tree_size: number;
-            /**
-             * Merkle Root
-             * @description Hex-encoded signed Merkle root the proof reconstructs.
-             */
-            merkle_root: string;
+            audit_path?: string[];
             /**
              * Event Id
              * @description Audit event id this proof covers.
@@ -4881,15 +5330,20 @@ export interface components {
              */
             leaf_hash: string;
             /**
-             * Audit Path
-             * @description Sibling hashes (hex) from leaf to root, bottom-up.
+             * Leaf Index
+             * @description Zero-based position of the event's leaf in the tree.
              */
-            audit_path?: string[];
+            leaf_index: number;
             /**
-             * Attestation Ref
-             * @description Id of the Signed Tree Head this proof references.
+             * Merkle Root
+             * @description Hex-encoded signed Merkle root the proof reconstructs.
              */
-            attestation_ref: string;
+            merkle_root: string;
+            /**
+             * Tree Size
+             * @description Total number of leaves in the tree this proof is against.
+             */
+            tree_size: number;
         };
         /**
          * InputProvenance
@@ -4902,16 +5356,14 @@ export interface components {
          *     page/bbox.
          */
         InputProvenance: {
-            /** Extraction Id */
-            extraction_id: string;
+            /** Canonical Key */
+            canonical_key: string;
             /** Doc Id */
             doc_id: string;
             /** Doc Type */
             doc_type?: string | null;
-            /** Canonical Key */
-            canonical_key: string;
-            /** Value */
-            value?: unknown | null;
+            /** Extraction Id */
+            extraction_id: string;
             /** Raw Value */
             raw_value?: unknown | null;
             /**
@@ -4919,25 +5371,27 @@ export interface components {
              * @default []
              */
             sources: components["schemas"]["ExtractionSourceRef"][];
+            /** Value */
+            value?: unknown | null;
         };
         /**
          * InputValueResponse
          * @description One variable that fed a derivation step, with all contributing extractions.
          */
         InputValueResponse: {
-            /** Name */
-            name: string;
-            /** Value */
-            value?: unknown | null;
-            /** Source Line */
-            source_line?: string | null;
             /** Document Type */
             document_type?: string | null;
+            /** Name */
+            name: string;
             /**
              * Provenance
              * @default []
              */
             provenance: components["schemas"]["InputProvenance"][];
+            /** Source Line */
+            source_line?: string | null;
+            /** Value */
+            value?: unknown | null;
         };
         /**
          * IntegrationRegisterRequest
@@ -4960,69 +5414,69 @@ export interface components {
         };
         /** IntegrationRegisterResponse */
         IntegrationRegisterResponse: {
+            /** Bearer Token */
+            bearer_token: string;
+            /** Client Id */
+            client_id: string;
+            /** Client Secret */
+            client_secret: string;
+            /** Name */
+            name: string;
             /**
              * Tenant Id
              * Format: uuid
              */
             tenant_id: string;
-            /** Name */
-            name: string;
-            /** Client Id */
-            client_id: string;
-            /** Client Secret */
-            client_secret: string;
-            /** Bearer Token */
-            bearer_token: string;
         };
         /** Intent */
         Intent: {
-            /** Type */
-            type: string;
             /** @default {} */
             params: components["schemas"]["IntentParams"];
+            /** Type */
+            type: string;
         };
         /** IntentParams */
         IntentParams: {
-            /** Consent Type */
-            consent_type?: string | null;
-            /** Granted */
-            granted?: boolean | null;
-            /** Level */
-            level?: number | null;
             /** Claims */
             claims?: {
                 [key: string]: string;
             } | null;
-            /** Signature */
-            signature?: string | null;
-            /** Text */
-            text?: string | null;
             /** Code */
             code?: string | null;
+            /** Consent Type */
+            consent_type?: string | null;
             /** Email */
             email?: string | null;
-            /** Message Id */
-            message_id?: string | null;
+            /** Granted */
+            granted?: boolean | null;
             /** Inputs */
             inputs?: {
                 [key: string]: unknown;
             } | null;
+            /** Level */
+            level?: number | null;
+            /** Message Id */
+            message_id?: string | null;
+            /** Signature */
+            signature?: string | null;
+            /** Text */
+            text?: string | null;
         };
         /** IntentResult */
         IntentResult: {
-            /** Intent */
-            intent: string;
-            /** Status */
-            status: string;
+            /** Consent Id */
+            consent_id?: string | null;
             /**
              * Detail
              * @default
              */
             detail: string;
-            /** Consent Id */
-            consent_id?: string | null;
             /** Files Accepted */
             files_accepted?: number | null;
+            /** Intent */
+            intent: string;
+            /** Status */
+            status: string;
         };
         /** IntentsRequest */
         IntentsRequest: {
@@ -5048,19 +5502,19 @@ export interface components {
         };
         /** JoinTenantResponse */
         JoinTenantResponse: {
-            /** User Id */
-            user_id: string;
-            /** Tenant Id */
-            tenant_id: string;
-            /** Tenant Name */
-            tenant_name: string;
-            /** Role */
-            role: string;
             /**
              * Has Tenant
              * @default true
              */
             has_tenant: boolean;
+            /** Role */
+            role: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Tenant Name */
+            tenant_name: string;
+            /** User Id */
+            user_id: string;
         };
         /**
          * KbaQuestion
@@ -5070,20 +5524,39 @@ export interface components {
          *     is checked server-side (see veritas.domains.identity.kba).
          */
         KbaQuestion: {
-            /** Id */
-            id: string;
-            /** Prompt */
-            prompt: string;
-            /**
-             * Kind
-             * @default text
-             */
-            kind: string;
             /**
              * Choices
              * @default []
              */
             choices: string[];
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default text
+             */
+            kind: string;
+            /** Prompt */
+            prompt: string;
+        };
+        /**
+         * LinkAccountResponse
+         * @description What ``POST /portal/account/link`` bound, and for whom.
+         *
+         *     ``linked`` counts the parties this call newly bound, so a repeat call
+         *     answers 0 — nothing to do, not an error. ``account_kind`` lets the client
+         *     tell a borrower from a loan officer who happened to sign in through the
+         *     borrower app: an operator uid links nothing and gets ``"operator"`` back so
+         *     gunnr can say so rather than show an empty dashboard.
+         */
+        LinkAccountResponse: {
+            /**
+             * Account Kind
+             * @enum {string}
+             */
+            account_kind: "borrower" | "operator";
+            /** Linked */
+            linked: number;
         };
         /** LinkPartyBody */
         LinkPartyBody: {
@@ -5093,8 +5566,112 @@ export interface components {
              */
             identity_id: string;
         };
+        /**
+         * LoanDecisionInfo
+         * @description A published decision, as the borrower was told it.
+         *
+         *     ``terms`` and ``conditions`` are read from the stored ``case_decisions``
+         *     snapshot, never recomputed from live derivations — that is what keeps a spec
+         *     change or a label edit from rewriting what someone was already promised.
+         */
+        LoanDecisionInfo: {
+            /**
+             * Conditions
+             * @default []
+             */
+            conditions: components["schemas"]["PortalRequestItem"][];
+            /** Conditions State */
+            conditions_state?: string | null;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /**
+             * Decided By Name
+             * @default
+             */
+            decided_by_name: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Message */
+            message?: string | null;
+            /**
+             * Terms
+             * @default []
+             */
+            terms: components["schemas"]["LoanSummaryField"][];
+            /** Tone */
+            tone: string;
+        };
+        /**
+         * LoanStatusInfo
+         * @description What the borrower is told about their loan right now.
+         *
+         *     Every string is DATA — ``label``, ``tone`` and ``description`` come from
+         *     ``policy/specs/borrower_statuses.yaml`` — so a client renders them without
+         *     knowing any status key. ``action_count`` is items across this party's open
+         *     requests, shown as an "action needed" pill WHATEVER the status: a
+         *     conditional approval with outstanding conditions is the case that matters.
+         */
+        LoanStatusInfo: {
+            /**
+             * Action Count
+             * @default 0
+             */
+            action_count: number;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Tone */
+            tone: string;
+        };
+        /**
+         * LoanSummaryField
+         * @description One labelled line of the loan summary, or of a decision's terms.
+         */
+        LoanSummaryField: {
+            /** Display */
+            display: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * LoanSummaryInfo
+         * @description Which loan this is, in the product's own words.
+         *
+         *     ``property_label`` is the case's primary SUBJECT, not always an address: for
+         *     a property-primary product (DSCR) it is the canonical property-address
+         *     extraction, and otherwise it is the first non-blank person on the case. It
+         *     is ``None`` until something has been extracted or resolved, which is why
+         *     ``product_label`` is carried alongside rather than behind it — a client with
+         *     no subject to name still has something true to title the loan with.
+         *     ``fields`` are the rows the product's ``borrower_view.summary`` declares, in
+         *     its order.
+         */
+        LoanSummaryInfo: {
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["LoanSummaryField"][];
+            /** Product Label */
+            product_label?: string | null;
+            /** Property Label */
+            property_label?: string | null;
+        };
         /** MergeRequest */
         MergeRequest: {
+            /** Reason */
+            reason: string;
             /**
              * Source Id
              * Format: uuid
@@ -5105,12 +5682,14 @@ export interface components {
              * Format: uuid
              */
             target_id: string;
-            /** Reason */
-            reason: string;
         };
         /**
          * MyCaseLink
          * @description A case the signed-in borrower can access, plus a fresh portal token.
+         *
+         *     The shape ``GET /portal/my-cases`` answers. ``BorrowerLoanRow`` below is the
+         *     dashboard's richer replacement; this one stays until the client stops
+         *     reading it.
          */
         MyCaseLink: {
             /**
@@ -5139,80 +5718,80 @@ export interface components {
          * @description The firm's loan-officer profile, as shown in the chat avatar.
          */
         OfficerProfile: {
+            /** Officer Avatar */
+            officer_avatar?: string | null;
             /**
              * Officer Name
              * @default
              */
             officer_name: string;
-            /** Officer Avatar */
-            officer_avatar?: string | null;
         };
         /** OperatorResponse */
         OperatorResponse: {
+            /** Operator Email */
+            operator_email: string;
             /**
              * Operator Id
              * Format: uuid
              */
             operator_id: string;
+            /** Operator Name */
+            operator_name: string;
+            /** Status */
+            status: string;
             /**
              * Tenant Id
              * Format: uuid
              */
             tenant_id: string;
-            /** Operator Name */
-            operator_name: string;
-            /** Operator Email */
-            operator_email: string;
-            /** Status */
-            status: string;
         };
         /** PartyCandidate */
         PartyCandidate: {
-            /**
-             * Identity Id
-             * Format: uuid
-             */
-            identity_id: string;
             /**
              * Display Name
              * @default
              */
             display_name: string;
             /**
-             * Role
-             * @default borrower
+             * Identity Id
+             * Format: uuid
              */
-            role: string;
+            identity_id: string;
             /**
              * Party Type
              * @default individual
              */
             party_type: string;
+            /**
+             * Role
+             * @default borrower
+             */
+            role: string;
         };
         /** PartyCreatedResponse */
         PartyCreatedResponse: {
-            /**
-             * Party Id
-             * Format: uuid
-             */
-            party_id: string;
             /**
              * Case Id
              * Format: uuid
              */
             case_id: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
             /** Party Type */
             party_type: string;
             /** Role */
             role?: string | null;
-            /** Display Name */
-            display_name?: string | null;
-            /** Linked Identity Id */
-            linked_identity_id?: string | null;
             /** Signer Party Id */
             signer_party_id?: string | null;
-            /** Email */
-            email?: string | null;
         };
         /**
          * PartyDocument
@@ -5252,10 +5831,10 @@ export interface components {
          *     identifier was never captured.
          */
         PartyIdentifier: {
-            /** Type */
-            type?: string | null;
             /** Last4 */
             last4?: string | null;
+            /** Type */
+            type?: string | null;
         };
         /**
          * PartyMention
@@ -5268,24 +5847,24 @@ export interface components {
          *     when the source record exposes one, else ``None``.
          */
         PartyMention: {
+            /** Bbox */
+            bbox?: number[] | null;
             /** Doc Id */
             doc_id: string;
+            /** File Id */
+            file_id?: string | null;
             /**
              * Label
              * @default
              */
             label: string;
+            /** Page */
+            page?: number | null;
             /**
              * Role
              * @default
              */
             role: string;
-            /** File Id */
-            file_id?: string | null;
-            /** Page */
-            page?: number | null;
-            /** Bbox */
-            bbox?: number[] | null;
         };
         /**
          * PartyProfile
@@ -5297,48 +5876,25 @@ export interface components {
          */
         PartyProfile: {
             /**
-             * Party Id
-             * Format: uuid
+             * Addresses
+             * @default []
              */
-            party_id: string;
+            addresses: string[];
             /**
              * Display Name
              * @default
              */
             display_name: string;
             /**
-             * Role
-             * @default
-             */
-            role: string;
-            /**
-             * Party Type
-             * @default individual
-             */
-            party_type: string;
-            /**
-             * @default {
-             *       "verified": false,
-             *       "signed": false,
-             *       "has_account": false
-             *     }
-             */
-            status: components["schemas"]["PartyStatus"];
-            /**
              * Email
              * @default
              */
             email: string;
             /**
-             * Phones
+             * Extra
              * @default []
              */
-            phones: string[];
-            /**
-             * Addresses
-             * @default []
-             */
-            addresses: string[];
+            extra: components["schemas"]["PartyFact"][];
             /** @default {} */
             identifier: components["schemas"]["PartyIdentifier"];
             /**
@@ -5347,15 +5903,38 @@ export interface components {
              */
             mentioned_in: components["schemas"]["PartyMention"][];
             /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
+            /**
+             * Party Type
+             * @default individual
+             */
+            party_type: string;
+            /**
+             * Phones
+             * @default []
+             */
+            phones: string[];
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+            /**
+             * @default {
+             *       "has_account": false,
+             *       "signed": false,
+             *       "verified": false
+             *     }
+             */
+            status: components["schemas"]["PartyStatus"];
+            /**
              * Uploaded Docs
              * @default []
              */
             uploaded_docs: components["schemas"]["PartyUploadedDocument"][];
-            /**
-             * Extra
-             * @default []
-             */
-            extra: components["schemas"]["PartyFact"][];
         };
         /**
          * PartyStatus
@@ -5363,20 +5942,20 @@ export interface components {
          */
         PartyStatus: {
             /**
-             * Verified
+             * Has Account
              * @default false
              */
-            verified: boolean;
+            has_account: boolean;
             /**
              * Signed
              * @default false
              */
             signed: boolean;
             /**
-             * Has Account
+             * Verified
              * @default false
              */
-            has_account: boolean;
+            verified: boolean;
         };
         /**
          * PartyUploadedDocument
@@ -5388,13 +5967,13 @@ export interface components {
              * @default
              */
             doc_id: string;
+            /** File Id */
+            file_id?: string | null;
             /**
              * Label
              * @default
              */
             label: string;
-            /** File Id */
-            file_id?: string | null;
             /**
              * Processing
              * @default false
@@ -5403,6 +5982,30 @@ export interface components {
         };
         /** PartyView */
         PartyView: {
+            /** Access Code */
+            access_code?: string | null;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["PartyDocument"][];
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Has Account
+             * @default false
+             */
+            has_account: boolean;
+            /** Linked Identity Id */
+            linked_identity_id?: string | null;
             /**
              * Party Id
              * Format: uuid
@@ -5410,49 +6013,20 @@ export interface components {
             party_id: string;
             /** Party Type */
             party_type: string;
+            /** Portal Token */
+            portal_token?: string | null;
             /**
              * Role
              * @default
              */
             role: string;
             /**
-             * Display Name
-             * @default
-             */
-            display_name: string;
-            /** Linked Identity Id */
-            linked_identity_id?: string | null;
-            /** Signer Party Id */
-            signer_party_id?: string | null;
-            /**
-             * Verified
-             * @default false
-             */
-            verified: boolean;
-            /**
              * Signed
              * @default false
              */
             signed: boolean;
-            /**
-             * Has Account
-             * @default false
-             */
-            has_account: boolean;
-            /**
-             * Email
-             * @default
-             */
-            email: string;
-            /** Portal Token */
-            portal_token?: string | null;
-            /** Access Code */
-            access_code?: string | null;
-            /**
-             * Documents
-             * @default []
-             */
-            documents: components["schemas"]["PartyDocument"][];
+            /** Signer Party Id */
+            signer_party_id?: string | null;
             /**
              * Thread
              * @default []
@@ -5463,6 +6037,11 @@ export interface components {
              * @default false
              */
             thread_has_more: boolean;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /**
          * PortalDocumentRequirement
@@ -5513,38 +6092,43 @@ export interface components {
          *     silently changes the answer the applicant gives.
          */
         PortalInputField: {
-            /** Name */
-            name: string;
-            /** Type */
-            type: string;
-            /** Label */
-            label: string;
-            /** Hint */
-            hint?: string | null;
-            /** Default */
-            default?: unknown | null;
             /**
-             * Required
+             * Decides
              * @default false
              */
-            required: boolean;
-            /** Unit */
-            unit?: string | null;
-            /** Minimum */
-            minimum?: number | null;
+            decides: boolean;
+            /** Default */
+            default?: unknown | null;
+            /** Hint */
+            hint?: string | null;
+            /** Label */
+            label: string;
             /** Maximum */
             maximum?: number | null;
-            /** Step */
-            step?: number | null;
+            /** Minimum */
+            minimum?: number | null;
+            /** Name */
+            name: string;
             /**
              * Options
              * @default []
              */
             options: components["schemas"]["PortalInputFieldOption"][];
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
             /** Required When */
             required_when?: {
                 [key: string]: unknown;
             } | null;
+            /** Step */
+            step?: number | null;
+            /** Type */
+            type: string;
+            /** Unit */
+            unit?: string | null;
         };
         /**
          * PortalInputFieldOption
@@ -5553,13 +6137,13 @@ export interface components {
          *     sends back and what the enum check compares.
          */
         PortalInputFieldOption: {
-            /** Value */
-            value: string;
             /**
              * Label
              * @default
              */
             label: string;
+            /** Value */
+            value: string;
         };
         /**
          * PortalLinkRequest
@@ -5580,13 +6164,16 @@ export interface components {
          *     time-limited (default 48h); no borrower login required.
          */
         PortalLinkResponse: {
-            /** Token */
-            token: string;
             /**
              * Case Id
              * Format: uuid
              */
             case_id: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
             /**
              * Identity Id
              * Format: uuid
@@ -5594,11 +6181,8 @@ export interface components {
             identity_id: string;
             /** Role */
             role: string;
-            /**
-             * Expires At
-             * Format: date-time
-             */
-            expires_at: string;
+            /** Token */
+            token: string;
             /** Ttl Hours */
             ttl_hours: number;
         };
@@ -5611,21 +6195,21 @@ export interface components {
          */
         PortalLinkStatusResponse: {
             /**
-             * Status
-             * @default none
-             */
-            status: string;
-            /** Requested At */
-            requested_at?: string | null;
-            /** Submitted At */
-            submitted_at?: string | null;
-            /** Requested By */
-            requested_by?: string | null;
-            /**
              * Item Count
              * @default 0
              */
             item_count: number;
+            /** Requested At */
+            requested_at?: string | null;
+            /** Requested By */
+            requested_by?: string | null;
+            /**
+             * Status
+             * @default none
+             */
+            status: string;
+            /** Submitted At */
+            submitted_at?: string | null;
             /**
              * Uploaded Count
              * @default 0
@@ -5635,10 +6219,25 @@ export interface components {
         /** PortalOverview */
         PortalOverview: {
             /**
+             * Case Documents
+             * @default []
+             */
+            case_documents: components["schemas"]["CaseDocument"][];
+            /**
              * Case Id
              * Format: uuid
              */
             case_id: string;
+            /**
+             * Officer Avatar
+             * @default
+             */
+            officer_avatar: string;
+            /**
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
             /**
              * Parties
              * @default []
@@ -5649,21 +6248,6 @@ export interface components {
              * @default []
              */
             uploaded_files: string[];
-            /**
-             * Case Documents
-             * @default []
-             */
-            case_documents: components["schemas"]["CaseDocument"][];
-            /**
-             * Officer Name
-             * @default
-             */
-            officer_name: string;
-            /**
-             * Officer Avatar
-             * @default
-             */
-            officer_avatar: string;
         };
         /**
          * PortalRequestItem
@@ -5674,38 +6258,40 @@ export interface components {
          */
         PortalRequestItem: {
             /**
-             * Id
+             * Action
              * @default
              */
-            id: string;
-            /** Title */
-            title: string;
+            action: string;
             /**
              * Detail
              * @default
              */
             detail: string;
             /**
-             * Action
+             * Id
              * @default
              */
-            action: string;
-            /**
-             * Source
-             * @default custom
-             */
-            source: string;
+            id: string;
             /**
              * Priority
              * @default medium
              */
             priority: string;
+            /**
+             * Source
+             * @default custom
+             */
+            source: string;
+            /** Title */
+            title: string;
         };
         /** PortalSessionResponse */
         PortalSessionResponse: {
-            /** Session Id */
-            session_id: string;
-            entity: components["schemas"]["EntityInfo"];
+            /**
+             * Account Email
+             * @default
+             */
+            account_email: string;
             /**
              * Case Id
              * Format: uuid
@@ -5720,81 +6306,71 @@ export interface components {
             checklist: components["schemas"]["ChecklistItem"][];
             /**
              * @default {
-             *       "sms_opt_in": false,
-             *       "email_opt_in": false,
+             *       "credit_pull": false,
              *       "doc_sharing": false,
              *       "electronic_records": false,
-             *       "credit_pull": false
+             *       "email_opt_in": false,
+             *       "sms_opt_in": false
              *     }
              */
             consent: components["schemas"]["ConsentState"];
+            decision?: components["schemas"]["LoanDecisionInfo"] | null;
+            entity: components["schemas"]["EntityInfo"];
             /**
-             * @default {
-             *       "level": 0,
-             *       "verified": false
-             *     }
+             * Has Account
+             * @default false
              */
-            verification: components["schemas"]["VerificationState"];
+            has_account: boolean;
+            /** Inbound Email Address */
+            inbound_email_address?: string | null;
             /**
-             * @default {
-             *       "max_file_size_mb": 25,
-             *       "accepted_types": [
-             *         ".pdf"
-             *       ],
-             *       "endpoint": ""
-             *     }
+             * Kba Questions
+             * @default []
              */
-            upload_config: components["schemas"]["UploadConfig"];
-            /**
-             * Requested By
-             * @default
-             */
-            requested_by: string;
-            /**
-             * Request Message
-             * @default
-             */
-            request_message: string;
-            /**
-             * Officer Name
-             * @default
-             */
-            officer_name: string;
+            kba_questions: components["schemas"]["KbaQuestion"][];
+            loan_status?: components["schemas"]["LoanStatusInfo"] | null;
+            loan_summary?: components["schemas"]["LoanSummaryInfo"] | null;
             /**
              * Officer Avatar
              * @default
              */
             officer_avatar: string;
             /**
-             * Thread
+             * Officer Name
+             * @default
+             */
+            officer_name: string;
+            /**
+             * Pending Inputs
              * @default []
              */
-            thread: components["schemas"]["ThreadMessage"][];
+            pending_inputs: components["schemas"]["PortalInputField"][];
+            /** Product Display Label */
+            product_display_label?: string | null;
+            /** Product Id */
+            product_id?: string | null;
             /**
-             * Thread Has More
-             * @default false
+             * Request Message
+             * @default
              */
-            thread_has_more: boolean;
+            request_message: string;
             /**
-             * Kba Questions
+             * Requested By
+             * @default
+             */
+            requested_by: string;
+            /**
+             * Required Documents
              * @default []
              */
-            kba_questions: components["schemas"]["KbaQuestion"][];
+            required_documents: components["schemas"]["PortalDocumentRequirement"][];
             /**
              * Requires Code
              * @default false
              */
             requires_code: boolean;
-            /**
-             * Account Email
-             * @default
-             */
-            account_email: string;
-            /**
-             * Has Account
-             * @default false
-             */
-            has_account: boolean;
+            /** Session Id */
+            session_id: string;
             /**
              * Signed
              * @default false
@@ -5806,31 +6382,42 @@ export interface components {
              */
             submitted: boolean;
             /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
+            /**
+             * Thread Has More
+             * @default false
+             */
+            thread_has_more: boolean;
+            /**
+             * @default {
+             *       "accepted_types": [
+             *         ".pdf"
+             *       ],
+             *       "endpoint": "",
+             *       "max_file_size_mb": 25
+             *     }
+             */
+            upload_config: components["schemas"]["UploadConfig"];
+            /**
              * Uploaded Files
              * @default []
              */
             uploaded_files: string[];
             /**
+             * @default {
+             *       "level": 0,
+             *       "verified": false
+             *     }
+             */
+            verification: components["schemas"]["VerificationState"];
+            /**
              * Verify Proof
              * @default
              */
             verify_proof: string;
-            /**
-             * Pending Inputs
-             * @default []
-             */
-            pending_inputs: components["schemas"]["PortalInputField"][];
-            /** Product Id */
-            product_id?: string | null;
-            /** Product Display Label */
-            product_display_label?: string | null;
-            /**
-             * Required Documents
-             * @default []
-             */
-            required_documents: components["schemas"]["PortalDocumentRequirement"][];
-            /** Inbound Email Address */
-            inbound_email_address?: string | null;
         };
         /**
          * PortalTokenRequest
@@ -5840,31 +6427,31 @@ export interface components {
          *     borrower to upload documents before any have been processed.
          */
         PortalTokenRequest: {
+            /** Borrower Email */
+            borrower_email?: string | null;
+            /** Borrower Name */
+            borrower_name?: string | null;
             /** Role */
             role?: string | null;
             /** Ttl Hours */
             ttl_hours?: number | null;
-            /** Borrower Name */
-            borrower_name?: string | null;
-            /** Borrower Email */
-            borrower_email?: string | null;
         };
         /**
          * PortalTokenResponse
          * @description A minted portal token + the Veritas-hosted borrower upload URL.
          */
         PortalTokenResponse: {
-            /** Token */
-            token: string;
+            /** Expires At */
+            expires_at: string;
             /**
              * Identity Id
              * Format: uuid
              */
             identity_id: string;
-            /** Expires At */
-            expires_at: string;
             /** Portal Url */
             portal_url: string;
+            /** Token */
+            token: string;
         };
         /**
          * PosPortalCaseResponse
@@ -5882,14 +6469,14 @@ export interface components {
              * Format: uuid
              */
             case_id: string;
-            /** Name */
-            name?: string | null;
-            /** State */
-            state: string;
             /** Created At */
             created_at?: string | null;
+            /** Name */
+            name?: string | null;
             /** Parties */
             parties?: components["schemas"]["PosPortalPartyResponse"][];
+            /** State */
+            state: string;
         };
         /**
          * PosPortalPartyResponse
@@ -5903,20 +6490,28 @@ export interface components {
          *     inventing a placeholder name.
          */
         PosPortalPartyResponse: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
             /**
              * Party Id
              * Format: uuid
              */
             party_id: string;
-            /** Email */
-            email?: string | null;
-            /** Display Name */
-            display_name?: string | null;
             /** Role */
             role?: string | null;
         };
         /** PosPortalResponse */
         PosPortalResponse: {
+            /** Active */
+            active: boolean;
+            /** Created At */
+            created_at?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Label */
+            label: string;
             /**
              * Pos Portal Id
              * Format: uuid
@@ -5926,19 +6521,11 @@ export interface components {
             product_id: string;
             /** Slug */
             slug: string;
-            /** Label */
-            label: string;
             /**
              * Url
              * @description The public application URL to publish.
              */
             url: string;
-            /** Active */
-            active: boolean;
-            /** Expires At */
-            expires_at?: string | null;
-            /** Created At */
-            created_at?: string | null;
         };
         /**
          * ProductResponse
@@ -5960,40 +6547,15 @@ export interface components {
          *     upfront values; the modal can skip rendering the form altogether.
          */
         ProductResponse: {
-            /** Product Id */
-            product_id: string;
-            /** Display Name */
-            display_name: string;
-            /** Display Label */
-            display_label: string;
             /** Agency */
             agency: string;
             /** Agency Path */
             agency_path: string;
-            /** Description */
-            description?: string | null;
             /**
-             * Spec Filter
-             * @default []
+             * Auto Select
+             * @default false
              */
-            spec_filter: string[];
-            /**
-             * Income Document Types
-             * @default []
-             */
-            income_document_types: string[];
-            /**
-             * Credit Document Types
-             * @default []
-             */
-            credit_document_types: string[];
-            /**
-             * Required Documents
-             * @default []
-             */
-            required_documents: string[];
-            /** Default Calculation Track */
-            default_calculation_track?: string | null;
+            auto_select: boolean;
             /**
              * Config
              * @default {}
@@ -6002,44 +6564,69 @@ export interface components {
                 [key: string]: unknown;
             };
             /**
+             * Credit Document Types
+             * @default []
+             */
+            credit_document_types: string[];
+            /** Default Calculation Track */
+            default_calculation_track?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Display Label */
+            display_label: string;
+            /** Display Name */
+            display_name: string;
+            /**
              * Enabled
              * @default true
              */
             enabled: boolean;
-            /**
-             * Is Default
-             * @default false
-             */
-            is_default: boolean;
-            /**
-             * Auto Select
-             * @default false
-             */
-            auto_select: boolean;
-            /**
-             * Sort Order
-             * @default 0
-             */
-            sort_order: number;
             /**
              * Groups
              * @default []
              */
             groups: string[];
             /**
+             * Income Document Types
+             * @default []
+             */
+            income_document_types: string[];
+            /**
              * Initial Required Inputs
              * @default []
              */
             initial_required_inputs: components["schemas"]["UserInputFieldResponse"][];
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default: boolean;
+            /** Product Id */
+            product_id: string;
+            /**
+             * Required Documents
+             * @default []
+             */
+            required_documents: string[];
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Spec Filter
+             * @default []
+             */
+            spec_filter: string[];
         };
         /** ProductSpecGroup */
         ProductSpecGroup: {
-            /** Product Id */
-            product_id: string;
-            /** Display Name */
-            display_name: string;
             /** Agency */
             agency: string;
+            /** Display Name */
+            display_name: string;
+            /** Product Id */
+            product_id: string;
             /** Spec Names */
             spec_names: string[];
             /** Total Monthly */
@@ -6050,33 +6637,60 @@ export interface components {
          * @description One ranked product suggestion with score breakdown.
          */
         ProductSuggestionItem: {
-            /** Product Id */
-            product_id: string;
-            /** Score */
-            score: number;
             /** Coverage */
             coverage: number;
-            /** Specificity */
-            specificity: number;
             /**
              * Matched Document Types
              * @default []
              */
             matched_document_types: string[];
+            /** Product Id */
+            product_id: string;
+            /** Score */
+            score: number;
+            /** Specificity */
+            specificity: number;
             /**
              * Unmatched Document Types
              * @default []
              */
             unmatched_document_types: string[];
         };
+        /**
+         * PublishDecisionRequest
+         * @description The officer's decision, as submitted.
+         *
+         *     ``result_id`` names the calculation they decided from, which is why the
+         *     officer does not type numbers: the terms are snapshotted off that row. The
+         *     route proves the row belongs to this case before anything is written.
+         */
+        PublishDecisionRequest: {
+            /**
+             * Conditions
+             * @default []
+             */
+            conditions: components["schemas"]["PortalRequestItem"][];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "approved" | "conditionally_approved" | "not_approved";
+            /** Message */
+            message?: string | null;
+            /**
+             * Result Id
+             * Format: uuid
+             */
+            result_id: string;
+        };
         /** RefinementError */
         RefinementError: {
             /** Code */
             code: string;
-            /** Message */
-            message: string;
             /** Domain */
             domain?: string | null;
+            /** Message */
+            message: string;
             /**
              * Severity
              * @enum {string}
@@ -6085,65 +6699,65 @@ export interface components {
         };
         /** RefinementResponse */
         RefinementResponse: {
-            /**
-             * Refinement Id
-             * Format: uuid
-             */
-            refinement_id: string;
-            /**
-             * Scenario Id
-             * Format: uuid
-             */
-            scenario_id: string;
-            /** Refinement Num */
-            refinement_num: number | null;
-            /**
-             * Source
-             * @default operator
-             */
-            source: string;
-            /**
-             * Identities
-             * @default []
-             */
-            identities: components["schemas"]["IdentityInfo"][];
-            /**
-             * Documents
-             * @default []
-             */
-            documents: components["schemas"]["DocumentInfo"][];
-            /**
-             * Product Ids
-             * @default []
-             */
-            product_ids: string[];
-            /**
-             * Specs Run
-             * @default []
-             */
-            specs_run: string[];
-            /** Note */
-            note: string | null;
-            /** Status */
-            status?: string | null;
-            /**
-             * Errors
-             * @default []
-             */
-            errors: components["schemas"]["RefinementError"][];
-            /** Name */
-            name?: string | null;
-            /** Total Monthly Income */
-            total_monthly_income?: number | null;
-            summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
-            /** Loan Product Ids */
-            loan_product_ids?: string[] | null;
             /** Context */
             context?: {
                 [key: string]: {
                     [key: string]: unknown;
                 };
             } | null;
+            /**
+             * Documents
+             * @default []
+             */
+            documents: components["schemas"]["DocumentInfo"][];
+            /**
+             * Errors
+             * @default []
+             */
+            errors: components["schemas"]["RefinementError"][];
+            /**
+             * Identities
+             * @default []
+             */
+            identities: components["schemas"]["IdentityInfo"][];
+            /** Loan Product Ids */
+            loan_product_ids?: string[] | null;
+            /** Name */
+            name?: string | null;
+            /** Note */
+            note: string | null;
+            /**
+             * Product Ids
+             * @default []
+             */
+            product_ids: string[];
+            /**
+             * Refinement Id
+             * Format: uuid
+             */
+            refinement_id: string;
+            /** Refinement Num */
+            refinement_num: number | null;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Source
+             * @default operator
+             */
+            source: string;
+            /**
+             * Specs Run
+             * @default []
+             */
+            specs_run: string[];
+            /** Status */
+            status?: string | null;
+            summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
+            /** Total Monthly Income */
+            total_monthly_income?: number | null;
             user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
         };
         /**
@@ -6154,15 +6768,15 @@ export interface components {
          *     is the already-shown titles to avoid repeating ('generate more').
          */
         RegenerateSuggestionsBody: {
-            /** Party Id */
-            party_id?: string | null;
-            /** Note */
-            note?: string | null;
             /**
              * Exclude
              * @default []
              */
             exclude: string[];
+            /** Note */
+            note?: string | null;
+            /** Party Id */
+            party_id?: string | null;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -6181,13 +6795,8 @@ export interface components {
         };
         /** RegisterTenantResponse */
         RegisterTenantResponse: {
-            /**
-             * Tenant Id
-             * Format: uuid
-             */
-            tenant_id: string;
-            /** Name */
-            name: string;
+            /** Bearer Token */
+            bearer_token: string;
             /**
              * Client Id
              * Format: uuid
@@ -6195,8 +6804,13 @@ export interface components {
             client_id: string;
             /** Client Secret */
             client_secret: string;
-            /** Bearer Token */
-            bearer_token: string;
+            /** Name */
+            name: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
         };
         /** RejectRequest */
         RejectRequest: {
@@ -6208,6 +6822,15 @@ export interface components {
          * @description One directed edge in the case relationship graph.
          */
         RelationshipInfo: {
+            /** Effective Period */
+            effective_period?: string | null;
+            /**
+             * Is Primary
+             * @default false
+             */
+            is_primary: boolean;
+            /** Ownership Pct */
+            ownership_pct?: number | null;
             /**
              * Relationship Id
              * Format: uuid
@@ -6217,15 +6840,6 @@ export interface components {
             target: components["schemas"]["IdentityRef"];
             /** Type */
             type: string;
-            /** Ownership Pct */
-            ownership_pct?: number | null;
-            /** Effective Period */
-            effective_period?: string | null;
-            /**
-             * Is Primary
-             * @default false
-             */
-            is_primary: boolean;
         };
         /**
          * RenderingHints
@@ -6235,33 +6849,33 @@ export interface components {
          *     identical behavior without re-implementing detection logic locally.
          */
         RenderingHints: {
-            /** Is Non Qm */
-            is_non_qm: boolean;
-            /** Show Product Tabs */
-            show_product_tabs: boolean;
-            /** Effective Product Ids */
-            effective_product_ids: string[];
-            /** Effective Borrower Ids */
-            effective_borrower_ids: string[];
-            /** Effective Document Ids */
-            effective_document_ids: string[];
-            /** Best Qualifying Income */
-            best_qualifying_income: number | null;
-            /**
-             * Approach Type
-             * @enum {string}
-             */
-            approach_type: "qm_standard" | "non_qm_bank_statement" | "non_qm_1099" | "dscr";
-            /**
-             * Product Specs
-             * @default []
-             */
-            product_specs: components["schemas"]["ProductSpecGroup"][];
             /**
              * Advice
              * @default []
              */
             advice: components["schemas"]["ScenarioAdviceItem"][];
+            /**
+             * Approach Type
+             * @enum {string}
+             */
+            approach_type: "qm_standard" | "non_qm_bank_statement" | "non_qm_1099" | "dscr";
+            /** Best Qualifying Income */
+            best_qualifying_income: number | null;
+            /** Effective Borrower Ids */
+            effective_borrower_ids: string[];
+            /** Effective Document Ids */
+            effective_document_ids: string[];
+            /** Effective Product Ids */
+            effective_product_ids: string[];
+            /** Is Non Qm */
+            is_non_qm: boolean;
+            /**
+             * Product Specs
+             * @default []
+             */
+            product_specs: components["schemas"]["ProductSpecGroup"][];
+            /** Show Product Tabs */
+            show_product_tabs: boolean;
             user_inputs_schema?: components["schemas"]["UserInputsSchemaResponse"] | null;
         };
         /**
@@ -6278,29 +6892,29 @@ export interface components {
          *     checkboxes without relying on a previously-generated credit report.
          */
         ReportCatalogResponse: {
-            /** Reports */
-            reports: components["schemas"]["ReportListItem"][];
-            /** Income Report Name */
-            income_report_name?: string | null;
             /**
              * Credit Available
              * @default false
              */
             credit_available: boolean;
+            /** Income Report Name */
+            income_report_name?: string | null;
+            /** Reports */
+            reports: components["schemas"]["ReportListItem"][];
         };
         /**
          * ReportGenerateRequest
          * @description Body for POST /cases/{case_id}/reports/{report_name}.
          */
         ReportGenerateRequest: {
-            /** Scenario Id */
-            scenario_id?: string | null;
-            /** Tenant Slug */
-            tenant_slug?: string | null;
             /** Agencies */
             agencies?: string[] | null;
             /** Include */
             include?: string[] | null;
+            /** Scenario Id */
+            scenario_id?: string | null;
+            /** Tenant Slug */
+            tenant_slug?: string | null;
         };
         /**
          * ReportGenerateResponse
@@ -6311,19 +6925,19 @@ export interface components {
          *     treat a null report_id as "rendered but not persisted for future retrieval".
          */
         ReportGenerateResponse: {
-            /** Report Id */
-            report_id: string | null;
-            /** Report Name */
-            report_name: string;
-            /** Storage Key */
-            storage_key: string;
             /**
              * Generated At
              * Format: date-time
              */
             generated_at: string;
+            /** Report Id */
+            report_id: string | null;
+            /** Report Name */
+            report_name: string;
             /** Spec Version */
             spec_version?: string | null;
+            /** Storage Key */
+            storage_key: string;
             /** Suggested Filename */
             suggested_filename?: string | null;
         };
@@ -6332,8 +6946,6 @@ export interface components {
          * @description One entry in the GET /cases/{case_id}/reports list.
          */
         ReportListItem: {
-            /** Report Name */
-            report_name: string;
             /** Description */
             description?: string | null;
             /** Last Generated At */
@@ -6342,6 +6954,8 @@ export interface components {
             last_report_id?: string | null;
             /** Last Storage Key */
             last_storage_key?: string | null;
+            /** Report Name */
+            report_name: string;
         };
         /**
          * RequiredWhenConditionResponse
@@ -6356,10 +6970,10 @@ export interface components {
          *     current input values.
          */
         RequiredWhenConditionResponse: {
-            /** Field */
-            field: string;
             /** Equals */
             equals: unknown;
+            /** Field */
+            field: string;
         };
         /** RerunRequest */
         RerunRequest: {
@@ -6383,10 +6997,10 @@ export interface components {
          *     be built from either value.
          */
         ResendCodeResponse: {
-            /** Ok */
-            ok: boolean;
             /** Detail */
             detail: string;
+            /** Ok */
+            ok: boolean;
         };
         /** ResumeRequest */
         ResumeRequest: {
@@ -6400,18 +7014,18 @@ export interface components {
         };
         /** SampleInfo */
         SampleInfo: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Description */
-            description: string;
             /** Category */
             category: string;
-            /** Loan Product Ids */
-            loan_product_ids: string[];
+            /** Description */
+            description: string;
             /** Files */
             files: components["schemas"]["SampleFileInfo"][];
+            /** Id */
+            id: string;
+            /** Loan Product Ids */
+            loan_product_ids: string[];
+            /** Name */
+            name: string;
         };
         /** SampleListResponse */
         SampleListResponse: {
@@ -6420,21 +7034,21 @@ export interface components {
         };
         /** ScenarioAdviceItem */
         ScenarioAdviceItem: {
+            /** Action */
+            action?: string | null;
+            /** Action Label */
+            action_label?: string | null;
             /** Code */
             code: string;
+            /** Detail */
+            detail?: string | null;
+            /** Message */
+            message: string;
             /**
              * Severity
              * @enum {string}
              */
             severity: "action_required" | "warning" | "info";
-            /** Message */
-            message: string;
-            /** Action */
-            action?: string | null;
-            /** Action Label */
-            action_label?: string | null;
-            /** Detail */
-            detail?: string | null;
         };
         /** ScenarioAdviceResponse */
         ScenarioAdviceResponse: {
@@ -6445,82 +7059,82 @@ export interface components {
         };
         /** ScenarioComparisonResponse */
         ScenarioComparisonResponse: {
-            /**
-             * Scenario Id
-             * Format: uuid
-             */
-            scenario_id: string;
             /** Approach */
             approach: string | null;
-            /** Pool Version */
-            pool_version: number | null;
-            /** Status */
-            status: string | null;
-            /** Name */
-            name?: string | null;
             /** Created At */
             created_at: string | null;
             /** Manifest Id */
             manifest_id: string | null;
-            /** Refinement Num */
-            refinement_num: number | null;
-            /** Results */
-            results: components["schemas"]["SpecResultResponse"][];
+            /** Name */
+            name?: string | null;
+            /** Pool Version */
+            pool_version: number | null;
             /**
              * Product Specs
              * @default []
              */
             product_specs: components["schemas"]["ProductSpecGroup"][];
+            /** Refinement Num */
+            refinement_num: number | null;
             /**
              * Refinements
              * @default []
              */
             refinements: components["schemas"]["RefinementResponse"][];
-            summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
-        };
-        /** ScenarioDetailResponse */
-        ScenarioDetailResponse: {
+            /** Results */
+            results: components["schemas"]["SpecResultResponse"][];
             /**
              * Scenario Id
              * Format: uuid
              */
             scenario_id: string;
+            /** Status */
+            status: string | null;
+            summary_result?: components["schemas"]["SpecSummaryResultResponse"] | null;
+        };
+        /** ScenarioDetailResponse */
+        ScenarioDetailResponse: {
+            /** Approach */
+            approach: string | null;
             /**
              * Case Id
              * Format: uuid
              */
             case_id: string;
-            /** Approach */
-            approach: string | null;
-            /** Pool Version */
-            pool_version: number | null;
-            /** Status */
-            status: string | null;
-            /** Name */
-            name?: string | null;
             /** Created At */
             created_at: string | null;
+            /** Name */
+            name?: string | null;
+            /** Pool Version */
+            pool_version: number | null;
             rendering_hints?: components["schemas"]["RenderingHints"] | null;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /** Status */
+            status: string | null;
         };
         /** ScenarioSummaryResponse */
         ScenarioSummaryResponse: {
-            /** Summary */
-            summary: string;
+            /** Dti Back End */
+            dti_back_end?: number | null;
+            /** Dti Front End */
+            dti_front_end?: number | null;
+            eval?: components["schemas"]["SummaryEvalResponse"] | null;
+            headline?: components["schemas"]["HeadlineMetric"] | null;
             /** Name */
             name?: string | null;
-            /** Subtitle */
-            subtitle?: string | null;
-            headline?: components["schemas"]["HeadlineMetric"] | null;
-            eval?: components["schemas"]["SummaryEvalResponse"] | null;
             /**
              * Sections
              * @default []
              */
             sections: components["schemas"]["SummarySectionResponse"][];
-            /** Dti Front End */
-            dti_front_end?: number | null;
-            /** Dti Back End */
-            dti_back_end?: number | null;
+            /** Subtitle */
+            subtitle?: string | null;
+            /** Summary */
+            summary: string;
             /** Total Monthly Debt */
             total_monthly_debt?: number | null;
         };
@@ -6530,27 +7144,27 @@ export interface components {
          */
         SendRequestBody: {
             /**
-             * Party Id
-             * Format: uuid
-             */
-            party_id: string;
-            /**
              * Items
              * @default []
              */
             items: components["schemas"]["PortalRequestItem"][];
             /** Message */
             message?: string | null;
+            /**
+             * Party Id
+             * Format: uuid
+             */
+            party_id: string;
         };
         /** SendRequestResponse */
         SendRequestResponse: {
-            /** Token */
-            token: string;
             /**
              * Message Id
              * Format: uuid
              */
             message_id: string;
+            /** Token */
+            token: string;
         };
         /**
          * SignedTreeHeadPredicate
@@ -6594,36 +7208,6 @@ export interface components {
          */
         SignedTreeHeadPredicate: {
             /**
-             * Merkle Root
-             * @description Hex-encoded Merkle root over all audit-log leaves.
-             */
-            merkle_root: string;
-            /**
-             * Tree Size
-             * @description Number of audit events covered by this tree head.
-             */
-            tree_size: number;
-            /**
-             * Last Event Hash
-             * @description Hash chain value of the last event in the tree.
-             */
-            last_event_hash?: string | null;
-            /**
-             * Schema Catalog Hash
-             * @description SHA-256 of the canonical schema catalog for the covered events.
-             */
-            schema_catalog_hash?: string | null;
-            /**
-             * Computations Root
-             * @description Hex Merkle root over the case's spec_results computation commitments.
-             */
-            computations_root?: string | null;
-            /**
-             * Provenance Root
-             * @description Hex Merkle root over the case's extraction-lineage records.
-             */
-            provenance_root?: string | null;
-            /**
              * Computations
              * @description Per-result computation commitments: input/result/derivation/proof hashes.
              */
@@ -6631,10 +7215,10 @@ export interface components {
                 [key: string]: unknown;
             }[];
             /**
-             * Provenance Count
-             * @description Number of extraction-lineage records under provenance_root.
+             * Computations Root
+             * @description Hex Merkle root over the case's spec_results computation commitments.
              */
-            provenance_count?: number | null;
+            computations_root?: string | null;
             /**
              * Issuer
              * @description Issuer block: name, tenant_id, environment, software_version.
@@ -6643,12 +7227,42 @@ export interface components {
                 [key: string]: unknown;
             };
             /**
+             * Last Event Hash
+             * @description Hash chain value of the last event in the tree.
+             */
+            last_event_hash?: string | null;
+            /**
+             * Merkle Root
+             * @description Hex-encoded Merkle root over all audit-log leaves.
+             */
+            merkle_root: string;
+            /**
+             * Provenance Count
+             * @description Number of extraction-lineage records under provenance_root.
+             */
+            provenance_count?: number | null;
+            /**
+             * Provenance Root
+             * @description Hex Merkle root over the case's extraction-lineage records.
+             */
+            provenance_root?: string | null;
+            /**
+             * Schema Catalog Hash
+             * @description SHA-256 of the canonical schema catalog for the covered events.
+             */
+            schema_catalog_hash?: string | null;
+            /**
              * Timing
              * @description Timestamps: first_event_at, last_event_at, computed_at, signed_at.
              */
             timing?: {
                 [key: string]: unknown;
             };
+            /**
+             * Tree Size
+             * @description Number of audit events covered by this tree head.
+             */
+            tree_size: number;
         };
         /** SignupResponse */
         SignupResponse: {
@@ -6657,101 +7271,101 @@ export interface components {
         };
         /** SpecAuditResponse */
         SpecAuditResponse: {
-            /** Spec Name */
-            spec_name: string;
-            /** Spec Version */
-            spec_version?: string | null;
-            /** Outcome */
-            outcome?: string | null;
-            /** Monthly Amount */
-            monthly_amount?: number | null;
             /** Input Hash */
             input_hash?: string | null;
-            /** Result Hash */
-            result_hash?: string | null;
-            /**
-             * Steps
-             * @default []
-             */
-            steps: components["schemas"]["CalculationStepResponse"][];
+            /** Manifest Id */
+            manifest_id?: string | null;
+            /** Monthly Amount */
+            monthly_amount?: number | null;
+            /** Outcome */
+            outcome?: string | null;
             /**
              * Proof Trace
              * @default []
              */
             proof_trace: string[];
-            /** Manifest Id */
-            manifest_id?: string | null;
+            /** Result Hash */
+            result_hash?: string | null;
+            /** Spec Name */
+            spec_name: string;
+            /** Spec Version */
+            spec_version?: string | null;
+            /**
+             * Steps
+             * @default []
+             */
+            steps: components["schemas"]["CalculationStepResponse"][];
         };
         /** SpecDetailResponse */
         SpecDetailResponse: {
+            /** Created At */
+            created_at?: string | null;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Domain */
+            domain: string;
+            /** Name */
+            name: string;
             /**
              * Spec Id
              * Format: uuid
              */
             spec_id: string;
-            /** Name */
-            name: string;
-            /** Domain */
-            domain: string;
-            /** Description */
-            description?: string | null;
-            /** Current Version Id */
-            current_version_id?: string | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Yaml Content */
-            yaml_content?: string | null;
             /**
              * Versions
              * @default []
              */
             versions: components["schemas"]["SpecVersionResponse"][];
+            /** Yaml Content */
+            yaml_content?: string | null;
         };
         /** SpecResponse */
         SpecResponse: {
+            /** Created At */
+            created_at?: string | null;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Domain */
+            domain: string;
+            /** Name */
+            name: string;
             /**
              * Spec Id
              * Format: uuid
              */
             spec_id: string;
-            /** Name */
-            name: string;
-            /** Domain */
-            domain: string;
-            /** Description */
-            description?: string | null;
-            /** Current Version Id */
-            current_version_id?: string | null;
-            /** Created At */
-            created_at?: string | null;
         };
         /** SpecResultResponse */
         SpecResultResponse: {
+            /** Computed At */
+            computed_at: string | null;
+            /** Cure Plan */
+            cure_plan?: components["schemas"]["CurePlanItem"][] | null;
+            /** Decision Status */
+            decision_status?: string | null;
+            /** Monthly Amount */
+            monthly_amount: string | null;
+            /** Outcome */
+            outcome: string | null;
             /**
              * Result Id
              * Format: uuid
              */
             result_id: string;
+            /** Review Required */
+            review_required?: boolean | null;
+            /** Semantic Key */
+            semantic_key: string | null;
+            /** Spec Domain */
+            spec_domain: string | null;
             /** Spec Name */
             spec_name: string | null;
             /** Spec Version */
             spec_version: string | null;
-            /** Spec Domain */
-            spec_domain: string | null;
-            /** Semantic Key */
-            semantic_key: string | null;
-            /** Outcome */
-            outcome: string | null;
-            /** Monthly Amount */
-            monthly_amount: string | null;
-            /** Computed At */
-            computed_at: string | null;
-            /** Decision Status */
-            decision_status?: string | null;
-            /** Review Required */
-            review_required?: boolean | null;
-            /** Cure Plan */
-            cure_plan?: components["schemas"]["CurePlanItem"][] | null;
         };
         /**
          * SpecSummaryResultResponse
@@ -6769,14 +7383,8 @@ export interface components {
          *     introduced later as a backwards-compatible widening of the enum.
          */
         SpecSummaryResultResponse: {
-            /**
-             * Strategy
-             * @default max_value
-             * @constant
-             */
-            strategy: "max_value";
-            /** Value */
-            value: number | null;
+            /** Domain */
+            domain?: string | null;
             /**
              * Groups
              * @default {}
@@ -6784,84 +7392,90 @@ export interface components {
             groups: {
                 [key: string]: number;
             };
-            /** Domain */
-            domain?: string | null;
+            /**
+             * Strategy
+             * @default max_value
+             * @constant
+             */
+            strategy: "max_value";
             /** Unit */
             unit?: string | null;
+            /** Value */
+            value: number | null;
         };
         /** SpecTestReportResponse */
         SpecTestReportResponse: {
-            /** Spec Name */
-            spec_name: string;
             /** All Passed */
             all_passed: boolean;
-            /** Total */
-            total: number;
             /** Passed Count */
             passed_count: number;
             /** Results */
             results: components["schemas"]["SpecTestResultResponse"][];
+            /** Spec Name */
+            spec_name: string;
+            /** Total */
+            total: number;
         };
         /** SpecTestResultResponse */
         SpecTestResultResponse: {
-            /** Spec Name */
-            spec_name: string;
-            /** Case Name */
-            case_name: string;
-            /** Passed */
-            passed: boolean;
-            /** Expected Qualifying */
-            expected_qualifying: number | null;
             /** Actual Qualifying */
             actual_qualifying: number | null;
-            /** Matching Rules */
-            matching_rules: string[];
+            /** Case Name */
+            case_name: string;
             /** Errors */
             errors: string[];
+            /** Expected Qualifying */
+            expected_qualifying: number | null;
+            /** Matching Rules */
+            matching_rules: string[];
+            /** Passed */
+            passed: boolean;
+            /** Spec Name */
+            spec_name: string;
         };
         /** SpecVersionResponse */
         SpecVersionResponse: {
+            /** Approved By */
+            approved_by?: string | null;
+            /** Authored By */
+            authored_by?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Effective From */
+            effective_from?: string | null;
+            /** Effective To */
+            effective_to?: string | null;
+            /** Review Notes */
+            review_notes?: string | null;
             /**
              * Spec Version Id
              * Format: uuid
              */
             spec_version_id: string;
-            /** Version */
-            version: string;
             /** Status */
             status: string;
+            /** Version */
+            version: string;
             /** Yaml Content */
             yaml_content?: string | null;
-            /** Effective From */
-            effective_from?: string | null;
-            /** Effective To */
-            effective_to?: string | null;
-            /** Authored By */
-            authored_by?: string | null;
-            /** Approved By */
-            approved_by?: string | null;
-            /** Review Notes */
-            review_notes?: string | null;
-            /** Created At */
-            created_at?: string | null;
         };
         /** StartRefinementResponse */
         StartRefinementResponse: {
+            /** Message */
+            message: string;
             /** Status */
             status: string;
             /** Workflow Id */
             workflow_id: string;
-            /** Message */
-            message: string;
         };
         /** StartScenarioResponse */
         StartScenarioResponse: {
+            /** Message */
+            message: string;
             /** Status */
             status: string;
             /** Workflow Id */
             workflow_id: string;
-            /** Message */
-            message: string;
         };
         /**
          * StatusResponse
@@ -6871,13 +7485,13 @@ export interface components {
          *     path owns the separate ``pending_borrower`` nudge; it never surfaces here.
          */
         StatusResponse: {
+            /** Error */
+            error?: string | null;
             /**
              * Reason
              * @enum {string}
              */
             reason: "awaiting_borrower" | "processing" | "done" | "error";
-            /** Error */
-            error?: string | null;
         };
         /**
          * StructuredDocument
@@ -6930,33 +7544,33 @@ export interface components {
              * Format: uuid
              */
             case_id: string;
-            /**
-             * Suggested Product Ids
-             * @default []
-             */
-            suggested_product_ids: string[];
+            /** Computed At */
+            computed_at?: string | null;
             /**
              * Ranked
              * @default []
              */
             ranked: components["schemas"]["ProductSuggestionItem"][];
-            /** Computed At */
-            computed_at?: string | null;
+            /**
+             * Suggested Product Ids
+             * @default []
+             */
+            suggested_product_ids: string[];
         };
         /** SuiteResultResponse */
         SuiteResultResponse: {
-            /** Product Id */
-            product_id: string;
             /** All Passed */
             all_passed: boolean;
-            /** Total Specs */
-            total_specs: number;
-            /** Passed Specs */
-            passed_specs: number;
-            /** Spec Reports */
-            spec_reports: components["schemas"]["SpecTestReportResponse"][];
             /** Errors */
             errors: string[];
+            /** Passed Specs */
+            passed_specs: number;
+            /** Product Id */
+            product_id: string;
+            /** Spec Reports */
+            spec_reports: components["schemas"]["SpecTestReportResponse"][];
+            /** Total Specs */
+            total_specs: number;
         };
         /** SummaryEvalResponse */
         SummaryEvalResponse: {
@@ -6972,61 +7586,57 @@ export interface components {
         };
         /** SummaryEvalViolation */
         SummaryEvalViolation: {
-            /** Type */
-            type: string;
-            /** Raw */
-            raw: string;
             /** Message */
             message: string;
+            /** Raw */
+            raw: string;
+            /** Type */
+            type: string;
         };
         /** SummaryItemResponse */
         SummaryItemResponse: {
-            /** Type */
-            type: string;
-            /** Label */
-            label: string;
-            /** Value */
-            value?: string | null;
             /** Detail */
             detail: string;
+            /** Label */
+            label: string;
             /**
              * Severity
              * @default default
              */
             severity: string;
+            /** Type */
+            type: string;
+            /** Value */
+            value?: string | null;
         };
         /** SummarySectionResponse */
         SummarySectionResponse: {
             /** Id */
             id: string;
-            /** Title */
-            title: string;
-            /**
-             * Severity
-             * @default default
-             */
-            severity: string;
             /**
              * Items
              * @default []
              */
             items: components["schemas"]["SummaryItemResponse"][];
+            /**
+             * Severity
+             * @default default
+             */
+            severity: string;
+            /** Title */
+            title: string;
         };
         /** SyncRequest */
         SyncRequest: {
-            /** Exchangeref */
-            exchangeRef: string;
-            /** Cursor */
-            cursor?: string | null;
             /** Count */
             count?: number | null;
+            /** Cursor */
+            cursor?: string | null;
+            /** Exchangeref */
+            exchangeRef: string;
         };
         /** ThreadMessage */
         ThreadMessage: {
-            /** Message Id */
-            message_id: string;
-            /** Kind */
-            kind: string;
             /** Author Kind */
             author_kind: string;
             /**
@@ -7035,24 +7645,10 @@ export interface components {
              */
             body: string;
             /**
-             * Items
-             * @default []
-             */
-            items: {
-                [key: string]: unknown;
-            }[];
-            /** Status */
-            status?: string | null;
-            /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /**
-             * Read
-             * @default false
-             */
-            read: boolean;
             /**
              * Deleted
              * @default false
@@ -7066,15 +7662,33 @@ export interface components {
             /** File Id */
             file_id?: string | null;
             /**
+             * Items
+             * @default []
+             */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /** Kind */
+            kind: string;
+            /** Message Id */
+            message_id: string;
+            /**
              * Processing
              * @default false
              */
             processing: boolean;
             /**
+             * Read
+             * @default false
+             */
+            read: boolean;
+            /**
              * Seq
              * @description This item's monotonic position in the thread — the tie-break half of the paging cursor, sent back as `before_seq` alongside `before`. `null` for an upload bubble, which has no message row; the timestamp alone is a safe cursor there. Note this is a GLOBAL counter, not per-thread or per-tenant: consecutive items in one thread will not have consecutive `seq` values, and the gap reflects platform-wide write volume. That exposure is a knowing, accepted trade for a cursor that can address a row.
              */
             seq?: number | null;
+            /** Status */
+            status?: string | null;
         };
         /**
          * ThreadPage
@@ -7082,15 +7696,15 @@ export interface components {
          */
         ThreadPage: {
             /**
-             * Thread
-             * @default []
-             */
-            thread: components["schemas"]["ThreadMessage"][];
-            /**
              * Has More
              * @default false
              */
             has_more: boolean;
+            /**
+             * Thread
+             * @default []
+             */
+            thread: components["schemas"]["ThreadMessage"][];
         };
         /**
          * TransactionRegion
@@ -7098,19 +7712,19 @@ export interface components {
          */
         TransactionRegion: {
             /**
-             * Region Id
-             * Format: uuid
+             * Columns
+             * @default []
              */
-            region_id: string;
+            columns: string[];
             /** Page Number */
             page_number?: number | null;
             /** Parquet Path */
             parquet_path: string;
             /**
-             * Columns
-             * @default []
+             * Region Id
+             * Format: uuid
              */
-            columns: string[];
+            region_id: string;
             /**
              * Row Count
              * @default 0
@@ -7127,12 +7741,12 @@ export interface components {
          * @description One transaction row read from a parquet region.
          */
         TransactionRow: {
-            /** Row Index */
-            row_index?: number | null;
             /** Data */
             data: {
                 [key: string]: unknown;
             };
+            /** Row Index */
+            row_index?: number | null;
         };
         /** TransactionsResponse */
         TransactionsResponse: {
@@ -7141,13 +7755,13 @@ export interface components {
              * Format: uuid
              */
             doc_id: string;
-            /** Source Filename */
-            source_filename?: string | null;
             /**
              * Regions
              * @default []
              */
             regions: components["schemas"]["TransactionRegion"][];
+            /** Source Filename */
+            source_filename?: string | null;
             /**
              * Total Rows
              * @default 0
@@ -7167,11 +7781,6 @@ export interface components {
         /** UploadConfig */
         UploadConfig: {
             /**
-             * Max File Size Mb
-             * @default 25
-             */
-            max_file_size_mb: number;
-            /**
              * Accepted Types
              * @default [
              *       ".pdf"
@@ -7183,23 +7792,28 @@ export interface components {
              * @default
              */
             endpoint: string;
+            /**
+             * Max File Size Mb
+             * @default 25
+             */
+            max_file_size_mb: number;
         };
         /** UsageRequest */
         UsageRequest: {
-            /** Event Key */
-            event_key: string;
             /** Dedup Id */
             dedup_id: string;
+            /** Event Key */
+            event_key: string;
         };
         /**
          * UserInputFieldOptionResponse
          * @description One selectable option in an enum-style operator-adjustable input.
          */
         UserInputFieldOptionResponse: {
-            /** Value */
-            value: unknown;
             /** Label */
             label: string;
+            /** Value */
+            value: unknown;
         };
         /**
          * UserInputFieldResponse
@@ -7210,16 +7824,25 @@ export interface components {
          *     POSTs the chosen value back under ``context[product_id].inputs.<name>``.
          */
         UserInputFieldResponse: {
-            /** Name */
-            name: string;
-            /** Type */
-            type: string;
-            /** Label */
-            label: string;
-            /** Hint */
-            hint?: string | null;
             /** Default */
             default?: unknown | null;
+            /** Derive Options From */
+            derive_options_from?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /** Label */
+            label: string;
+            /** Maximum */
+            maximum?: number | null;
+            /** Minimum */
+            minimum?: number | null;
+            /** Name */
+            name: string;
+            /**
+             * Options
+             * @default []
+             */
+            options: components["schemas"]["UserInputFieldOptionResponse"][];
             /**
              * Required
              * @default false
@@ -7231,23 +7854,14 @@ export interface components {
              */
             required_at_create: boolean;
             required_when?: components["schemas"]["RequiredWhenConditionResponse"] | null;
-            /** Minimum */
-            minimum?: number | null;
-            /** Maximum */
-            maximum?: number | null;
-            /** Step */
-            step?: number | null;
-            /** Unit */
-            unit?: string | null;
-            /**
-             * Options
-             * @default []
-             */
-            options: components["schemas"]["UserInputFieldOptionResponse"][];
-            /** Derive Options From */
-            derive_options_from?: string | null;
             /** Spec Name */
             spec_name: string;
+            /** Step */
+            step?: number | null;
+            /** Type */
+            type: string;
+            /** Unit */
+            unit?: string | null;
         };
         /**
          * UserInputsGroupSectionResponse
@@ -7260,22 +7874,22 @@ export interface components {
          *     for every product in ``applies_to_products``.
          */
         UserInputsGroupSectionResponse: {
-            /** Group Id */
-            group_id: string;
-            /** Display Name */
-            display_name: string;
-            /** Description */
-            description?: string | null;
             /**
              * Applies To Products
              * @default []
              */
             applies_to_products: string[];
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
             /**
              * Fields
              * @default []
              */
             fields: components["schemas"]["UserInputFieldResponse"][];
+            /** Group Id */
+            group_id: string;
         };
         /**
          * UserInputsProductSectionResponse
@@ -7287,8 +7901,6 @@ export interface components {
          *     multi-product scenario.
          */
         UserInputsProductSectionResponse: {
-            /** Product Id */
-            product_id: string;
             /** Display Name */
             display_name: string;
             /**
@@ -7296,6 +7908,8 @@ export interface components {
              * @default []
              */
             fields: components["schemas"]["UserInputFieldResponse"][];
+            /** Product Id */
+            product_id: string;
         };
         /**
          * UserInputsSchemaResponse
@@ -7329,16 +7943,16 @@ export interface components {
         };
         /** ValidationError */
         ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
             /** Location */
             loc: (string | number)[];
             /** Message */
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
         /** VerificationState */
         VerificationState: {
@@ -7362,14 +7976,18 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    auth_me_api_auth_me_get: {
+    generate_spec_api_ai_specs_generate_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateSpecRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -7377,9 +7995,49 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GenerateSpecResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_spec_stream_api_ai_specs_generate_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateSpecRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7417,6 +8075,28 @@ export interface operations {
             };
         };
     };
+    auth_me_api_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     join_tenant_with_code_api_auth_tenant_join_post: {
         parameters: {
             query?: never;
@@ -7446,614 +8126,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_case_audit_api_cases__case_id__audit_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecAuditResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_spec_audit_api_cases__case_id__audit_specs__spec_name__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                spec_name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecAuditResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_case_function_calls_api_cases__case_id__audit_functions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FunctionCallResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_session_api_portal_session_get: {
-        parameters: {
-            query?: {
-                /** @description Portal token (legacy; prefer X-Portal-Token header) */
-                token?: string | null;
-            };
-            header?: {
-                "X-Portal-Token"?: string | null;
-                "X-Portal-Verify"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortalSessionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_intents_api_portal_session__session_id__intents_post: {
-        parameters: {
-            query?: {
-                /** @description Portal token (legacy; prefer X-Portal-Token header) */
-                token?: string | null;
-            };
-            header?: {
-                "X-Portal-Token"?: string | null;
-                "X-Portal-Verify"?: string | null;
-            };
-            path: {
-                session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IntentsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IntentsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_messages_api_portal_session__session_id__messages_get: {
-        parameters: {
-            query?: {
-                before?: string | null;
-                /** @description Ordering tie-break of the item `before` came from (its `seq`), making the cursor address a row rather than an instant. Optional and additive: omitting it compares timestamps alone, which cannot cut through a group of messages written in one transaction — they all share one `created_at`, so the whole group is skipped. Send both halves. `null`/omitted is also the correct form for a cursor taken from an upload bubble, which has no row. */
-                before_seq?: number | null;
-                limit?: number;
-                /** @description Portal token (legacy; prefer X-Portal-Token header) */
-                token?: string | null;
-            };
-            header?: {
-                "X-Portal-Token"?: string | null;
-                "X-Portal-Verify"?: string | null;
-            };
-            path: {
-                session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThreadPage"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    claim_account_api_portal_claim_account_post: {
-        parameters: {
-            query?: {
-                token?: string | null;
-            };
-            header?: {
-                "X-Portal-Token"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimAccountRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ClaimAccountResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    my_cases_api_portal_my_cases_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MyCaseLink"][];
-                };
-            };
-        };
-    };
-    portal_stream_api_portal_stream_get: {
-        parameters: {
-            query?: {
-                token?: string | null;
-            };
-            header?: {
-                "X-Portal-Token"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_typing_api_portal_typing_post: {
-        parameters: {
-            query?: {
-                token?: string | null;
-            };
-            header?: {
-                "X-Portal-Token"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    register_tenant_api_tenants_register_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterTenantRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegisterTenantResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_credential_api_tenants_credentials_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CredentialResponse"];
-                };
-            };
-        };
-    };
-    register_integration_api_integrations__provider__register_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IntegrationRegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IntegrationRegisterResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    login_api_integrations__provider__login_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    callback_api_integrations__provider__callback_get: {
-        parameters: {
-            query?: {
-                code?: string | null;
-                state?: string | null;
-            };
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    landing_page_api_integrations__provider__landing_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    viewer_page_api_integrations__provider__viewer_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    signup_api_integrations__provider__signup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignupResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_page_portal_upload_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
                 };
             };
         };
@@ -8110,41 +8182,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateCaseResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    mint_portal_token_api_cases__case_id__portal_token_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PortalTokenRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortalTokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8253,7 +8290,60 @@ export interface operations {
             };
         };
     };
-    reprocess_case_api_cases__case_id__reprocess_post: {
+    get_attestation_api_cases__case_id__attestation_get: {
+        parameters: {
+            query?: {
+                /** @description When 'jws', return only the compact JWS as {"jws": ...}. */
+                format?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: unknown;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed in-toto attestation (or bare JWS when ?format=jws). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttestationArtifactResponse"];
+                };
+            };
+            /** @description Caller may not access this case (cross-tenant). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case is not finalized; no attestation can be issued yet. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case has an empty audit log; nothing to attest. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_case_audit_api_cases__case_id__audit_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -8265,7 +8355,1065 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecAuditResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_case_function_calls_api_cases__case_id__audit_functions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FunctionCallResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_spec_audit_api_cases__case_id__audit_specs__spec_name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                spec_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecAuditResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_banking_api_cases__case_id__banking_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_banking_transactions_api_cases__case_id__banking_transactions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassifiedTransactionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_consistency_proof_api_cases__case_id__consistency_get: {
+        parameters: {
+            query: {
+                /** @description Earlier (smaller) tree size; must be >= 1. */
+                from: number;
+                /** @description Later (larger or equal) tree size; must be >= from. */
+                to: number;
+            };
+            header?: never;
+            path: {
+                case_id: unknown;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consistency proof that the first tree is a prefix of the second. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsistencyProofResponse"];
+                };
+            };
+            /** @description Invalid range (require 1 <= from <= to <= tree_size). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case is not finalized. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case has an empty audit log. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publish_case_decision_api_cases__case_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decision_draft_api_cases__case_id__decision_draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionDraftResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decision_history_api_cases__case_id__decisions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_cases__case_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_cases__case_id__documents__doc_id__transactions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entities_api_cases__case_id__entities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityGroupResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_entities_api_cases__case_id__entities_merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_entity_api_cases__case_id__entities__entity_group_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                entity_group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_events_api_cases__case_id__events_get: {
+        parameters: {
+            query?: {
+                event_type?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseEventResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_events_api_cases__case_id__events_stream_get: {
+        parameters: {
+            query?: {
+                cursor?: number;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_inclusion_proof_api_cases__case_id__events__event_id__proof_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: unknown;
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inclusion proof reconstructing the signed Merkle root. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InclusionProofResponse"];
+                };
+            };
+            /** @description Case or event not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case is not finalized; no signed tree to prove against. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Case has an empty audit log. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_extractions_api_cases__case_id__extractions_get: {
+        parameters: {
+            query?: {
+                doc_id?: string | null;
+                doc_type?: string | null;
+                tax_year?: number | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_structured_extractions_api_cases__case_id__extractions_structured_get: {
+        parameters: {
+            query: {
+                doc_type: string;
+                doc_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StructuredExtractionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_files_api_cases__case_id__files_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_files_api_cases__case_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_files_api_cases__case_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Refused on a capacity bound. `detail` is one of `TOO_MANY_FILES`, `FILE_TOO_LARGE`, `UPLOAD_TOO_LARGE` or `CASE_DOCUMENT_LIMIT`. See veritas.api.upload_limits for the caps and their env overrides. An oversized body is refused by veritas.api.body_limit before this route runs. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `UNSUPPORTED_MEDIA` — the bytes are not a PDF or a supported image, whatever the filename and declared content type claim. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_files_zip_api_cases__case_id__files_download_zip_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_file_api_cases__case_id__files__file_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                file_id: string;
+                page_number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_identities_api_cases__case_id__identities_get: {
+        parameters: {
+            query?: {
+                /** @description When set, applies the scenario's active product borrower assembly (per ``loan_products.yaml``). Returns the same headline-property + folded-relationships shape the refinement detail endpoint emits. When omitted (default) the response is the legacy flat list of every person and entity on the case. */
+                scenario_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_overview_api_cases__case_id__portal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_portal_link_api_cases__case_id__portal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PortalLinkRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mint_portal_token_api_cases__case_id__portal_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PortalTokenRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_candidates_api_cases__case_id__portal_candidates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_party_api_cases__case_id__portal_parties_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPartyBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyCreatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_party_api_cases__case_id__portal_parties__party_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_document_api_cases__case_id__portal_parties__party_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachDocBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8286,16 +9434,21 @@ export interface operations {
             };
         };
     };
-    get_suggested_products_api_cases__case_id__suggested_products_get: {
+    link_party_api_cases__case_id__portal_parties__party_id__link_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 case_id: string;
+                party_id: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkPartyBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -8303,7 +9456,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SuggestedProductsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8317,11 +9472,19 @@ export interface operations {
             };
         };
     };
-    list_pos_portals_api_pos_portals_get: {
+    party_messages_api_cases__case_id__portal_parties__party_id__messages_get: {
         parameters: {
-            query?: never;
+            query?: {
+                before?: string | null;
+                /** @description Ordering tie-break of the item `before` came from (its `seq`), making the cursor address a row rather than an instant. Optional and additive: omitting it compares timestamps alone, which cannot cut through a group of messages written in one transaction — they all share one `created_at`, so the whole group is skipped. Send both halves. `null`/omitted is also the correct form for a cursor taken from an upload bubble, which has no row. */
+                before_seq?: number | null;
+                limit?: number;
+            };
             header?: never;
-            path?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -8332,21 +9495,272 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PosPortalResponse"][];
+                    "application/json": components["schemas"]["ThreadPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    create_pos_portal_api_pos_portals_post: {
+    clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+                message_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePosPortalRequest"];
+                "application/json": components["schemas"]["EditMessageBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    party_profile_api_cases__case_id__portal_parties__party_id__profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_access_code_api_cases__case_id__portal_parties__party_id__resend_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                party_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResendCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_portal_request_api_cases__case_id__portal_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendRequestBody"];
             };
         };
         responses: {
@@ -8356,7 +9770,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PosPortalResponse"];
+                    "application/json": components["schemas"]["SendRequestResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8370,51 +9784,18 @@ export interface operations {
             };
         };
     };
-    list_pos_portal_cases_api_pos_portals__pos_portal_id__cases_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                pos_portal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PosPortalCaseResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_pos_portal_api_pos_portals__pos_portal_id__patch: {
+    draft_portal_request_api_cases__case_id__portal_requests_draft_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                pos_portal_id: string;
+                case_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdatePosPortalRequest"];
+                "application/json": components["schemas"]["DraftRequestBody"];
             };
         };
         responses: {
@@ -8424,7 +9805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PosPortalResponse"];
+                    "application/json": components["schemas"]["DraftResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8537,553 +9918,6 @@ export interface operations {
             };
         };
     };
-    portal_overview_api_cases__case_id__portal_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortalOverview"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_portal_link_api_cases__case_id__portal_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PortalLinkRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortalLinkResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    party_profile_api_cases__case_id__portal_parties__party_id__profile_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartyProfile"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    party_messages_api_cases__case_id__portal_parties__party_id__messages_get: {
-        parameters: {
-            query?: {
-                before?: string | null;
-                /** @description Ordering tie-break of the item `before` came from (its `seq`), making the cursor address a row rather than an instant. Optional and additive: omitting it compares timestamps alone, which cannot cut through a group of messages written in one transaction — they all share one `created_at`, so the whole group is skipped. Send both halves. `null`/omitted is also the correct form for a cursor taken from an upload bubble, which has no row. */
-                before_seq?: number | null;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThreadPage"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    clear_party_thread_api_cases__case_id__portal_parties__party_id__messages_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    send_portal_request_api_cases__case_id__portal_requests_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SendRequestBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SendRequestResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    draft_portal_request_api_cases__case_id__portal_requests_draft_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DraftRequestBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DraftResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_candidates_api_cases__case_id__portal_candidates_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartyCandidate"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_party_api_cases__case_id__portal_parties_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddPartyBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartyCreatedResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    link_party_api_cases__case_id__portal_parties__party_id__link_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LinkPartyBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reissue_link_api_cases__case_id__portal_parties__party_id__reissue_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    resend_access_code_api_cases__case_id__portal_parties__party_id__resend_code_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResendCodeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_party_api_cases__case_id__portal_parties__party_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-                message_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    edit_party_message_api_cases__case_id__portal_parties__party_id__messages__message_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-                message_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EditMessageBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    mark_thread_read_api_cases__case_id__portal_parties__party_id__read_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     operator_typing_api_cases__case_id__portal_typing_post: {
         parameters: {
             query?: never;
@@ -9104,383 +9938,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    attach_document_api_cases__case_id__portal_parties__party_id__documents_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                party_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AttachDocBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_entities_api_cases__case_id__entities_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EntityGroupResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    confirm_entity_api_cases__case_id__entities__entity_group_id__confirm_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                entity_group_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    merge_entities_api_cases__case_id__entities_merge_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MergeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_identities_api_cases__case_id__identities_get: {
-        parameters: {
-            query?: {
-                /** @description When set, applies the scenario's active product borrower assembly (per ``loan_products.yaml``). Returns the same headline-property + folded-relationships shape the refinement detail endpoint emits. When omitted (default) the response is the legacy flat list of every person and entity on the case. */
-                scenario_id?: string | null;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IdentityInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_relationships_api_cases__case_id__relationships_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RelationshipInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_stage_excel_api_cases__case_id__stages__stage__excel_get: {
-        parameters: {
-            query?: {
-                product?: string | null;
-                refinement_id?: string | null;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-                stage: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_files_api_cases__case_id__files_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_files_api_cases__case_id__files_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_files_api_cases__case_id__files_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Refused on a capacity bound. `detail` is one of `TOO_MANY_FILES`, `FILE_TOO_LARGE`, `UPLOAD_TOO_LARGE` or `CASE_DOCUMENT_LIMIT`. See veritas.api.upload_limits for the caps and their env overrides. An oversized body is refused by veritas.api.body_limit before this route runs. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description `UNSUPPORTED_MEDIA` — the bytes are not a PDF or a supported image, whatever the filename and declared content type claim. */
-            415: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_file_api_cases__case_id__files__file_id__download_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                file_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_files_zip_api_cases__case_id__files_download_zip_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -9529,16 +9986,12 @@ export interface operations {
             };
         };
     };
-    get_page_png_api_cases__case_id__files__file_id__pages__page_number__png_get: {
+    list_relationships_api_cases__case_id__relationships_get: {
         parameters: {
-            query?: {
-                token?: string | null;
-            };
+            query?: never;
             header?: never;
             path: {
                 case_id: string;
-                file_id: string;
-                page_number: number;
             };
             cookie?: never;
         };
@@ -9549,7 +10002,279 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RelationshipInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_case_reports_api_cases__case_id__reports_get: {
+        parameters: {
+            query?: {
+                scenario_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportCatalogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_report_api_cases__case_id__reports__report_name__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+                report_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReportGenerateRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_report_api_cases__case_id__reports__report_name__download_get: {
+        parameters: {
+            query: {
+                report_id: string;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                report_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_report_api_cases__case_id__reports__report_name__latest_get: {
+        parameters: {
+            query: {
+                scenario_id: string;
+                tenant_slug?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                report_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reprocess_case_api_cases__case_id__reprocess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_stage_excel_api_cases__case_id__stages__stage__excel_get: {
+        parameters: {
+            query?: {
+                product?: string | null;
+                refinement_id?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: string;
+                stage: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_status_api_cases__case_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_suggested_products_api_cases__case_id__suggested_products_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestedProductsResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -9679,107 +10404,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteScenarioResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_scenario_api_cases__id__scenarios__sid__start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                sid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StartScenarioResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_scenario_summary_api_cases__id__scenarios__sid__summary_get: {
-        parameters: {
-            query?: {
-                refresh?: boolean;
-            };
-            header?: never;
-            path: {
-                id: string;
-                sid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScenarioSummaryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_refinement_summary_api_cases__id__scenarios__sid__refinements__rid__summary_get: {
-        parameters: {
-            query?: {
-                refresh?: boolean;
-            };
-            header?: never;
-            path: {
-                id: string;
-                sid: string;
-                rid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScenarioSummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -9961,6 +10585,328 @@ export interface operations {
             };
         };
     };
+    get_refinement_summary_api_cases__id__scenarios__sid__refinements__rid__summary_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_scenario_api_cases__id__scenarios__sid__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_summary_api_cases__id__scenarios__sid__summary_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    health_api_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    callback_api_integrations__provider__callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    landing_page_api_integrations__provider__landing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_integrations__provider__login_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_integration_api_integrations__provider__register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationRegisterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signup_api_integrations__provider__signup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    viewer_page_api_integrations__provider__viewer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_operators_api_operators_get: {
         parameters: {
             query?: never;
@@ -10043,16 +10989,18 @@ export interface operations {
             };
         };
     };
-    get_status_api_cases__case_id__status_get: {
+    link_borrower_account_api_portal_account_link_post: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                case_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimAccountRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -10060,9 +11008,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LinkAccountResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10076,18 +11022,22 @@ export interface operations {
             };
         };
     };
-    get_events_api_cases__case_id__events_get: {
+    claim_account_api_portal_claim_account_post: {
         parameters: {
             query?: {
-                event_type?: string | null;
+                token?: string | null;
             };
-            header?: never;
-            path: {
-                case_id: string;
+            header?: {
+                "X-Portal-Token"?: string | null;
             };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimAccountRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -10095,7 +11045,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CaseEventResponse"][];
+                    "application/json": components["schemas"]["ClaimAccountResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10109,15 +11059,213 @@ export interface operations {
             };
         };
     };
-    stream_events_api_cases__case_id__events_stream_get: {
+    my_cases_api_portal_my_cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCaseLink"][];
+                };
+            };
+        };
+    };
+    my_loans_api_portal_my_loans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BorrowerLoanRow"][];
+                };
+            };
+        };
+    };
+    get_session_api_portal_session_get: {
         parameters: {
             query?: {
-                cursor?: number;
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
             };
-            header?: never;
+            header?: {
+                "X-Portal-Token"?: string | null;
+                "X-Portal-Verify"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_form_api_portal_session__session_id__form_preview_post: {
+        parameters: {
+            query?: {
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+                "X-Portal-Verify"?: string | null;
+            };
             path: {
-                case_id: string;
+                session_id: string;
             };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_intents_api_portal_session__session_id__intents_post: {
+        parameters: {
+            query?: {
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+                "X-Portal-Verify"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntentsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_messages_api_portal_session__session_id__messages_get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                /** @description Ordering tie-break of the item `before` came from (its `seq`), making the cursor address a row rather than an instant. Optional and additive: omitting it compares timestamps alone, which cannot cut through a group of messages written in one transaction — they all share one `created_at`, so the whole group is skipped. Send both halves. `null`/omitted is also the correct form for a cursor taken from an upload bubble, which has no row. */
+                before_seq?: number | null;
+                limit?: number;
+                /** @description Portal token (legacy; prefer X-Portal-Token header) */
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+                "X-Portal-Verify"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_stream_api_portal_stream_get: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: {
+                "X-Portal-Token"?: string | null;
+            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -10142,340 +11290,21 @@ export interface operations {
             };
         };
     };
-    get_attestation_api_cases__case_id__attestation_get: {
+    portal_typing_api_portal_typing_post: {
         parameters: {
             query?: {
-                /** @description When 'jws', return only the compact JWS as {"jws": ...}. */
-                format?: string | null;
+                token?: string | null;
             };
-            header?: never;
-            path: {
-                case_id: unknown;
+            header?: {
+                "X-Portal-Token"?: string | null;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Signed in-toto attestation (or bare JWS when ?format=jws). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttestationArtifactResponse"];
-                };
-            };
-            /** @description Caller may not access this case (cross-tenant). */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case is not finalized; no attestation can be issued yet. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case has an empty audit log; nothing to attest. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_inclusion_proof_api_cases__case_id__events__event_id__proof_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: unknown;
-                event_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Inclusion proof reconstructing the signed Merkle root. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InclusionProofResponse"];
-                };
-            };
-            /** @description Case or event not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case is not finalized; no signed tree to prove against. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case has an empty audit log. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_consistency_proof_api_cases__case_id__consistency_get: {
-        parameters: {
-            query: {
-                /** @description Earlier (smaller) tree size; must be >= 1. */
-                from: number;
-                /** @description Later (larger or equal) tree size; must be >= from. */
-                to: number;
-            };
-            header?: never;
-            path: {
-                case_id: unknown;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Consistency proof that the first tree is a prefix of the second. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsistencyProofResponse"];
-                };
-            };
-            /** @description Invalid range (require 1 <= from <= to <= tree_size). */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case is not finalized. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Case has an empty audit log. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    list_documents_api_cases__case_id__documents_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_extractions_api_cases__case_id__extractions_get: {
-        parameters: {
-            query?: {
-                doc_id?: string | null;
-                doc_type?: string | null;
-                tax_year?: number | null;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExtractionResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_structured_extractions_api_cases__case_id__extractions_structured_get: {
-        parameters: {
-            query: {
-                doc_type: string;
-                doc_id?: string | null;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StructuredExtractionsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_banking_api_cases__case_id__banking_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankingResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_banking_transactions_api_cases__case_id__banking_transactions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ClassifiedTransactionsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post: {
-        parameters: {
-            query?: never;
-            header: {
-                "x-user-id": string;
-                "x-user-role"?: string;
-            };
-            path: {
-                quarantine_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RerunRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10483,6 +11312,192 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_pos_portals_api_pos_portals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosPortalResponse"][];
+                };
+            };
+        };
+    };
+    create_pos_portal_api_pos_portals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePosPortalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosPortalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_pos_portal_api_pos_portals__pos_portal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pos_portal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePosPortalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosPortalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_pos_portal_cases_api_pos_portals__pos_portal_id__cases_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                pos_portal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosPortalCaseResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_products_api_products_get: {
+        parameters: {
+            query?: {
+                include_disabled?: boolean;
+                include_system?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_product_api_products__product_id__test_post: {
+        parameters: {
+            query?: {
+                domain?: string | null;
+            };
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuiteResultResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10532,618 +11547,33 @@ export interface operations {
             };
         };
     };
-    list_transactions_api_cases__case_id__documents__doc_id__transactions_get: {
+    rerun_quarantined_item_api_quarantine__quarantine_id__rerun_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "x-user-id": string;
+                "x-user-role"?: string;
+            };
             path: {
-                case_id: string;
-                doc_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransactionsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_specs_api_specs_get: {
-        parameters: {
-            query?: {
-                domain?: string | null;
-                status?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_spec_api_specs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateSpecRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreateSpecResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_spec_api_specs__spec_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_for_review_api_specs__spec_id__submit_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecVersionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    approve_spec_api_specs__spec_id__approve_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_id: string;
+                quarantine_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ApproveRequest"];
+                "application/json": components["schemas"]["RerunRequest"];
             };
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SpecVersionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reject_spec_api_specs__spec_id__reject_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RejectRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecVersionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retire_spec_api_specs__spec_id__retire_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecVersionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_products_api_products_get: {
-        parameters: {
-            query?: {
-                include_disabled?: boolean;
-                include_system?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    coverage_report_api_specs_coverage_get: {
-        parameters: {
-            query?: {
-                product_id?: string | null;
-                gaps_only?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CoverageReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    coverage_by_product_api_specs_coverage__product_id__get: {
-        parameters: {
-            query?: {
-                gaps_only?: boolean;
-            };
-            header?: never;
-            path: {
-                product_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CoverageReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    test_spec_api_specs__spec_id__test_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpecTestReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    test_product_api_products__product_id__test_post: {
-        parameters: {
-            query?: {
-                domain?: string | null;
-            };
-            header?: never;
-            path: {
-                product_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuiteResultResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    generate_spec_api_ai_specs_generate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GenerateSpecRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GenerateSpecResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    generate_spec_stream_api_ai_specs_generate_stream_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GenerateSpecRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_case_reports_api_cases__case_id__reports_get: {
-        parameters: {
-            query?: {
-                scenario_id?: string | null;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportCatalogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    generate_report_api_cases__case_id__reports__report_name__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                case_id: string;
-                report_name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["ReportGenerateRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportGenerateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_report_api_cases__case_id__reports__report_name__download_get: {
-        parameters: {
-            query: {
-                report_id: string;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-                report_name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_latest_report_api_cases__case_id__reports__report_name__latest_get: {
-        parameters: {
-            query: {
-                scenario_id: string;
-                tenant_slug?: string | null;
-            };
-            header?: never;
-            path: {
-                case_id: string;
-                report_name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportGenerateResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -11294,6 +11724,838 @@ export interface operations {
             };
         };
     };
+    list_specs_api_specs_get: {
+        parameters: {
+            query?: {
+                domain?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_spec_api_specs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSpecRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSpecResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    coverage_report_api_specs_coverage_get: {
+        parameters: {
+            query?: {
+                product_id?: string | null;
+                gaps_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    coverage_by_product_api_specs_coverage__product_id__get: {
+        parameters: {
+            query?: {
+                gaps_only?: boolean;
+            };
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_spec_api_specs__spec_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                spec_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_spec_api_specs__spec_id__approve_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                spec_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_spec_api_specs__spec_id__reject_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                spec_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retire_spec_api_specs__spec_id__retire_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                spec_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_for_review_api_specs__spec_id__submit_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                spec_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_spec_api_specs__spec_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                spec_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecTestReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_credential_api_tenants_credentials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialResponse"];
+                };
+            };
+        };
+    };
+    register_tenant_api_tenants_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterTenantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterTenantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    health_api_v1_health_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    version_api_v1_version_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    apply_landing_apply__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_portal_apply__slug__portal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The SPA shell. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description The SPA bundle is not available in this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+        };
+    };
+    apply_start_apply__slug__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_apply_start_apply__slug__start_post"];
+            };
+        };
+        responses: {
+            /** @description Session created; redirect into the party hub. */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Malformed address. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Not submitted from this site's own form. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Unknown, inactive, expired or product-disabled link. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Over a rate limit. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+        };
+    };
+    health_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    billing_status_integrations_brook_billing_status_get: {
+        parameters: {
+            query: {
+                /** @description The SF org's instance_url */
+                instance_url: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_home_integrations_brook_portal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_billing_integrations_brook_portal_billing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_cors_add_integrations_brook_portal_cors_add_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_cors_remove_integrations_brook_portal_cors_remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_login_form_integrations_brook_portal_login_get: {
+        parameters: {
+            query?: {
+                expired?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_login_integrations_brook_portal_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_portal_login_integrations_brook_portal_login_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_logout_integrations_brook_portal_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_rotate_integrations_brook_portal_rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_session_integrations_brook_portal_session_get: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     signup_form_integrations_brook_signup_get: {
         parameters: {
             query?: never;
@@ -11378,255 +12640,6 @@ export interface operations {
             };
         };
     };
-    portal_login_form_integrations_brook_portal_login_get: {
-        parameters: {
-            query?: {
-                expired?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_login_integrations_brook_portal_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_portal_login_integrations_brook_portal_login_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_session_integrations_brook_portal_session_get: {
-        parameters: {
-            query: {
-                token: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_logout_integrations_brook_portal_logout_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_home_integrations_brook_portal_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_rotate_integrations_brook_portal_rotate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_cors_add_integrations_brook_portal_cors_add_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_cors_remove_integrations_brook_portal_cors_remove_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_billing_integrations_brook_portal_billing_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    billing_status_integrations_brook_billing_status_get: {
-        parameters: {
-            query: {
-                /** @description The SF org's instance_url */
-                instance_url: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     collect_integrations_brook_plaid_sdk_collect_post: {
         parameters: {
             query?: never;
@@ -11651,107 +12664,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_page_view_integrations_brook_plaid_sdk_u__session_token__get: {
-        parameters: {
-            query?: {
-                lang?: string | null;
-            };
-            header?: never;
-            path: {
-                session_token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_integrations_brook_plaid_sdk_u__session_token__upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                session_token: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_integrations_brook_plaid_sdk_u__session_token__upload_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_status_integrations_brook_plaid_sdk_u__session_token__status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                session_token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11803,21 +12715,14 @@ export interface operations {
             };
         };
     };
-    resume_integrations_brook_plaid_sdk_resume_post: {
+    llm_txt_integrations_brook_plaid_sdk_llm_txt_get: {
         parameters: {
             query?: never;
-            header: {
-                "X-Brook-Key": string;
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResumeRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -11825,9 +12730,109 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_home_integrations_brook_plaid_sdk_portal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_billing_integrations_brook_plaid_sdk_portal_billing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_cors_add_integrations_brook_plaid_sdk_portal_cors_add_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_cors_remove_integrations_brook_plaid_sdk_portal_cors_remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_login_form_integrations_brook_plaid_sdk_portal_login_get: {
+        parameters: {
+            query?: {
+                expired?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11841,19 +12846,16 @@ export interface operations {
             };
         };
     };
-    sync_integrations_brook_plaid_sdk_sync_post: {
+    portal_login_integrations_brook_plaid_sdk_portal_login_post: {
         parameters: {
             query?: never;
-            header: {
-                "X-Brook-Key": string;
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SyncRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["Body_portal_login_integrations_brook_plaid_sdk_portal_login_post"];
             };
         };
         responses: {
@@ -11863,9 +12865,78 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    portal_logout_integrations_brook_plaid_sdk_portal_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_rotate_integrations_brook_plaid_sdk_portal_rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    portal_session_integrations_brook_plaid_sdk_portal_session_get: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11889,6 +12960,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_integrations_brook_plaid_sdk_resume_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Brook-Key": string;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumeRequest"];
             };
         };
         responses: {
@@ -11998,49 +13107,56 @@ export interface operations {
             };
         };
     };
-    portal_login_form_integrations_brook_plaid_sdk_portal_login_get: {
-        parameters: {
-            query?: {
-                expired?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    portal_login_integrations_brook_plaid_sdk_portal_login_post: {
+    sync_integrations_brook_plaid_sdk_sync_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "X-Brook-Key": string;
+                authorization?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_portal_login_integrations_brook_plaid_sdk_portal_login_post"];
+                "application/json": components["schemas"]["SyncRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_page_view_integrations_brook_plaid_sdk_u__session_token__get: {
+        parameters: {
+            query?: {
+                lang?: string | null;
+            };
+            header?: never;
+            path: {
+                session_token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -12062,13 +13178,13 @@ export interface operations {
             };
         };
     };
-    portal_session_integrations_brook_plaid_sdk_portal_session_get: {
+    upload_status_integrations_brook_plaid_sdk_u__session_token__status_get: {
         parameters: {
-            query: {
-                token: string;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                session_token: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -12079,7 +13195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12093,34 +13209,20 @@ export interface operations {
             };
         };
     };
-    portal_logout_integrations_brook_plaid_sdk_portal_logout_post: {
+    upload_integrations_brook_plaid_sdk_u__session_token__upload_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                session_token: string;
+            };
             cookie?: never;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_integrations_brook_plaid_sdk_u__session_token__upload_post"];
             };
         };
-    };
-    portal_home_integrations_brook_plaid_sdk_portal_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -12128,107 +13230,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
-        };
-    };
-    portal_rotate_integrations_brook_plaid_sdk_portal_rotate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_cors_add_integrations_brook_plaid_sdk_portal_cors_add_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_cors_remove_integrations_brook_plaid_sdk_portal_cors_remove_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    portal_billing_integrations_brook_plaid_sdk_portal_billing_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    llm_txt_integrations_brook_plaid_sdk_llm_txt_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -12263,146 +13276,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    apply_landing_apply__slug__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    apply_start_apply__slug__start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_apply_start_apply__slug__start_post"];
-            };
-        };
-        responses: {
-            /** @description Session created; redirect into the party hub. */
-            303: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Malformed address. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": unknown;
-                };
-            };
-            /** @description Not submitted from this site's own form. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": unknown;
-                };
-            };
-            /** @description Unknown, inactive, expired or product-disabled link. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Over a rate limit. */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": unknown;
-                };
-            };
-        };
-    };
-    apply_portal_apply__slug__portal_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The SPA shell. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description The SPA bundle is not available in this deployment. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/plain": unknown;
                 };
             };
         };
@@ -12464,6 +13337,28 @@ export interface operations {
             };
         };
     };
+    status_integrations_stripe_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     usage_integrations_stripe_usage_post: {
         parameters: {
             query?: never;
@@ -12495,28 +13390,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    status_integrations_stripe_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
         };
@@ -12554,7 +13427,7 @@ export interface operations {
             };
         };
     };
-    health_api_v1_health_live_get: {
+    upload_page_portal_upload_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -12569,75 +13442,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    health_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    health_api_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    version_api_v1_version_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "text/html": string;
                 };
             };
         };

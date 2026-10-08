@@ -93,6 +93,21 @@ export type {
 	PosPortalCase,
 	PosPortalCaseParty,
 	ResendCodeResult,
+	// Borrower dashboard, officer decisions and the server-side form preview.
+	// Every one is an alias onto `components["schemas"][…]`; `client.ts` owns
+	// the single definition so the two cannot drift.
+	BorrowerLoanRow,
+	LinkAccountResponse,
+	DecisionDraftResponse,
+	PublishDecisionRequest,
+	DecisionResponse,
+	DecisionHistoryResponse,
+	FormPreviewResponse,
+	LoanStatusInfo,
+	LoanSummaryInfo,
+	LoanSummaryField,
+	LoanDecisionInfo,
+	PreviewPortalFormResult,
 	// Re-exported rather than re-declared here: `client.ts` owns the one
 	// definition. Two aliases would drift.
 	PortalSession,

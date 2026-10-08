@@ -158,6 +158,57 @@ export type PosPortalCaseParty = components["schemas"]["PosPortalPartyResponse"]
  * the address — see the route's docstring. */
 export type ResendCodeResult = components["schemas"]["ResendCodeResponse"];
 
+/** One loan on the borrower's own dashboard: the case's borrower-facing status
+ * and summary, flattened and keyed by case, plus a portal token that drives
+ * into that loan's portal. There is no decision block — the card links INTO the
+ * decision rather than summarising it — and `action_count` rides on `status`.
+ * `created_at` / `updated_at` are nullable because the case columns are. */
+export type BorrowerLoanRow = components["schemas"]["BorrowerLoanRow"];
+
+/** What `linkBorrowerAccount` bound, and for whom. `account_kind: "operator"`
+ * means nothing was linked because the signed-in user is staff. */
+export type LinkAccountResponse = components["schemas"]["LinkAccountResponse"];
+
+/** Prefill for the officer's decision form. `basis` null = no analysis yet;
+ * `current_status` null = the case has no portal party. */
+export type DecisionDraftResponse = components["schemas"]["DecisionDraftResponse"];
+
+/** The officer's submitted decision. `result_id` names the calculation the
+ * terms are snapshotted from — the officer types no numbers. */
+export type PublishDecisionRequest = components["schemas"]["PublishDecisionRequest"];
+
+/** One published decision, as the borrower was told it. */
+export type DecisionResponse = components["schemas"]["DecisionResponse"];
+
+/** Every decision on a case, newest first, plus the current borrower status
+ * (which is null for a case with no portal party). */
+export type DecisionHistoryResponse = components["schemas"]["DecisionHistoryResponse"];
+
+/** The two lists a borrower's session already carries, re-resolved against a
+ * draft of unsaved answers. Same models, so existing components render it
+ * unchanged. Both lists are empty for a case not scoped to one product. */
+export type FormPreviewResponse = components["schemas"]["FormPreviewResponse"];
+
+/** What the borrower is told about their loan right now. Every string —
+ * `label`, `tone`, `description` — is DATA from `borrower_statuses.yaml`; a
+ * client renders them and re-labels nothing. */
+export type LoanStatusInfo = components["schemas"]["LoanStatusInfo"];
+
+/** Which loan this is, in the product's own words. `property_label` is the
+ * case's primary SUBJECT — a person's name for a person-primary product, and
+ * null until something has been extracted — which is why `product_label` is
+ * carried alongside it rather than behind it. */
+export type LoanSummaryInfo = components["schemas"]["LoanSummaryInfo"];
+
+/** One labelled line of a loan summary, or of a decision's terms. */
+export type LoanSummaryField = components["schemas"]["LoanSummaryField"];
+
+/** A published decision as the borrower sees it on their session. `terms` and
+ * `conditions` are read from the stored snapshot, never recomputed.
+ * `conditions_state` is "outstanding", "received", or null when this party was
+ * never sent the decision. */
+export type LoanDecisionInfo = components["schemas"]["LoanDecisionInfo"];
+
 export type ClientHooks = {
 	onApiError?: (info: {
 		error_type: string;
@@ -404,6 +455,68 @@ export class VeritasClient {
 	 * fresh portal token. Authed by the borrower's Firebase JWT. */
 	async getMyCases(): Promise<components["schemas"]["MyCaseLink"][]> {
 		return this.requestJson<components["schemas"]["MyCaseLink"][]>(`/api/portal/my-cases`);
+	}
+
+	/** The signed-in borrower's loans for their own dashboard, newest-updated
+	 * first. Authed by the borrower's Firebase JWT.
+	 *
+	 * Throws an {@link APIError} with `status === 403` both for an operator uid
+	 * and for a uid with no borrower record — which is also how "no
+	 * applications yet" arrives. The pair to read is
+	 * {@link linkBorrowerAccount} first: `{linked: 0, account_kind:
+	 * "borrower"}` followed by a 403 here means the borrower simply has no
+	 * loans, NOT an error; `account_kind: "operator"` means the signed-in user
+	 * is staff. The client deliberately does not fold either case into `[]` —
+	 * the two are different things to say to a user. */
+	async listMyLoans(): Promise<BorrowerLoanRow[]> {
+		return this.requestJson<BorrowerLoanRow[]>("/api/portal/my-loans");
+	}
+
+	/** Bind every portal party that matches this account's verified email to the
+	 * signed-in uid, so the borrower's loans show up on their dashboard.
+	 *
+	 * Must be called on EVERY sign-in: a POS borrower's parties are created
+	 * without a uid and are never linked otherwise. `linked` is the number of
+	 * parties newly bound, so a repeat call answering 0 is success, not a
+	 * failure. The route takes the Firebase id token in the BODY (it has no
+	 * portal token and no Bearer gate of its own). */
+	async linkBorrowerAccount(firebaseIdToken: string): Promise<LinkAccountResponse> {
+		return this.requestJson<LinkAccountResponse>("/api/portal/account/link", {
+			method: "POST",
+			body: JSON.stringify({ firebase_id_token: firebaseIdToken }),
+		});
+	}
+
+	// -- Decisions (operator) ---------------------------------------------------
+
+	/** What to prefill the officer's decision form with: the outcome kinds they
+	 * may publish, the terms snapshotted off the latest calculation, suggested
+	 * conditions, and the status the borrower currently sees.
+	 *
+	 * `current_status` is null for a case with no portal party, and `basis` is
+	 * null when no analysis has run — the form stays usable in both. */
+	async getDecisionDraft(caseId: string): Promise<DecisionDraftResponse> {
+		return this.requestJson<DecisionDraftResponse>(
+			`/api/cases/${encodeURIComponent(caseId)}/decision/draft`,
+		);
+	}
+
+	/** Publish the officer's decision — the only thing that puts an outcome in
+	 * front of a borrower. `result_id` names the calculation the terms are
+	 * snapshotted from, which is why the officer types no numbers. */
+	async publishDecision(caseId: string, body: PublishDecisionRequest): Promise<DecisionResponse> {
+		return this.requestJson<DecisionResponse>(`/api/cases/${encodeURIComponent(caseId)}/decision`, {
+			method: "POST",
+			body: JSON.stringify(body),
+		});
+	}
+
+	/** Every decision published on the case, newest first, plus the current
+	 * borrower-facing status (null when the case has no portal party). */
+	async listDecisions(caseId: string): Promise<DecisionHistoryResponse> {
+		return this.requestJson<DecisionHistoryResponse>(
+			`/api/cases/${encodeURIComponent(caseId)}/decisions`,
+		);
 	}
 
 	/** Full operator overview of a case's portal: parties, threads, verification,
@@ -1336,6 +1449,13 @@ export type SubmitIntentsResult =
 	| { session: PortalSession; results: IntentResult[]; error: null }
 	| { session: null; results: IntentResult[]; error: PortalClientError };
 
+/** Discriminated union: exactly one of preview or error is set. A refused
+ * preview (verify gate, answer cap, vanished case) must never take the form
+ * down with it, so this follows the house pattern and throws nothing. */
+export type PreviewPortalFormResult =
+	| { preview: FormPreviewResponse; error: null }
+	| { preview: null; error: PortalClientError };
+
 /**
  * Minimal portal session client.
  *
@@ -1411,6 +1531,52 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 			return { session: data.session, results: data.results ?? [], error: null };
 		} catch {
 			return { session: null, results: [], error: { code: "network", message: "Failed to submit" } };
+		}
+	}
+
+	/** Ask the server what the form would look like if `inputs` were the
+	 * borrower's answers.
+	 *
+	 * This exists so a client NEVER evaluates `required_when` itself: lux's own
+	 * evaluator compares with `===` and fails open on the list `equals` form
+	 * that DSCR relies on, so only the server can resolve the two lists
+	 * correctly. The response carries the same `PortalInputField` /
+	 * `PortalDocumentRequirement` models the session already does, so the
+	 * components rendering the form render the preview unchanged.
+	 *
+	 * The server never echoes draft values back and `default` stays null — the
+	 * caller owns its own form state. Values are not validated here; `set_inputs`
+	 * enforces bounds on submit. `sessionId` only shapes the URL: the portal
+	 * token is the authority. */
+	async function previewPortalForm(
+		sessionId: string,
+		token: string,
+		inputs: Record<string, unknown>,
+		verifyProof?: string | null,
+	): Promise<PreviewPortalFormResult> {
+		try {
+			const res = await fetch(`${base}/api/portal/session/${sessionId}/form-preview`, {
+				method: "POST",
+				headers: portalHeaders(token, verifyProof, { "Content-Type": "application/json" }),
+				body: JSON.stringify({ inputs }),
+			});
+			if (!res.ok) {
+				return {
+					preview: null,
+					error: {
+						code: res.status === 401 ? "expired" : "server",
+						message: `Failed to preview the form (${res.status})`,
+						status: res.status,
+					},
+				};
+			}
+			const preview: FormPreviewResponse = await res.json();
+			return { preview, error: null };
+		} catch {
+			return {
+				preview: null,
+				error: { code: "network", message: "Failed to connect to server" },
+			};
 		}
 	}
 
@@ -1598,6 +1764,7 @@ export function createPortalClient(config: PortalClientConfig = {}) {
 		fetchSession,
 		fetchMessages,
 		submitIntents,
+		previewPortalForm,
 		uploadDocuments,
 		claimAccount,
 		sendTyping,

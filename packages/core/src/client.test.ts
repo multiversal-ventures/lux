@@ -404,3 +404,116 @@ describe("createOperatorClient", () => {
 		});
 	});
 });
+
+// ─── Borrower dashboard, decisions and form preview ───────────────────────────
+
+describe("borrower loans and decisions", () => {
+	function bearerClient(): VeritasClient {
+		return new VeritasClient({ baseUrl: "", auth: { getToken: async () => "jwt" } });
+	}
+
+	it("lists the signed-in borrower's loans", async () => {
+		mockFetch([{ case_id: "c1", token: "t1" }]);
+		const rows = await bearerClient().listMyLoans();
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/portal/my-loans");
+		expect(rows[0].case_id).toBe("c1");
+	});
+
+	it("posts the firebase token when linking an account", async () => {
+		mockFetch({ linked: 2, account_kind: "borrower" });
+		const result = await bearerClient().linkBorrowerAccount("fb-id-token");
+		const [url, init] = vi.mocked(fetch).mock.calls[0];
+		expect(url).toBe("/api/portal/account/link");
+		expect(init?.method).toBe("POST");
+		expect(JSON.parse(String(init?.body))).toEqual({ firebase_id_token: "fb-id-token" });
+		expect(result.linked).toBe(2);
+		expect(result.account_kind).toBe("borrower");
+	});
+
+	it("surfaces the no-loans 403 as an APIError the caller can read the status off", async () => {
+		vi.mocked(fetch).mockResolvedValue({
+			ok: false,
+			status: 403,
+			headers: { get: () => "application/json" } as unknown as Headers,
+			json: async () => ({ detail: "not a borrower" }),
+			text: async () => JSON.stringify({ detail: "not a borrower" }),
+		} as unknown as Response);
+		await expect(bearerClient().listMyLoans()).rejects.toMatchObject({ status: 403 });
+	});
+
+	it("fetches a decision draft for a case", async () => {
+		mockFetch({ terms: [], conditions: [], kinds: [], current_status: null });
+		const draft = await bearerClient().getDecisionDraft("case-9");
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/case-9/decision/draft");
+		expect(draft.current_status).toBeNull();
+	});
+
+	it("publishes a decision", async () => {
+		mockFetch({
+			decision_id: "d1",
+			kind: "approved",
+			label: "Approved",
+			tone: "success",
+			created_at: "2026-10-07T00:00:00Z",
+		});
+		const published = await bearerClient().publishDecision("case-9", {
+			kind: "approved",
+			result_id: "r1",
+			conditions: [],
+			message: null,
+		});
+		const [url, init] = vi.mocked(fetch).mock.calls[0];
+		expect(url).toBe("/api/cases/case-9/decision");
+		expect(init?.method).toBe("POST");
+		expect(JSON.parse(String(init?.body))).toEqual({
+			kind: "approved",
+			result_id: "r1",
+			conditions: [],
+			message: null,
+		});
+		expect(published.decision_id).toBe("d1");
+	});
+
+	it("lists a case's decision history", async () => {
+		mockFetch({ decisions: [], current_status: null });
+		const history = await bearerClient().listDecisions("case-9");
+		expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/cases/case-9/decisions");
+		expect(history.decisions).toEqual([]);
+	});
+});
+
+describe("portal form preview", () => {
+	it("sends the draft answers under the portal token", async () => {
+		vi.mocked(fetch).mockResolvedValue({
+			ok: true,
+			json: async () => ({ pending_inputs: [], required_documents: [] }),
+		} as unknown as Response);
+		const client = createPortalClient({ baseUrl: "" });
+		const result = await client.previewPortalForm(
+			"sess-1",
+			"tok-1",
+			{ transaction_type: "purchase" },
+			"proof-1",
+		);
+		const [url, init] = vi.mocked(fetch).mock.calls[0];
+		expect(String(url)).toContain("/api/portal/session/sess-1/form-preview");
+		expect(init?.method).toBe("POST");
+		expect(JSON.parse(String(init?.body))).toEqual({
+			inputs: { transaction_type: "purchase" },
+		});
+		expect((init as RequestInit).headers).toMatchObject({
+			"X-Portal-Token": "tok-1",
+			"X-Portal-Verify": "proof-1",
+		});
+		expect(result.preview).toEqual({ pending_inputs: [], required_documents: [] });
+		expect(result.error).toBeNull();
+	});
+
+	it("reports the verify gate as a server error instead of throwing", async () => {
+		vi.mocked(fetch).mockResolvedValue({ ok: false, status: 403 } as Response);
+		const client = createPortalClient({ baseUrl: "" });
+		const result = await client.previewPortalForm("sess-1", "tok-1", {});
+		expect(result.preview).toBeNull();
+		expect(result.error?.status).toBe(403);
+	});
+});

@@ -232,7 +232,7 @@ export function BorrowerPortal({
 	// it does not fix an observed bug.
 	const inboundAddress = session.inbound_email_address?.trim() || null;
 
-	// ── How much is outstanding: ONE source of truth ────────────────────────
+	// ── What is outstanding: ONE count, three states ────────────────────────
 	// `loan_status.action_count` is items across this party's OPEN requests
 	// (veritas `open_item_count`). The header line, the card's action pill and
 	// whether anything is asked for below all read it, so the three cannot
@@ -244,14 +244,36 @@ export function BorrowerPortal({
 	// claim ("nothing is outstanding") that such a server never made.
 	const actionCount = session.loan_status ? (session.loan_status.action_count ?? 0) : null;
 	const checklist = session.checklist ?? [];
-	// `checklist` is the latest SENT request's items (veritas
-	// `get_latest_sent_for_party`), NOT a live read of what is still open: every
-	// row arrives with status "needed" and the rows survive the request being
-	// closed. So the count decides whether anything is outstanding, and the rows
-	// are shown only when it agrees — or, on a server with no count at all,
-	// when they are the only evidence there is.
-	const outstanding = actionCount === null ? checklist.length > 0 : actionCount > 0;
-	const showChecklist = checklist.length > 0 && actionCount !== 0;
+	// `checklist` is the latest SENT `portal_requests` row for this party
+	// (veritas `get_latest_sent_for_party`), and the two inputs measure DIFFERENT
+	// things:
+	//
+	//   * `action_count` counts items on this party's open request MESSAGES, so
+	//     an officer's ask — a published decision's conditions included — is in
+	//     it, and drops out of it the moment that message is fulfilled.
+	//   * The checklist row is also what `write_checklist` persists for a product
+	//     whose documents the borrower has just resolved by answering the wizard.
+	//     That path writes NO message (`api/portal/inputs.py`), so a genuinely
+	//     outstanding product checklist comes with `action_count: 0`.
+	//
+	// So there are three states, and the difference between the first two is
+	// exactly what the server did and did not claim:
+	//
+	//   * `asked` — a count above zero. Something IS open: the page may be
+	//     imperative, and submit (which fulfils open messages, and nothing else)
+	//     is offered once a file has been sent.
+	//   * `requested` without `asked` — rows, no count. These documents were
+	//     asked for; whether any are still owed is something no field says. The
+	//     page lists them and offers the upload, in the past tense, and makes no
+	//     claim either way. Hiding them because the server published no count
+	//     would hide work a product genuinely requires; telling a borrower under
+	//     review to "send these now" would be the old contradiction back again.
+	//   * neither — said once, in one line, and the page stops.
+	//
+	// Every printed NUMBER comes from `action_count` alone, once, in the card's
+	// action pill. Nothing anywhere says the borrower is done while a row shows.
+	const requested = checklist.length > 0;
+	const asked = (actionCount ?? 0) > 0;
 	// Show the friendly "officer will reply" line when the borrower spoke last
 	// (the most recent message is theirs) and the officer isn't mid-reply.
 	const lastMsg = displayedThread[displayedThread.length - 1];
@@ -369,13 +391,24 @@ export function BorrowerPortal({
 	// Generic UI chrome, never domain copy: every status label, description,
 	// term and document title on this page is server data read from the session.
 	//
-	// The header line is derived from `action_count` but prints no digit — the
-	// number belongs to the card's action pill and appears exactly once, so the
-	// header cannot disagree with it by a count or by a word.
-	const headerLine = outstanding ? "Action needed" : "Nothing needed from you right now";
-	const nextStepLine = showChecklist
-		? "Send us what's listed below and your loan officer takes it from there."
-		: "Your loan officer is waiting on a document from you — upload it below.";
+	// The header line prints no digit — the number belongs to the card's action
+	// pill and appears exactly once, so the header cannot disagree with it by a
+	// count or by a word. It states what the page below states, in the same
+	// voice: an open ask, documents that were asked for, or nothing.
+	const headerLine = asked
+		? "Action needed"
+		: requested
+			? "Documents requested"
+			: "Nothing needed from you right now";
+	const nextStepLine = asked
+		? requested
+			? "Send us what's listed below and your loan officer takes it from there."
+			: "Your loan officer is waiting on a document from you — upload it below."
+		// Names no author: uncounted rows can be an officer's closed request, the
+		// product's own generated checklist (which `write_checklist` writes with
+		// no author at all) or the findings fallback — nobody asked for the last
+		// two.
+		: "These were requested for your loan. Send anything you haven't already.";
 
 	return (
 		<div
@@ -418,27 +451,27 @@ export function BorrowerPortal({
 				)}
 
 				{/* THE ONE NEXT ACTION. One heading, one sentence, one button, and the
-				    outstanding documents as a compact list under it — never four
-				    full-width cards competing with the status above.
+				    documents as a compact list under it — never four full-width
+				    cards competing with the status above.
 				    `required_documents` is deliberately absent: that is what the
 				    product DECLARES and is rendered once, on the application step,
 				    while this is what is actually outstanding against this party.
 				    The moment a loan officer hand-authors a request the two
 				    legitimately diverge, and showing both would show two asks. */}
-				{outstanding ? (
+				{asked || requested ? (
 					<section className="bg-white rounded-lg border border-slate-200 shadow-sm p-5 sm:p-6">
 						<h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-							Next step
+							{asked ? "Next step" : "Requested documents"}
 						</h2>
 						<p className="mt-2 text-sm text-slate-700">{nextStepLine}</p>
-						{/* The officer's own words about THIS ask, so it sits with the
-							    ask and not in the idle state, where nothing was asked. */}
+						{/* The officer's own words about THIS ask, so it sits with the ask
+						    and not in the idle state, where nothing was asked. */}
 						{session.request_message && (
 							<p className="mt-3 border-l-2 border-slate-200 pl-3 text-sm text-slate-600 whitespace-pre-line">
 								{session.request_message}
 							</p>
 						)}
-						{showChecklist && <Checklist items={checklist} className="mt-3" />}
+						{requested && <Checklist items={checklist} className="mt-3" />}
 						<button
 							type="button"
 							onClick={() => fileRef.current?.click()}
@@ -447,7 +480,11 @@ export function BorrowerPortal({
 						>
 							{uploading ? "Uploading…" : "Upload documents"}
 						</button>
-						{session.uploaded_files.length > 0 && (
+						{/* Submit marks this party's OPEN request messages fulfilled
+						    (veritas `_handle_submit_intent`) — with nothing open it
+						    fulfils nothing, so it is offered only where there is a count
+						    to clear. */}
+						{asked && session.uploaded_files.length > 0 && (
 							<button
 								type="button"
 								onClick={submit}

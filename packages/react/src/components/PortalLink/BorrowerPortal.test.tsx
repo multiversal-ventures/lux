@@ -485,12 +485,8 @@ describe("BorrowerPortal — how much is outstanding", () => {
 		expect(screen.queryByText(/nothing/i)).toBeNull();
 	});
 
-	it("says nothing is outstanding — once — when the count is zero, even with a stale request list", () => {
-		// The contradiction this page shipped with: `checklist` is the latest sent
-		// request's items and survives that request closing, so a borrower who had
-		// already sent everything was told "All caught up" at the top, "Under
-		// review" in the middle and "two documents, high priority" below.
-		// `action_count` is the only thing that says what is still owed.
+	it("says nothing is outstanding — once, and only when nothing is", () => {
+		// Nothing asked and nothing listed: one line, no card, nothing to press.
 		mountHub({
 			loan_status: {
 				...LOAN_STATUS,
@@ -500,20 +496,95 @@ describe("BorrowerPortal — how much is outstanding", () => {
 				action_count: 0,
 			},
 			loan_summary: LOAN_SUMMARY,
-			checklist: REQUEST_ITEMS,
+			checklist: [],
 		});
 
 		expect(screen.getByText("Under review")).toBeInTheDocument();
 		expect(screen.getByText("Nothing needed from you right now")).toBeInTheDocument();
 		expect(screen.getByText(/nothing to do right now/i)).toBeInTheDocument();
-		// No ask, no count, no rows from the closed request.
 		expect(screen.queryByText("Next step")).toBeNull();
 		expect(screen.queryByRole("button", { name: "Upload documents" })).toBeNull();
-		expect(screen.queryByText("Property appraisal")).toBeNull();
 		expect(screen.queryByText(/actions? needed/i)).toBeNull();
 		// The composer's own attach control is NOT gated on an open request — it is
 		// how a borrower sends something the officer asked for in chat.
 		expect(screen.getByLabelText("Attach documents")).toBeInTheDocument();
+	});
+
+	it("lists a generated product checklist, which the server publishes with action_count 0", () => {
+		// The case this page shipped broken, and the reason the rows are NOT gated
+		// on the count: `write_checklist` persists the product's resolved document
+		// asks as a `portal_requests` row and writes no request MESSAGE, so
+		// `action_count` — items on open messages — is 0 while four documents are
+		// genuinely owed. The old header read the same empty message list and said
+		// "All caught up" over four cards tagged "high". Now every part of the page
+		// says the same thing: there is something to do, and no number is invented
+		// for it.
+		mountHub({
+			loan_status: {
+				key: "in_progress",
+				label: "Application in progress",
+				tone: "neutral",
+				description: "Finish your application and upload the documents listed below.",
+				action_count: 0,
+			},
+			loan_summary: LOAN_SUMMARY,
+			checklist: REQUEST_ITEMS,
+		});
+
+		// Listed, uploadable, and described in the past tense: these were asked
+		// for, and no field says which are still owed, so the page claims neither.
+		// "Next step" is the imperative voice and belongs to a real count.
+		expect(screen.getByText("Documents requested")).toBeInTheDocument();
+		expect(screen.getByText("Requested documents")).toBeInTheDocument();
+		expect(screen.queryByText("Next step")).toBeNull();
+		expect(screen.getByText("Property appraisal")).toBeInTheDocument();
+		expect(screen.getByText("Property tax bill")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Upload documents" })).toBeInTheDocument();
+		// Nothing claims they are done, and no count is invented: the pill that
+		// prints the NUMBER stays away because the server published none.
+		expect(screen.queryByText(/nothing/i)).toBeNull();
+		expect(screen.queryByText(/\d+ actions? needed/i)).toBeNull();
+	});
+
+	it("keeps a decision's outstanding conditions and the upload step on the same page", () => {
+		// A published decision goes out over the party-request path, so its
+		// conditions are BOTH the decision snapshot the card renders and the open
+		// request the count and the checklist come from. The card's pointer at
+		// "Next step" has to find a Next step.
+		mountHub({
+			loan_status: {
+				key: "conditionally_approved",
+				label: "Conditionally approved",
+				tone: "success",
+				description: "Your loan is approved subject to the conditions below.",
+				action_count: 1,
+			},
+			loan_summary: LOAN_SUMMARY,
+			decision: {
+				kind: "conditionally_approved",
+				label: "Conditionally approved",
+				tone: "success",
+				decided_at: "2026-10-02T17:30:00Z",
+				decided_by_name: "Dana Reyes",
+				message: "We're clear to proceed once we have the binder.",
+				terms: [{ label: "DSCR", display: "1.28" }],
+				conditions: [{ title: "Hazard insurance binder", detail: "" }],
+				conditions_state: "outstanding",
+			},
+			checklist: [{ ...REQUEST_ITEMS[0], title: "Hazard insurance binder" }],
+		});
+
+		expect(screen.getByText("1 action needed")).toBeInTheDocument();
+		expect(screen.getByText("Outstanding")).toBeInTheDocument();
+		// The SAME condition is both the decision snapshot (what was promised,
+		// immutable) and the open request (what to do now), so its title appears
+		// twice by design — in the hero's Conditions and in the Next step list.
+		expect(screen.getAllByText("Hazard insurance binder")).toHaveLength(2);
+		expect(screen.getByText("Upload them under Next step below.")).toBeInTheDocument();
+		expect(screen.getByText("Next step")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Upload documents" })).toBeInTheDocument();
+		// The terms snapshot is rendered as given, never reformatted.
+		expect(screen.getByText("1.28")).toBeInTheDocument();
 	});
 
 	it("still lists the request when the server sends no loan_status at all", () => {
@@ -523,11 +594,12 @@ describe("BorrowerPortal — how much is outstanding", () => {
 		mountHub({ checklist: REQUEST_ITEMS });
 
 		expect(screen.queryByTestId("loan-status-card")).not.toBeInTheDocument();
-		expect(screen.getByText("Next step")).toBeInTheDocument();
+		expect(screen.getByText("Requested documents")).toBeInTheDocument();
 		expect(screen.getByText("Property appraisal")).toBeInTheDocument();
-		expect(screen.getByText("Action needed")).toBeInTheDocument();
+		expect(screen.getByText("Documents requested")).toBeInTheDocument();
 		// No count was sent, so none is invented.
 		expect(screen.queryByText(/\d+ actions? needed/i)).toBeNull();
+		expect(screen.queryByText(/nothing/i)).toBeNull();
 	});
 
 	it("drops the priority tag when every item carries the same priority", () => {
@@ -565,5 +637,43 @@ describe("BorrowerPortal — how much is outstanding", () => {
 			uploaded_files: ["appraisal.pdf"],
 		});
 		expect(screen.getByRole("button", { name: /sent everything/i })).toBeInTheDocument();
+	});
+
+	it("withholds submit when there is no open ask for it to fulfil", () => {
+		// This is the screen that was reported: a settled case, no open request,
+		// and a generated checklist that outlived it. Submit marks this party's
+		// OPEN request messages fulfilled (veritas `_handle_submit_intent`), so
+		// with none open it fulfils nothing and is not offered. The old gate
+		// counted open request messages and had this property by accident; it is
+		// explicit now.
+		mountHub({
+			loan_status: {
+				...LOAN_STATUS,
+				key: "under_review",
+				label: "Under review",
+				tone: "info",
+				description: "Your loan officer is reviewing your file.",
+				action_count: 0,
+			},
+			loan_summary: LOAN_SUMMARY,
+			checklist: REQUEST_ITEMS,
+			uploaded_files: ["property_tax_bill.pdf"],
+		});
+
+		// The hero and the list no longer argue: the hero says the file is being
+		// reviewed, the list says these documents were asked for, and nothing says
+		// "all caught up" or "do four urgent things".
+		expect(screen.getByText("Under review")).toBeInTheDocument();
+		expect(screen.getByText("Your loan officer is reviewing your file.")).toBeInTheDocument();
+		expect(screen.getByText("Documents requested")).toBeInTheDocument();
+		expect(screen.getByText("Requested documents")).toBeInTheDocument();
+		expect(screen.getByText("Property appraisal")).toBeInTheDocument();
+		expect(screen.queryByText("Next step")).toBeNull();
+		expect(screen.queryByText(/waiting on/i)).toBeNull();
+		expect(screen.queryByText(/takes it from there/i)).toBeNull();
+		expect(screen.queryByText(/all caught up/i)).toBeNull();
+		expect(screen.queryByRole("button", { name: /sent everything/i })).toBeNull();
+		// The upload stays available: it is how anything still missing gets sent.
+		expect(screen.getByRole("button", { name: "Upload documents" })).toBeInTheDocument();
 	});
 });

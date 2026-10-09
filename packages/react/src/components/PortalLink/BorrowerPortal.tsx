@@ -90,11 +90,15 @@ export function BorrowerPortal({
 	} = usePortalSession(token, { operatorTokenFallback });
 	const fileRef = useRef<HTMLInputElement>(null);
 	const lastTyped = useRef(0);
-	// WhatsApp-style auto-scroll: scroll container + bottom sentinel. Stick to the
-	// bottom only when the borrower is already near it, so new officer messages
-	// don't yank them up while they read history. First paint jumps instantly.
+	// Auto-scroll the THREAD, never the page. Stick to the bottom only when the
+	// borrower is already near it, so new officer messages don't yank them up
+	// while they read history. First paint jumps instantly.
+	//
+	// `scrollTop` rather than a sentinel's `scrollIntoView`: the loan screen is
+	// itself a scroll container now, and `scrollIntoView` walks ancestors — on
+	// first paint it scrolled the whole page past the status card, which is the
+	// one thing the borrower came to read.
 	const scrollRef = useRef<HTMLDivElement>(null);
-	const bottomRef = useRef<HTMLDivElement>(null);
 	const didInitialScroll = useRef(false);
 	const [olderThread, setOlderThread] = useState<ThreadMessage[]>([]);
 	const [olderHasMore, setOlderHasMore] = useState(false);
@@ -105,15 +109,14 @@ export function BorrowerPortal({
 	const threadLen = displayedThread.length;
 	useEffect(() => {
 		const el = scrollRef.current;
-		const bottom = bottomRef.current;
-		if (!el || !bottom) return;
+		if (!el) return;
 		const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
 		const nearBottom = distanceFromBottom < 120;
 		if (!didInitialScroll.current) {
 			didInitialScroll.current = true;
-			bottom.scrollIntoView({ behavior: "auto", block: "end" });
+			el.scrollTop = el.scrollHeight;
 		} else if (nearBottom) {
-			bottom.scrollIntoView({ behavior: "smooth", block: "end" });
+			el.scrollTop = el.scrollHeight;
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [threadLen]);
@@ -228,7 +231,27 @@ export function BorrowerPortal({
 	// local part is `{canonical uuid}-{hex tag}` — so this guards the property,
 	// it does not fix an observed bug.
 	const inboundAddress = session.inbound_email_address?.trim() || null;
-	const openRequests = displayedThread.filter((m) => m.kind === "request" && m.status === "open");
+
+	// ── How much is outstanding: ONE source of truth ────────────────────────
+	// `loan_status.action_count` is items across this party's OPEN requests
+	// (veritas `open_item_count`). The header line, the card's action pill and
+	// whether anything is asked for below all read it, so the three cannot
+	// contradict each other — they used to, with the header counting open
+	// request messages in the thread, the card reading the derived status, and
+	// the document list rendering a request that was no longer open at all.
+	//
+	// `null`, not 0, when the server predates the field: a count of zero is a
+	// claim ("nothing is outstanding") that such a server never made.
+	const actionCount = session.loan_status ? (session.loan_status.action_count ?? 0) : null;
+	const checklist = session.checklist ?? [];
+	// `checklist` is the latest SENT request's items (veritas
+	// `get_latest_sent_for_party`), NOT a live read of what is still open: every
+	// row arrives with status "needed" and the rows survive the request being
+	// closed. So the count decides whether anything is outstanding, and the rows
+	// are shown only when it agrees — or, on a server with no count at all,
+	// when they are the only evidence there is.
+	const outstanding = actionCount === null ? checklist.length > 0 : actionCount > 0;
+	const showChecklist = checklist.length > 0 && actionCount !== 0;
 	// Show the friendly "officer will reply" line when the borrower spoke last
 	// (the most recent message is theirs) and the officer isn't mid-reply.
 	const lastMsg = displayedThread[displayedThread.length - 1];
@@ -343,77 +366,153 @@ export function BorrowerPortal({
 		);
 	}
 
+	// Generic UI chrome, never domain copy: every status label, description,
+	// term and document title on this page is server data read from the session.
+	//
+	// The header line is derived from `action_count` but prints no digit — the
+	// number belongs to the card's action pill and appears exactly once, so the
+	// header cannot disagree with it by a count or by a word.
+	const headerLine = outstanding ? "Action needed" : "Nothing needed from you right now";
+	const nextStepLine = showChecklist
+		? "Send us what's listed below and your loan officer takes it from there."
+		: "Your loan officer is waiting on a document from you — upload it below.";
+
 	return (
-		<div className={`flex flex-col h-full mx-auto w-full max-w-2xl bg-white sm:border-x border-slate-200 shadow-sm ${className ?? ""}`}>
-			<header className="px-4 py-3 border-b border-slate-200 flex items-start justify-between gap-3">
+		<div
+			className={`flex flex-col h-full mx-auto w-full max-w-2xl bg-slate-50 sm:border-x border-slate-200 ${className ?? ""}`}
+		>
+			<header className="shrink-0 px-4 py-3 border-b border-slate-200 bg-white flex items-start justify-between gap-3">
 				<div className="min-w-0">
-					<h1 className="font-semibold text-slate-900">
-						{session.requested_by || "Your documents"}
+					<h1 className="font-semibold text-slate-900 truncate">
+						{session.requested_by || "Your loan"}
 					</h1>
-					<p className="text-xs text-slate-500">
-						{openRequests.length > 0 ? `${openRequests.length} request${openRequests.length > 1 ? "s" : ""} pending` : "All caught up"}
-					</p>
+					{/* The page's only count, from the only field that owns one. */}
+					<p className="text-xs text-slate-500">{headerLine}</p>
 				</div>
 				{onBack && (
 					<button
 						type="button"
 						onClick={onBack}
-						className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+						className="shrink-0 text-sm font-medium text-blue-700 hover:text-blue-900 cursor-pointer transition-colors"
 					>
 						My loans
 					</button>
 				)}
 			</header>
 
-			{/* PINNED, deliberately outside the scroll container below: the status
-			    is what the borrower came to read, and inside `overflow-y-auto` it
-			    would scroll away with the thread. Guarded because all three blocks
-			    are additive and nullable. */}
-			{session.loan_status && (
-				<div data-testid="loan-status-card" className="px-3 pt-3 bg-slate-50">
-					<LoanStatusCard
-						status={session.loan_status}
-						summary={session.loan_summary}
-						decision={session.decision}
-					/>
-				</div>
-			)}
-
-			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 bg-slate-50">
-				{loading && displayedThread.length === 0 ? (
-					<div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400">
-						<Loader2 size={22} className="animate-spin" />
-						<p className="text-sm">Loading conversation…</p>
+			{/* The page scrolls; the thread scrolls inside its own card. The status
+			    card is the first thing in it and nothing auto-scrolls the page, so
+			    the status, the next step and the start of the conversation are all
+			    reachable without hunting. */}
+			<div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 space-y-4">
+				{/* THE HERO. Guarded because all three blocks are additive and
+				    nullable — a server predating them renders the rest. */}
+				{session.loan_status && (
+					<div data-testid="loan-status-card">
+						<LoanStatusCard
+							status={session.loan_status}
+							summary={session.loan_summary}
+							decision={session.decision}
+						/>
 					</div>
-				) : (
-					<>
+				)}
+
+				{/* THE ONE NEXT ACTION. One heading, one sentence, one button, and the
+				    outstanding documents as a compact list under it — never four
+				    full-width cards competing with the status above.
+				    `required_documents` is deliberately absent: that is what the
+				    product DECLARES and is rendered once, on the application step,
+				    while this is what is actually outstanding against this party.
+				    The moment a loan officer hand-authors a request the two
+				    legitimately diverge, and showing both would show two asks. */}
+				{outstanding ? (
+					<section className="bg-white rounded-lg border border-slate-200 shadow-sm p-5 sm:p-6">
+						<h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+							Next step
+						</h2>
+						<p className="mt-2 text-sm text-slate-700">{nextStepLine}</p>
+						{/* The officer's own words about THIS ask, so it sits with the
+							    ask and not in the idle state, where nothing was asked. */}
 						{session.request_message && (
-							<div className="mx-auto max-w-[90%] text-center text-xs text-slate-500 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+							<p className="mt-3 border-l-2 border-slate-200 pl-3 text-sm text-slate-600 whitespace-pre-line">
 								{session.request_message}
-							</div>
+							</p>
 						)}
-						{/* PROGRESS, not the ask list. `required_documents` is what the
-						    product declares and is rendered once, on the application step;
-						    this is the live state of the request actually outstanding
-						    against this party — which is the loan officer's own words the
-						    moment they hand-author one, at which point the server stops
-						    regenerating this from the product and the two legitimately
-						    diverge. Rendering both here would show contradictory asks.
-						    Gated on a non-empty list because `Checklist`'s empty state is a
-						    full "You're all caught up" card, and a card like that dropped
-						    into a chat transcript reads as the page having broken. */}
-						{(session.checklist ?? []).length > 0 && (
-							<div className="mb-4">
-								<Checklist items={session.checklist} />
-							</div>
+						{showChecklist && <Checklist items={checklist} className="mt-3" />}
+						<button
+							type="button"
+							onClick={() => fileRef.current?.click()}
+							disabled={uploading}
+							className="mt-4 w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 cursor-pointer transition-colors"
+						>
+							{uploading ? "Uploading…" : "Upload documents"}
+						</button>
+						{session.uploaded_files.length > 0 && (
+							<button
+								type="button"
+								onClick={submit}
+								disabled={finishing}
+								className="mt-2 w-full rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-700 text-sm font-medium py-2.5 cursor-pointer transition-colors"
+							>
+								{finishing ? "Submitting…" : "I've sent everything — submit"}
+							</button>
 						)}
+					</section>
+				) : (
+					// Nothing is outstanding: said once, in one line, with no card
+					// around it and nothing to press. A borrower with nothing to do
+					// should see that and stop reading.
+					<p className="px-1 text-sm text-slate-500">
+						Nothing to do right now — your loan officer will message you here if they need anything.
+					</p>
+				)}
+
+				{/* Upload feedback, whichever control started the upload — the
+				    composer's paperclip calls the same handler as the button above. */}
+				{(uploadError || pickError) && (
+					<div className="flex items-start justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+						<p className="text-xs text-red-700">{pickError ?? uploadError?.message}</p>
+						<button
+							type="button"
+							aria-label="Dismiss upload error"
+							onClick={() => {
+								setPickError(null);
+								clearUploadError();
+							}}
+							className="shrink-0 text-red-400 hover:text-red-600 cursor-pointer"
+						>
+							<X size={14} />
+						</button>
+					</div>
+				)}
+
+				{/* THE CONVERSATION, demoted: where the officer replies, not where
+				    tasks live. Its own card, its own scroller, below the two things
+				    the borrower actually came to read. */}
+				<section className="bg-white rounded-lg border border-slate-200 shadow-sm">
+					<div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200">
+						<h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+							Messages
+						</h2>
+						{session.officer_name && (
+							<span className="min-w-0 truncate text-xs text-slate-500">
+								{session.officer_name}
+							</span>
+						)}
+					</div>
+
+					<div
+						ref={scrollRef}
+						data-testid="thread-scroll"
+						className="max-h-[22rem] overflow-y-auto px-3 py-3 bg-slate-50"
+					>
 						{canLoadOlder && (
 							<div className="mb-3 flex justify-center">
 								<button
 									type="button"
 									onClick={loadEarlierMessages}
 									disabled={loadingOlder}
-									className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-60"
+									className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:border-blue-300 hover:text-blue-700 disabled:opacity-60 cursor-pointer"
 								>
 									{loadingOlder ? "Loading earlier…" : "Load earlier messages"}
 								</button>
@@ -430,8 +529,8 @@ export function BorrowerPortal({
 							const startsRun = !prev || prev.author_kind !== m.author_kind;
 							const endsRun = !next || next.author_kind !== m.author_kind;
 							const isOfficer = m.author_kind !== "borrower";
-							// WhatsApp-style date pill before the first message and at
-							// each calendar-day boundary.
+							// Date pill before the first message and at each calendar-day
+							// boundary.
 							const showDay = i === 0 || !isSameDay(prev.created_at, m.created_at);
 							// Tight grouping: same-author runs hug (mt-0.5); a new speaker
 							// or a day boundary gets clear separation (mt-3). First row flush.
@@ -449,7 +548,9 @@ export function BorrowerPortal({
 										borrowerName={session.entity?.name || "You"}
 										isEditing={m.message_id === editingId}
 										onDelete={() =>
-											submitIntent([{ type: "delete_message", params: { message_id: m.message_id } }])
+											submitIntent([
+												{ type: "delete_message", params: { message_id: m.message_id } },
+											])
 										}
 										onStartEdit={startEdit}
 									/>
@@ -457,7 +558,7 @@ export function BorrowerPortal({
 							);
 						})}
 						{displayedThread.length === 0 && !operatorTyping && (
-							<div className="mt-8 text-center">
+							<div className="py-4 text-center">
 								<p className="text-sm text-slate-400">No messages yet.</p>
 								{/* Gated on `inboundAddress`. `null` is the ordinary case — the
 								    receiving mail domain is unconfigured in every deployment
@@ -474,7 +575,7 @@ export function BorrowerPortal({
 										Or email them to{" "}
 										<a
 											href={inboundMailtoHref(inboundAddress)}
-											className="break-all font-medium text-indigo-600 underline underline-offset-2"
+											className="break-all font-medium text-blue-700 underline underline-offset-2"
 										>
 											{inboundAddress}
 										</a>{" "}
@@ -489,98 +590,93 @@ export function BorrowerPortal({
 								Your loan officer will reply here — we'll let you know.
 							</p>
 						)}
-						{uploading && <div className="flex justify-end"><span className="text-xs text-slate-400">Uploading…</span></div>}
-					</>
-				)}
-				<div ref={bottomRef} />
-			</div>
+					</div>
 
-			<div className="border-t border-slate-200 bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-				{openRequests.length > 0 && session.uploaded_files.length > 0 && (
-					<button
-						type="button"
-						onClick={submit}
-						disabled={finishing}
-						className="w-full mb-2 rounded-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium py-2"
-					>
-						{finishing ? "Submitting…" : "I've sent everything — submit"}
-					</button>
-				)}
-				{(uploadError || pickError) && (
-					<div className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-						<p className="text-xs text-red-700">{pickError ?? uploadError?.message}</p>
-						<button
-							type="button"
-							aria-label="Dismiss upload error"
-							onClick={() => { setPickError(null); clearUploadError(); }}
-							className="shrink-0 text-red-400 hover:text-red-600"
-						>
-							<X size={14} />
-						</button>
+					<div className="border-t border-slate-200 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+						{uploading && <p className="mb-1 text-xs text-slate-400">Uploading…</p>}
+						{editingId && (
+							<div className="flex items-center justify-between text-xs text-blue-700 mb-1">
+								<span className="font-medium">Editing message</span>
+								<button
+									type="button"
+									onClick={cancelEdit}
+									className="text-slate-500 hover:text-slate-700 cursor-pointer"
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+						<div className="flex items-end gap-2">
+							<input
+								ref={fileRef}
+								type="file"
+								multiple
+								accept={ACCEPT_ATTR}
+								className="hidden"
+								onChange={(e) => onFiles(e.target.files)}
+							/>
+							{/* No attaching while editing an existing message — edit is text-only. */}
+							{!editingId && (
+								<button
+									type="button"
+									onClick={() => fileRef.current?.click()}
+									disabled={uploading}
+									aria-label="Attach documents"
+									className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-50 flex items-center justify-center cursor-pointer"
+								>
+									<Paperclip size={18} />
+								</button>
+							)}
+							{/* The second way to send a document: the borrower's own case address,
+							    beside the picker that is the first. Same `inboundAddress` gate as the
+							    empty state above — nothing at all when the server sends `null`.
+							    The static `aria-label` is not a secrecy measure, and nothing here
+							    keeps the address out of the DOM: it is this element's `href`, and in
+							    the empty state above it is the link's text AND its accessible name
+							    (`BorrowerPortal.test.tsx` pins `toHaveAccessibleName(ADDRESS)` there),
+							    so a screen reader on that screen reads it out — deliberately: the
+							    borrower has to be able to hear, read and copy it. What the label buys
+							    is only this: the accessible name of THIS icon-only control is the
+							    static string, so it announces its purpose rather than spelling the
+							    address out every time focus lands on it. The address itself is a
+							    capability of the same class as the access code — guard it where it
+							    could leave the page, not in the markup the borrower is meant to read. */}
+							{!editingId && inboundAddress && (
+								<a
+									href={inboundMailtoHref(inboundAddress)}
+									aria-label="Email your documents"
+									className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"
+								>
+									<Mail size={18} />
+								</a>
+							)}
+							<textarea
+								value={replyText}
+								onChange={(e) => {
+									setReplyText(e.target.value);
+									onTyping();
+								}}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" && !e.shiftKey) {
+										e.preventDefault();
+										sendReply();
+									}
+								}}
+								rows={1}
+								placeholder={editingId ? "Edit message…" : "Message…"}
+								className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
+							/>
+							<button
+								type="button"
+								onClick={sendReply}
+								disabled={sendingReply || !replyText.trim()}
+								className="shrink-0 h-10 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 cursor-pointer transition-colors"
+							>
+								{editingId ? "Save" : "Send"}
+							</button>
+						</div>
 					</div>
-				)}
-				{editingId && (
-					<div className="flex items-center justify-between text-xs text-indigo-600 mb-1">
-						<span className="font-medium">Editing message</span>
-						<button type="button" onClick={cancelEdit} className="text-slate-500 hover:text-slate-700">
-							Cancel
-						</button>
-					</div>
-				)}
-				<div className="flex items-end gap-2">
-					<input ref={fileRef} type="file" multiple accept={ACCEPT_ATTR} className="hidden" onChange={(e) => onFiles(e.target.files)} />
-					{/* No attaching while editing an existing message — edit is text-only. */}
-					{!editingId && (
-						<button
-							type="button"
-							onClick={() => fileRef.current?.click()}
-							disabled={uploading}
-							aria-label="Attach documents"
-							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-50 flex items-center justify-center"
-						>
-							<Paperclip size={18} />
-						</button>
-					)}
-					{/* The second way to send a document: the borrower's own case address,
-					    beside the picker that is the first. Same `inboundAddress` gate as the
-					    empty state above — nothing at all when the server sends `null`.
-					    The static `aria-label` is not a secrecy measure, and nothing here
-					    keeps the address out of the DOM: it is this element's `href`, and in
-					    the empty state above it is the link's text AND its accessible name
-					    (`BorrowerPortal.test.tsx` pins `toHaveAccessibleName(ADDRESS)` there),
-					    so a screen reader on that screen reads it out — deliberately: the
-					    borrower has to be able to hear, read and copy it. What the label buys
-					    is only this: the accessible name of THIS icon-only control is the
-					    static string, so it announces its purpose rather than spelling the
-					    address out every time focus lands on it. The address itself is a
-					    capability of the same class as the access code — guard it where it
-					    could leave the page, not in the markup the borrower is meant to read. */}
-					{!editingId && inboundAddress && (
-						<a
-							href={inboundMailtoHref(inboundAddress)}
-							aria-label="Email your documents"
-							className="shrink-0 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"
-						>
-							<Mail size={18} />
-						</a>
-					)}
-					<textarea
-						value={replyText}
-						onChange={(e) => { setReplyText(e.target.value); onTyping(); }}
-						onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
-						rows={1}
-						placeholder={editingId ? "Edit message…" : "Message…"}
-						className="flex-1 resize-none rounded-2xl border border-slate-300 px-3 py-2 text-sm max-h-32"
-					/>
-					<button
-						type="button"
-						onClick={sendReply}
-						disabled={sendingReply || !replyText.trim()}
-						className="shrink-0 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4"
-					>
-						{editingId ? "Save" : "Send"}
-					</button>
-				</div>
+				</section>
 			</div>
 		</div>
 	);
@@ -650,7 +746,7 @@ function Bubble({
 	// bottom-right INSIDE the bubble. Muted against the bubble background.
 	const meta = !deleted && (
 		<span
-			className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] leading-none ${mine ? "text-indigo-200" : "text-slate-400"}`}
+			className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] leading-none ${mine ? "text-blue-200" : "text-slate-400"}`}
 		>
 			{clockTime(m.created_at)}
 			{m.edited && <span>· edited</span>}
@@ -682,21 +778,21 @@ function Bubble({
 			// has no doc viewer, so uploads are never clickable here).
 			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm bg-slate-100 text-slate-400`}>
 				<Loader2 size={14} className="shrink-0 animate-spin" />
-				<span className="truncate min-w-0">{m.body}</span>
+				<span className="min-w-0 break-all">{m.body}</span>
 				<span className="shrink-0 italic">· Processing…</span>
 			</div>
 		) : (
-			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
-				<FileText size={14} />
-				<span className="truncate min-w-0">{m.body}</span>
-				<Check size={13} className={`shrink-0 ${mine ? "text-indigo-200" : "text-green-500"}`} />
+			<div className={`flex items-center gap-2 max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-700"}`}>
+				<FileText size={14} className="shrink-0" />
+				<span className="min-w-0 break-all">{m.body}</span>
+				<Check size={13} className={`shrink-0 ${mine ? "text-blue-200" : "text-green-500"}`} />
 			</div>
 		)
 	) : (
-		<div className={`max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-indigo-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+		<div className={`max-w-[75%] ${bubbleShape} px-3 py-2 text-sm ${mine ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 			{m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
 			{items.length > 0 && (
-				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-indigo-100" : "text-slate-600"}`}>
+				<ul className={`mt-1 ml-4 list-disc ${mine ? "text-blue-100" : "text-slate-600"}`}>
 					{items.map((it, i) => <li key={i}>{it.title}</li>)}
 				</ul>
 			)}
@@ -705,7 +801,7 @@ function Bubble({
 	);
 
 	return (
-		<div className={`group flex flex-col w-full ${align} ${isEditing ? "rounded-xl ring-2 ring-indigo-300" : ""}`}>
+		<div className={`group flex flex-col w-full ${align} ${isEditing ? "rounded-xl ring-2 ring-blue-300" : ""}`}>
 			{!mine && showOfficerHeader && <OfficerHeader />}
 			{/* Row reads inward from the speaker's side: [avatar][edit][delete][bubble]
 			    for the officer (left), mirrored for the borrower (right). */}
@@ -720,7 +816,7 @@ function Bubble({
 								type="button"
 								onClick={() => onStartEdit(m)}
 								aria-label="Edit message"
-								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-500 p-1"
+								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-blue-700 p-1"
 							>
 								<Pencil size={13} />
 							</button>

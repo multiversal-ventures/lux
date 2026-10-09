@@ -1,9 +1,9 @@
 import type {
 	LoanDecisionInfo,
 	LoanStatusInfo,
+	LoanSummaryField,
 	LoanSummaryInfo,
 } from "@multiversal-ventures/lux-core";
-import { useState } from "react";
 import { LoanActionPill, LoanStatusBadge, loanToneClasses } from "./LoanStatusBadge.js";
 
 export interface LoanStatusCardProps {
@@ -18,12 +18,23 @@ export interface LoanStatusCardProps {
 	className?: string;
 }
 
+/** The loan officer's own label vocabulary (`LoanDecisionPanel`, `CasesTable`):
+ * a small uppercase slate label over the value it names. */
+const LABEL = "text-xs font-medium text-slate-500 uppercase tracking-wider";
+
+/** The pill shape used across the operator surfaces (`CasesTable`,
+ * `LoanStatusBadge`). Shape only — every tone COLOUR still comes from
+ * {@link loanToneClasses}, which stays the single tone → classes map. */
+const PILL = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium";
+
 /**
- * What one borrower is told about one loan.
+ * What one borrower is told about one loan — the hero of their loan screen.
  *
- * Collapsible, defaulting to expanded when a decision exists — a published
- * outcome is the thing they came to read — and collapsed otherwise, so a case
- * still in processing stays a one-line status.
+ * Nothing here is behind a disclosure. The borrower came to read this card, so
+ * the status, the plain-language description and the terms of any published
+ * decision are all on screen at once: it used to collapse to a badge plus a
+ * "View details" button, which hid the one sentence that actually explains
+ * what is happening.
  *
  * Every string the borrower reads is server data: the status label, tone and
  * description come from `borrower_statuses.yaml`, the summary rows from the
@@ -32,64 +43,56 @@ export interface LoanStatusCardProps {
  * term value is rendered without a decision to carry it.
  */
 export function LoanStatusCard({ status, summary, decision, className }: LoanStatusCardProps) {
-	const [expanded, setExpanded] = useState<boolean>(Boolean(decision));
 	const subject = summary?.property_label || summary?.product_label || null;
-	const toggleLabel = decision
-		? expanded
-			? "Hide terms"
-			: "View terms"
-		: expanded
-			? "Hide details"
-			: "View details";
+	// The product line is a SUBTITLE only when the subject above it is something
+	// else; when the product's own name is the title, repeating it is noise.
+	// `property_label` is nullable and can be a person's name, so the pair is
+	// tested rather than assumed.
+	const productSubtitle =
+		summary?.property_label && summary?.product_label ? summary.product_label : null;
 
 	return (
-		<div
-			className={`bg-white rounded-lg border border-slate-200 shadow-sm p-6${className ? ` ${className}` : ""}`}
+		<section
+			className={`bg-white rounded-lg border border-slate-200 shadow-sm p-5 sm:p-6${className ? ` ${className}` : ""}`}
 		>
-			<div className="flex items-start justify-between gap-4">
-				<div className="min-w-0">
-					{subject ? (
-						<h3 className="text-base font-semibold text-slate-900 truncate">{subject}</h3>
-					) : null}
-					{subject && summary?.product_label && summary.property_label ? (
-						<p className="text-sm text-slate-500">{summary.product_label}</p>
-					) : null}
-					<div className="flex items-center gap-2 mt-2 flex-wrap">
-						<LoanStatusBadge status={status} />
-						<LoanActionPill status={status} />
-					</div>
-				</div>
-				<button
-					type="button"
-					onClick={() => setExpanded((v) => !v)}
-					aria-expanded={expanded}
-					className="shrink-0 text-sm font-medium text-blue-700 hover:text-blue-900 cursor-pointer transition-colors"
-				>
-					{toggleLabel}
-				</button>
+			{subject ? (
+				<h2 className="text-lg font-semibold text-slate-900 break-words">{subject}</h2>
+			) : null}
+			{productSubtitle ? <p className="text-sm text-slate-500">{productSubtitle}</p> : null}
+
+			<div className="flex items-center gap-2 mt-3 flex-wrap">
+				<LoanStatusBadge status={status} />
+				<LoanActionPill status={status} />
 			</div>
 
-			{expanded ? (
-				<div className="mt-4 space-y-4">
-					{status.description ? (
-						<p className="text-sm text-slate-600">{status.description}</p>
-					) : null}
-
-					{summary?.fields?.length ? (
-						<dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-							{summary.fields.map((field) => (
-								<div key={field.label} className="flex items-baseline justify-between gap-3">
-									<dt className="text-xs text-slate-500 uppercase tracking-wider">{field.label}</dt>
-									<dd className="text-sm font-medium text-slate-900">{field.display}</dd>
-								</div>
-							))}
-						</dl>
-					) : null}
-
-					{decision ? <DecisionBlock decision={decision} /> : null}
-				</div>
+			{status.description ? (
+				<p className="mt-3 text-sm text-slate-700">{status.description}</p>
 			) : null}
-		</div>
+
+			{summary?.fields?.length ? <FieldRows fields={summary.fields} /> : null}
+
+			{decision ? <DecisionBlock decision={decision} /> : null}
+		</section>
+	);
+}
+
+/** One labelled value per row — the loan summary's rows and a decision's terms
+ * are the same shape, so they are the same renderer. One column on a phone,
+ * two from `sm`. Values are printed exactly as the server sent them. */
+function FieldRows({ fields, strong = false }: { fields: LoanSummaryField[]; strong?: boolean }) {
+	return (
+		<dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+			{fields.map((field) => (
+				<div key={field.label} className="flex items-baseline justify-between gap-3">
+					<dt className={LABEL}>{field.label}</dt>
+					<dd
+						className={`text-sm text-slate-900 text-right ${strong ? "font-semibold" : "font-medium"}`}
+					>
+						{field.display}
+					</dd>
+				</div>
+			))}
+		</dl>
 	);
 }
 
@@ -108,17 +111,8 @@ function DecisionBlock({ decision }: { decision: LoanDecisionInfo }) {
 	const decidedOn = formatDate(decision.decided_at);
 
 	return (
-		<div className="border-t border-slate-100 pt-4 space-y-4">
-			{decision.terms.length ? (
-				<dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-					{decision.terms.map((term) => (
-						<div key={term.label} className="flex items-baseline justify-between gap-3">
-							<dt className="text-xs text-slate-500 uppercase tracking-wider">{term.label}</dt>
-							<dd className="text-sm font-semibold text-slate-900">{term.display}</dd>
-						</div>
-					))}
-				</dl>
-			) : null}
+		<div className="border-t border-slate-100 mt-5 pt-4 space-y-4">
+			{decision.terms.length ? <FieldRows fields={decision.terms} strong /> : null}
 
 			{decision.message ? (
 				<p className="text-sm text-slate-700 whitespace-pre-line">{decision.message}</p>
@@ -126,14 +120,10 @@ function DecisionBlock({ decision }: { decision: LoanDecisionInfo }) {
 
 			{decision.conditions.length ? (
 				<div className="space-y-2">
-					<div className="flex items-center gap-2">
-						<h4 className="text-sm font-semibold text-slate-900">Conditions</h4>
+					<div className="flex items-center gap-2 flex-wrap">
+						<h3 className={LABEL}>Conditions</h3>
 						{stateLabel ? (
-							<span
-								className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${loanToneClasses(
-									outstanding ? "warning" : "success",
-								)}`}
-							>
+							<span className={`${PILL} ${loanToneClasses(outstanding ? "warning" : "success")}`}>
 								{stateLabel}
 							</span>
 						) : null}
@@ -151,7 +141,12 @@ function DecisionBlock({ decision }: { decision: LoanDecisionInfo }) {
 							</li>
 						))}
 					</ul>
-					{outstanding ? <p className="text-sm text-slate-600">Upload in the chat below</p> : null}
+					{/* Points at the ONE place the loan screen offers an upload — the
+					    "Next step" section below this card — rather than at the chat,
+					    which is now the conversation and not where tasks live. */}
+					{outstanding ? (
+						<p className="text-sm text-slate-600">Upload them under Next step below.</p>
+					) : null}
 				</div>
 			) : null}
 

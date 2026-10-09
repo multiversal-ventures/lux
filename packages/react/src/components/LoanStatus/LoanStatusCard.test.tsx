@@ -90,28 +90,32 @@ function decision(overrides: Partial<LoanDecisionInfo> = {}): LoanDecisionInfo {
 }
 
 describe("LoanStatusCard", () => {
-	it.each(Object.keys(STATUSES))("renders the %s status label and description", async (key) => {
+	it.each(Object.keys(STATUSES))("renders the %s status label and description", (key) => {
 		render(<LoanStatusCard status={STATUSES[key]} summary={SUMMARY} />);
 		expect(screen.getByText(STATUSES[key].label)).toBeInTheDocument();
-		// The description is YAML copy, so it is only ever read, never derived.
-		await userEvent.click(screen.getByRole("button", { name: /view details/i }));
+		// The description is YAML copy, so it is only ever read, never derived —
+		// and it is on screen immediately. The card used to collapse to the badge
+		// alone, which hid the one sentence that explains what is happening; the
+		// click that used to be here is gone because the disclosure is gone.
 		expect(screen.getByText(STATUSES[key].description)).toBeInTheDocument();
 	});
 
-	it("starts collapsed without a decision and shows only the badge", async () => {
+	// This replaces "starts collapsed without a decision and shows only the
+	// badge". The card is the hero of the borrower's loan screen now, so there is
+	// no disclosure at all: hiding the status description and the loan's own
+	// numbers behind "View details" is what made the screen unreadable. The
+	// property pinned here is the one that matters — nothing the borrower needs
+	// in order to understand their loan is behind a click.
+	it("shows the status, its description and the summary with nothing to open", () => {
 		render(<LoanStatusCard status={STATUSES.under_review} summary={SUMMARY} />);
 		expect(screen.getByText("Under review")).toBeInTheDocument();
-		expect(screen.queryByText("Your loan officer is reviewing your file.")).not.toBeInTheDocument();
-		expect(screen.queryByText("$420,000")).not.toBeInTheDocument();
-	});
-
-	it("shows the YAML description and the summary fields once expanded", async () => {
-		render(<LoanStatusCard status={STATUSES.under_review} summary={SUMMARY} />);
-		await userEvent.click(screen.getByRole("button", { name: /view details/i }));
 		expect(screen.getByText("Your loan officer is reviewing your file.")).toBeInTheDocument();
 		expect(screen.getByText("Loan amount")).toBeInTheDocument();
 		expect(screen.getByText("$420,000")).toBeInTheDocument();
 		expect(screen.getByText("Purpose")).toBeInTheDocument();
+		// No disclosure control of any kind — not a collapsed one, not an
+		// expanded one.
+		expect(screen.queryByRole("button", { name: /details|terms/i })).not.toBeInTheDocument();
 	});
 
 	it("titles the card with the product label when there is no subject yet", () => {
@@ -145,12 +149,15 @@ describe("LoanStatusCard", () => {
 		).toBeInTheDocument();
 	});
 
-	it("offers to hide the terms of a decision it has expanded", async () => {
+	// This replaces "offers to hide the terms of a decision it has expanded".
+	// The View/Hide terms toggle is gone with the rest of the disclosure, so what
+	// is pinned instead is the property it protected: a published decision's
+	// terms are readable, alongside the status badge, with no interaction.
+	it("shows a decision's terms and the badge together, with no toggle", () => {
 		render(<LoanStatusCard status={STATUSES.approved} summary={SUMMARY} decision={decision()} />);
-		await userEvent.click(screen.getByRole("button", { name: /hide terms/i }));
-		expect(screen.queryByText("1.28")).not.toBeInTheDocument();
-		expect(screen.getByRole("button", { name: /view terms/i })).toBeInTheDocument();
+		expect(screen.getByText("1.28")).toBeInTheDocument();
 		expect(screen.getByText("Approved")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /terms|details/i })).not.toBeInTheDocument();
 	});
 
 	it("lists outstanding conditions and says where to send them", () => {
@@ -173,7 +180,7 @@ describe("LoanStatusCard", () => {
 		expect(screen.getByText("All schedules, signed.")).toBeInTheDocument();
 		expect(screen.getByText("Hazard insurance binder")).toBeInTheDocument();
 		expect(screen.getByText("Outstanding")).toBeInTheDocument();
-		expect(screen.getByText("Upload in the chat below")).toBeInTheDocument();
+		expect(screen.getByText("Upload them under Next step below.")).toBeInTheDocument();
 	});
 
 	it("marks fulfilled conditions received and stops asking for them", () => {
@@ -191,7 +198,7 @@ describe("LoanStatusCard", () => {
 		);
 		expect(screen.getByText("Received")).toBeInTheDocument();
 		expect(screen.queryByText("Outstanding")).not.toBeInTheDocument();
-		expect(screen.queryByText("Upload in the chat below")).not.toBeInTheDocument();
+		expect(screen.queryByText("Upload them under Next step below.")).not.toBeInTheDocument();
 	});
 
 	it("shows the officer's note on a declined loan", () => {

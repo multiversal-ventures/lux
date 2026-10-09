@@ -1,103 +1,79 @@
 import type { ChecklistItem } from "@multiversal-ventures/lux-core";
+import { Check } from "lucide-react";
+import { loanToneClasses } from "../LoanStatus/LoanStatusBadge.js";
 
 export interface ChecklistProps {
 	items: ChecklistItem[];
 	className?: string;
 }
 
-function ChecklistItemCard({ item }: { item: ChecklistItem }) {
-	const isVerified = item.status === "verified";
+/** The only status value that means "we have this" in the portal contract.
+ * Everything else — `needed` (an officer's hand-picked item), `incomplete` and
+ * `info` (a finding) — is still owed. */
+const DONE = "verified";
 
-	if (isVerified) {
-		return (
-			<div className="bg-white border border-green-200 rounded-xl p-4 flex items-center gap-3">
-				<span className="text-green-600">&#10003;</span>
-				<span className="text-slate-700">{item.title}</span>
-			</div>
-		);
-	}
+/** Operator pill shape (`CasesTable`, `LoanStatusBadge`); its colour comes from
+ * {@link loanToneClasses}, the single tone → classes map. */
+const PILL = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium";
+
+/**
+ * What the borrower still owes, as a compact list.
+ *
+ * Deliberately NOT cards. Four full-width hero cards for four documents dwarfed
+ * the status card that should be the most important thing on the page, so a row
+ * is one line of title, one line of detail, and a done/outstanding marker.
+ *
+ * It prints no count of its own: the number of outstanding things lives in
+ * `loan_status.action_count` and is rendered once, by the caller. Two counts
+ * derived from two lists is how a page ends up contradicting itself.
+ *
+ * The priority tag shows ONLY when the items actually differ — "high" on every
+ * row carries no information. Pure renderer: all state comes from `items`, and
+ * an empty list renders nothing at all so the caller owns its own empty copy.
+ */
+export function Checklist({ items, className }: ChecklistProps) {
+	if (items.length === 0) return null;
+
+	const outstanding = items.filter((item) => item.status !== DONE);
+	const done = items.filter((item) => item.status === DONE);
+	// A tag that is the same on every row is noise; one that differs is a signal.
+	const distinctPriorities = new Set(items.map((item) => item.priority).filter(Boolean));
+	const showPriority = distinctPriorities.size > 1;
 
 	return (
-		<div className="bg-white border border-slate-200 rounded-xl p-5">
-			<div className="flex items-start justify-between">
-				<div>
-					<h3 className="font-semibold text-slate-900">{item.title}</h3>
-					{item.detail && (
-						<p className="text-sm text-slate-600 mt-1">{item.detail}</p>
-					)}
-				</div>
-				{item.priority && (
-					<span
-						className={`text-xs font-medium px-2 py-1 rounded-full ${
-							item.priority === "high"
-								? "bg-red-100 text-red-700"
-								: "bg-amber-100 text-amber-700"
-						}`}
-					>
-						{item.priority}
-					</span>
-				)}
-			</div>
-			{item.action && (
-				<p className="text-sm text-blue-600 mt-3">{item.action}</p>
-			)}
-		</div>
+		<ul className={`divide-y divide-slate-100${className ? ` ${className}` : ""}`}>
+			{[...outstanding, ...done].map((item) => (
+				<ChecklistRow key={item.id} item={item} showPriority={showPriority} />
+			))}
+		</ul>
 	);
 }
 
-/**
- * Renders a session checklist — incomplete items first, then verified items.
- * Pure renderer: all state comes from the `items` prop.
- */
-export function Checklist({ items, className }: ChecklistProps) {
-	const incompleteItems = items.filter((i) => i.status !== "verified");
-	const verifiedItems = items.filter((i) => i.status === "verified");
-
-	if (items.length === 0) {
-		return (
-			<div
-				className={`bg-white rounded-xl border border-slate-200 p-8 text-center${className ? ` ${className}` : ""}`}
-			>
-				<div className="text-3xl mb-3">&#9989;</div>
-				<h2 className="text-xl font-semibold text-slate-900 mb-2">
-					You&apos;re all caught up
-				</h2>
-				<p className="text-slate-600 max-w-sm mx-auto">
-					Your loan officer hasn&apos;t requested any documents or actions
-					yet. When they do, the items will appear here. Check back later
-					or wait for a notification.
-				</p>
-			</div>
-		);
-	}
-
+function ChecklistRow({ item, showPriority }: { item: ChecklistItem; showPriority: boolean }) {
+	const isDone = item.status === DONE;
 	return (
-		<div className={`space-y-6${className ? ` ${className}` : ""}`}>
-			{incompleteItems.length > 0 && (
-				<section>
-					<h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-						Action needed ({incompleteItems.length})
-					</h2>
-					<div className="space-y-3">
-						{incompleteItems.map((item) => (
-							<ChecklistItemCard key={item.id} item={item} />
-						))}
-					</div>
-				</section>
+		<li className="flex items-start gap-3 py-3">
+			{/* The state is a shape and a colour for a sighted reader and a word for
+			    a screen reader — no row repeats "Needed" on screen, because a label
+			    on every row is the "high on everything" problem again. */}
+			{isDone ? (
+				<Check size={16} className="mt-0.5 shrink-0 text-green-600" aria-hidden="true" />
+			) : (
+				<span
+					aria-hidden="true"
+					className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-slate-300"
+				/>
 			)}
-
-			{verifiedItems.length > 0 && (
-				<section>
-					<h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-						Completed ({verifiedItems.length})
-					</h2>
-					<div className="space-y-2">
-						{verifiedItems.map((item) => (
-							<ChecklistItemCard key={item.id} item={item} />
-						))}
-					</div>
-				</section>
-			)}
-		</div>
+			<div className="min-w-0 flex-1">
+				<p className={`text-sm font-medium ${isDone ? "text-slate-500" : "text-slate-900"}`}>
+					<span className="sr-only">{isDone ? "Received: " : "Still needed: "}</span>
+					{item.title}
+				</p>
+				{item.detail ? <p className="text-xs text-slate-500 mt-0.5">{item.detail}</p> : null}
+			</div>
+			{showPriority && item.priority ? (
+				<span className={`${PILL} shrink-0 ${loanToneClasses("neutral")}`}>{item.priority}</span>
+			) : null}
+		</li>
 	);
 }

@@ -395,17 +395,24 @@ function mountHub(overrides: Record<string, unknown> = {}, props: { onBack?: () 
 }
 
 describe("BorrowerPortal loan status card", () => {
-	it("pins the loan status card above the thread", () => {
-		const { container } = mountHub({ loan_status: LOAN_STATUS, loan_summary: LOAN_SUMMARY });
+	it("puts the loan status card above the thread and outside its scroller", () => {
+		mountHub({ loan_status: LOAN_STATUS, loan_summary: LOAN_SUMMARY });
 
 		const card = screen.getByTestId("loan-status-card");
 		expect(card).toBeInTheDocument();
 		expect(screen.getByText("Additional documents needed")).toBeInTheDocument();
 
-		// A card inside the scroll container would scroll away with the thread.
-		const scroller = container.querySelector(".overflow-y-auto") as HTMLElement;
-		expect(scroller).toBeTruthy();
-		expect(scroller.contains(card)).toBe(false);
+		// Same property as before, re-expressed against the new layout: the page
+		// scrolls as a whole now and the conversation scrolls inside its own card,
+		// so "not in the scroll container" is a claim about THAT scroller — a card
+		// inside it would scroll away with the thread. Queried by test id rather
+		// than by `.overflow-y-auto`, which the page scroller also carries.
+		const thread = screen.getByTestId("thread-scroll");
+		expect(thread.className).toContain("overflow-y-auto");
+		expect(thread.contains(card)).toBe(false);
+		// And it is ABOVE the thread, not merely outside it: nothing auto-scrolls
+		// the page, so first paint shows the status card.
+		expect(card.compareDocumentPosition(thread) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
 	it("renders no status card when the session has no loan_status", () => {
@@ -425,5 +432,138 @@ describe("BorrowerPortal loan status card", () => {
 	it("shows none when it is not", () => {
 		mountHub({ loan_status: LOAN_STATUS });
 		expect(screen.queryByRole("button", { name: /my loans/i })).not.toBeInTheDocument();
+	});
+});
+
+// ─── One count, one next action ───────────────────────────────────────────────
+
+/** An officer's hand-picked request items, as the session carries them: the
+ * server builds this list from the latest SENT request and stamps every row
+ * `status: "needed"`, whether or not that request is still open. */
+const REQUEST_ITEMS = [
+	{
+		id: "r1",
+		title: "Property appraisal",
+		detail: "The full PDF.",
+		status: "needed",
+		priority: "high",
+		action: "Upload",
+	},
+	{
+		id: "r2",
+		title: "Property tax bill",
+		detail: "Most recent year.",
+		status: "needed",
+		priority: "high",
+		action: "Upload",
+	},
+];
+
+describe("BorrowerPortal — how much is outstanding", () => {
+	beforeEach(() => {
+		mockUsePortalSession.mockReset();
+	});
+
+	it("drives the header line, the card's pill and the next step from action_count", () => {
+		mountHub({
+			loan_status: { ...LOAN_STATUS, action_count: 2 },
+			loan_summary: LOAN_SUMMARY,
+			checklist: REQUEST_ITEMS,
+		});
+
+		// The header counted open request MESSAGES in the thread and said "All
+		// caught up" while the list below asked for two documents. There is one
+		// field for this now, and all three readings of it agree.
+		expect(screen.getByText("Action needed")).toBeInTheDocument();
+		// The count itself is printed exactly once, by the card's action pill.
+		expect(screen.getAllByText("2 actions needed")).toHaveLength(1);
+		expect(screen.getByText("Next step")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Upload documents" })).toBeInTheDocument();
+		expect(screen.getByText("Property appraisal")).toBeInTheDocument();
+		expect(screen.getByText("Property tax bill")).toBeInTheDocument();
+		// Nothing anywhere says the borrower is done while two documents are owed.
+		expect(screen.queryByText(/nothing/i)).toBeNull();
+	});
+
+	it("says nothing is outstanding — once — when the count is zero, even with a stale request list", () => {
+		// The contradiction this page shipped with: `checklist` is the latest sent
+		// request's items and survives that request closing, so a borrower who had
+		// already sent everything was told "All caught up" at the top, "Under
+		// review" in the middle and "two documents, high priority" below.
+		// `action_count` is the only thing that says what is still owed.
+		mountHub({
+			loan_status: {
+				...LOAN_STATUS,
+				key: "under_review",
+				label: "Under review",
+				tone: "info",
+				action_count: 0,
+			},
+			loan_summary: LOAN_SUMMARY,
+			checklist: REQUEST_ITEMS,
+		});
+
+		expect(screen.getByText("Under review")).toBeInTheDocument();
+		expect(screen.getByText("Nothing needed from you right now")).toBeInTheDocument();
+		expect(screen.getByText(/nothing to do right now/i)).toBeInTheDocument();
+		// No ask, no count, no rows from the closed request.
+		expect(screen.queryByText("Next step")).toBeNull();
+		expect(screen.queryByRole("button", { name: "Upload documents" })).toBeNull();
+		expect(screen.queryByText("Property appraisal")).toBeNull();
+		expect(screen.queryByText(/actions? needed/i)).toBeNull();
+		// The composer's own attach control is NOT gated on an open request — it is
+		// how a borrower sends something the officer asked for in chat.
+		expect(screen.getByLabelText("Attach documents")).toBeInTheDocument();
+	});
+
+	it("still lists the request when the server sends no loan_status at all", () => {
+		// A server predating `loan_status` publishes no count. Absent is not zero:
+		// the rows are then the only evidence of what is outstanding, so they are
+		// shown — with no count printed anywhere, because none was sent.
+		mountHub({ checklist: REQUEST_ITEMS });
+
+		expect(screen.queryByTestId("loan-status-card")).not.toBeInTheDocument();
+		expect(screen.getByText("Next step")).toBeInTheDocument();
+		expect(screen.getByText("Property appraisal")).toBeInTheDocument();
+		expect(screen.getByText("Action needed")).toBeInTheDocument();
+		// No count was sent, so none is invented.
+		expect(screen.queryByText(/\d+ actions? needed/i)).toBeNull();
+	});
+
+	it("drops the priority tag when every item carries the same priority", () => {
+		// "high" on all four documents was the state this shipped in, and it told
+		// the borrower nothing. The tag survives only where the items differ.
+		const { unmount } = mountHub({
+			loan_status: { ...LOAN_STATUS, action_count: 2 },
+			checklist: REQUEST_ITEMS,
+		});
+		expect(screen.queryByText("high")).toBeNull();
+
+		unmount();
+
+		// POSITIVE CONTROL: same list, one row's priority changed.
+		mountHub({
+			loan_status: { ...LOAN_STATUS, action_count: 2 },
+			checklist: [REQUEST_ITEMS[0], { ...REQUEST_ITEMS[1], priority: "medium" }],
+		});
+		expect(screen.getByText("high")).toBeInTheDocument();
+		expect(screen.getByText("medium")).toBeInTheDocument();
+	});
+
+	it("offers the submit control only once something has been uploaded against an open ask", () => {
+		const { unmount } = mountHub({
+			loan_status: { ...LOAN_STATUS, action_count: 2 },
+			checklist: REQUEST_ITEMS,
+		});
+		expect(screen.queryByRole("button", { name: /sent everything/i })).toBeNull();
+
+		unmount();
+
+		mountHub({
+			loan_status: { ...LOAN_STATUS, action_count: 2 },
+			checklist: REQUEST_ITEMS,
+			uploaded_files: ["appraisal.pdf"],
+		});
+		expect(screen.getByRole("button", { name: /sent everything/i })).toBeInTheDocument();
 	});
 });
